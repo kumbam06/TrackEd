@@ -10,6 +10,5 @@ import SwiftUI
 public struct ProfileView: View {
     public var body: some View {
         Text("Profile View")
-        Color.yellow
     }
 }

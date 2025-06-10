@@ -9,6 +9,7 @@ import SwiftUI
 
 public struct ChatsView: View {
     public var body: some View {
-        Text("ChatsView")
+        Text("Chats View")
+            .accessibilityIdentifier("ChatsView")
     }
 }

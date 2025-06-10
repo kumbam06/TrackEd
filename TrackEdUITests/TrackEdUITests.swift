@@ -23,14 +23,35 @@ final class TrackEdUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testTabBarNavigation() throws {
         let app = XCUIApplication()
         app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        
+        let homeTab = app.buttons["Home"]
+        XCTAssertTrue(homeTab.exists)
+        homeTab.tap()
+        
+        let plannerTab = app.buttons["Planner"]
+        XCTAssertTrue(plannerTab.exists)
+        plannerTab.tap()
+        
+        let chatsTab = app.buttons["Chats"]
+        XCTAssertTrue(chatsTab.exists)
+        chatsTab.tap()
+        
+        let chatsText = app.staticTexts["Chats View"]
+        XCTAssertTrue(chatsText.exists)
+        
+        let askAITab = app.buttons["Ask AI"]
+        XCTAssertTrue(askAITab.exists)
+        askAITab.tap()
+        
+        let profileTab = app.buttons["Profile"]
+        XCTAssertTrue(profileTab.exists)
+        profileTab.tap()
+        
     }
-
+    
     @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.

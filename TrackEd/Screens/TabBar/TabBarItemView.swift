@@ -19,15 +19,16 @@ struct TabBarItemView: View {
             VStack(spacing: 4){
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(isSelected ? .white : .gray)
+                    .foregroundStyle(isSelected ? .blue : .gray)
                 
                 Text(label)
                     .font(.caption)
-                    .foregroundStyle(isSelected ? .white : .gray)
+                    .foregroundStyle(isSelected ? .blue : .gray)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .padding(.horizontal, 8)
         }
+        .accessibilityIdentifier(label)
     }
 }
