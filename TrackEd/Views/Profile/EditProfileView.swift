@@ -7,6 +7,8 @@
 
 import SwiftUI
 import PhotosUI
+import Firebase
+import FirebaseAuth
 
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
@@ -23,6 +25,20 @@ struct EditProfileView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var profileImage: UIImage?
     @State private var username = ""
+    @State private var dob: Date = Date()
+    @State private var address: String = ""
+    @State private var debouncedUsername = ""
+    @State private var debouncedFirstName = ""
+    @State private var debouncedLastName = ""
+    @State private var debouncedRole = ""
+    @State private var debouncedBio = ""
+    @State private var debouncedEmail = ""
+    @State private var debouncedPhone = ""
+    @State private var debouncedLinkedin = ""
+    @State private var debouncedWebsite = ""
+    @State private var debouncedAddress = ""
+    @State private var debounceWorkItem: DispatchWorkItem? = nil
+    private let debounceDelay = 0.25
     
     var body: some View {
         NavigationView {
@@ -149,18 +165,28 @@ struct EditProfileView: View {
                 TextField("USERNAME", text: $username)
                     .autocapitalization(.none)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: username) { debounceInput($0, for: "username") }
                 HStack(spacing: 12) {
                     TextField("FIRST NAME", text: $firstName)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .onChange(of: firstName) { debounceInput($0, for: "firstName") }
                     TextField("LAST NAME", text: $lastName)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .onChange(of: lastName) { debounceInput($0, for: "lastName") }
                 }
                 TextField("ROLE/TITLE", text: $role)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: role) { debounceInput($0, for: "role") }
                 TextEditor(text: $bio)
                     .frame(height: 100)
                     .background(Color(.systemGray5))
                     .cornerRadius(8)
+                    .onChange(of: bio) { debounceInput($0, for: "bio") }
+                DatePicker("DATE OF BIRTH", selection: $dob, displayedComponents: .date)
+                    .datePickerStyle(CompactDatePickerStyle())
+                TextField("ADDRESS", text: $address)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: address) { debounceInput($0, for: "address") }
             }
         }
     }
@@ -177,9 +203,11 @@ struct EditProfileView: View {
                 TextField("EMAIL", text: $email)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
+                    .onChange(of: email) { debounceInput($0, for: "email") }
                 
                 TextField("PHONE", text: $phone)
                     .keyboardType(.phonePad)
+                    .onChange(of: phone) { debounceInput($0, for: "phone") }
             }
         }
         .padding(20)
@@ -199,9 +227,11 @@ struct EditProfileView: View {
             VStack(spacing: 16) {
                 TextField("LINKEDIN", text: $linkedin)
                     .autocapitalization(.none)
+                    .onChange(of: linkedin) { debounceInput($0, for: "linkedin") }
                 
                 TextField("WEBSITE", text: $website)
                     .autocapitalization(.none)
+                    .onChange(of: website) { debounceInput($0, for: "website") }
             }
         }
         .padding(20)
@@ -222,6 +252,12 @@ struct EditProfileView: View {
         linkedin = profile.linkedin ?? ""
         website = profile.website ?? ""
         username = profile.username ?? ""
+        if let profileDob = profile.dob {
+            dob = profileDob
+        } else {
+            dob = Date()
+        }
+        address = profile.address ?? ""
     }
     
     private func saveProfile() {
@@ -238,13 +274,40 @@ struct EditProfileView: View {
             bio: bio,
             linkedin: linkedin,
             website: website,
-            username: username
+            username: username,
+            dob: dob,
+            address: address
         )
-        
         if let profileImage = profileImage {
             profileManager.updateProfilePhoto(profileImage)
         }
-        
+        // Force reload from Firestore to update all screens
+        if let userId = Auth.auth().currentUser?.uid {
+            profileManager.loadProfileFromFirestore(uid: userId)
+        }
         dismiss()
+    }
+    
+    private func debounceInput(_ value: String, for field: String) {
+        debounceWorkItem?.cancel()
+        let workItem = DispatchWorkItem {
+            DispatchQueue.main.async {
+                switch field {
+                case "username": self.debouncedUsername = value
+                case "firstName": self.debouncedFirstName = value
+                case "lastName": self.debouncedLastName = value
+                case "role": self.debouncedRole = value
+                case "bio": self.debouncedBio = value
+                case "email": self.debouncedEmail = value
+                case "phone": self.debouncedPhone = value
+                case "linkedin": self.debouncedLinkedin = value
+                case "website": self.debouncedWebsite = value
+                case "address": self.debouncedAddress = value
+                default: break
+                }
+            }
+        }
+        debounceWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: workItem)
     }
 } 

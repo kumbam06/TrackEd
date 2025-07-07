@@ -17,37 +17,41 @@ struct ProgressDashboardView: View {
     
     @State private var selectedTimeframe: Timeframe = .week
     @State private var showingAchievementDetails = false
+    @State private var isLoading = false
     
     var body: some View {
         NavigationView {
             ZStack {
                 Color("appScreenBG")
                     .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Header with timeframe selector
-                        headerSection
-                        
-                        // Key Metrics Overview
-                        keyMetricsSection
-                        
-                        // Productivity Trends
-                        productivityTrendsSection
-                        
-                        // Career Progress
-                        careerProgressSection
-                        
-                        // Skills Development
-                        skillsDevelopmentSection
-                        
-                        // Recent Achievements
-                        recentAchievementsSection
-                        
-                        // Category Breakdown
-                        categoryBreakdownSection
+                if isLoading {
+                    CustomLoaderOverlay()
+                } else {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // Header with timeframe selector
+                            headerSection
+                            
+                            // Key Metrics Overview
+                            keyMetricsSection
+                            
+                            // Productivity Trends
+                            productivityTrendsSection
+                            
+                            // Career Progress
+                            careerProgressSection
+                            
+                            // Skills Development
+                            skillsDevelopmentSection
+                            
+                            // Recent Achievements
+                            recentAchievementsSection
+                            
+                            // Category Breakdown
+                            categoryBreakdownSection
+                        }
+                        .padding()
                     }
-                    .padding()
                 }
             }
             .navigationTitle("Progress Dashboard")

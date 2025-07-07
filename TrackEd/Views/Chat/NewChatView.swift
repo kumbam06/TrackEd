@@ -1,126 +1,209 @@
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
+
+struct UserSuggestion: Identifiable {
+    let id: String // UID
+    let username: String
+    let displayName: String?
+    let photoURL: String?
+}
 
 struct NewChatView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var chatService: FirestoreChatService
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var userId = ""
+    @State private var searchText = ""
+    @State private var suggestions: [UserSuggestion] = []
+    @State private var isLoadingSuggestions = false
     @State private var isLoading = false
     @State private var error: String?
     @State private var showErrorAlert = false
     @State private var createdChat: Chat? = nil
+    @FocusState private var isSearchFocused: Bool
+    var onChatCreated: ((Chat) -> Void)? = nil
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                Text("Start New Chat")
-                    .font(.title)
-                    .fontWeight(.bold)
-                TextField("Enter user ID or email", text: $userId)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                Button(action: startChat) {
-                    if isLoading {
+            ZStack {
+                Color("appScreenBG").ignoresSafeArea()
+                VStack(spacing: 28) {
+                    HStack {
+                        Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                            Image(systemName: "chevron.left")
+                                .font(.title2)
+                                .foregroundColor(Color("appPrimaryAccent"))
+                                .padding(8)
+                                .background(Color("appPrimaryAccent").opacity(0.08))
+                                .clipShape(Circle())
+                        }
+                        Spacer()
+                        Text("Start New Chat")
+                            .font(.title2)
+                            .fontWeight(.heavy)
+                            .foregroundColor(Color("appTextPrimary"))
+                        Spacer(minLength: 32)
+                    }
+                    .padding(.top, 16)
+                    .padding(.horizontal, 8)
+                    
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(Color("appPrimaryAccent"))
+                        TextField("Search username...", text: $searchText)
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(Color("appTextPrimary"))
+                            .onChange(of: searchText) { newValue in
+                                fetchUserSuggestions(for: newValue)
+                            }
+                            .focused($isSearchFocused)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color("appCardBG"))
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
+                    .padding(.horizontal, 8)
+                    
+                    if isLoadingSuggestions {
                         ProgressView()
-                    } else {
-                        Text("Start Chat")
-                            .fontWeight(.semibold)
+                            .progressViewStyle(CircularProgressViewStyle(tint: Color("appPrimaryAccent")))
+                            .scaleEffect(1.1)
                     }
-                }
-                .disabled(userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
-                Spacer()
-            }
-            .padding()
-            .navigationBarItems(leading: Button("Cancel") { presentationMode.wrappedValue.dismiss() })
-            .sheet(item: $createdChat) { chat in
-                if let myId = authViewModel.user?.uid {
-                    ChatDetailView(chat: chat, userId: myId, chatService: chatService)
-                }
-            }
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text("Error"),
-                    message: Text(error ?? "Unknown error"),
-                    dismissButton: .default(Text("OK")) {
-                        error = nil
+                    
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            ForEach(suggestions) { user in
+                                Button(action: { createChatWith(participantId: user.id) }) {
+                                    HStack(spacing: 16) {
+                                        if let url = user.photoURL, let imageURL = URL(string: url) {
+                                            AsyncImage(url: imageURL) { image in
+                                                image.resizable().frame(width: 44, height: 44).clipShape(Circle())
+                                            } placeholder: {
+                                                Circle().fill(Color.gray.opacity(0.2)).frame(width: 44, height: 44)
+                                            }
+                                        } else {
+                                            Circle().fill(Color("appPrimaryAccent").opacity(0.12)).frame(width: 44, height: 44)
+                                                .overlay(Image(systemName: "person.fill").foregroundColor(Color("appPrimaryAccent")))
+                                        }
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(user.displayName ?? user.username)
+                                                .font(.headline)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(Color("appTextPrimary"))
+                                            Text("@\(user.username)")
+                                                .font(.caption)
+                                                .foregroundColor(Color("appTextSecondary"))
+                                        }
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                    .background(Color("appCardBG"))
+                                    .cornerRadius(16)
+                                    .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.top, 4)
                     }
-                )
+                    .frame(maxHeight: 320)
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .alert(isPresented: $showErrorAlert) {
+                    Alert(
+                        title: Text("Error"),
+                        message: Text(error ?? "Unknown error"),
+                        dismissButton: .default(Text("OK")) {
+                            error = nil
+                        }
+                    )
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isSearchFocused = true
+                }
             }
         }
     }
     
-    func startChat() {
-        let trimmed = userId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let myId = authViewModel.user?.uid, !trimmed.isEmpty else { return }
-        // Validate input: must be a valid email, user ID, or username
-        if isValidEmail(trimmed) {
-            // Email-based chat creation (not implemented, fallback to error)
-            error = "Searching by email is not supported. Please use username or user ID."
-            showErrorAlert = true
-            return
-        } else if isValidUserId(trimmed) {
-            // Try as username first
-            isLoading = true
-            chatService.lookupUserId(byUsername: trimmed) { foundUid in
-                DispatchQueue.main.async {
-                    if let foundUid = foundUid {
-                        if foundUid == myId {
-                            self.error = "You cannot start a chat with yourself."
-                            self.showErrorAlert = true
-                            self.isLoading = false
-                            return
-                        }
-                        self.createChatWith(participantId: foundUid)
-                    } else {
-                        // If not found as username, try as user ID
-                        if trimmed == myId {
-                            self.error = "You cannot start a chat with yourself."
-                            self.showErrorAlert = true
-                            self.isLoading = false
-                            return
-                        }
-                        self.createChatWith(participantId: trimmed)
-                    }
-                }
-            }
-            return
-        } else {
-            error = "Please enter a valid username or user ID (at least 4 alphanumeric characters)."
-            showErrorAlert = true
+    func fetchUserSuggestions(for input: String) {
+        guard !input.isEmpty else {
+            suggestions = []
             return
         }
+        isLoadingSuggestions = true
+        let db = Firestore.firestore()
+        db.collection("users")
+            .order(by: "username")
+            .limit(to: 30)
+            .getDocuments { snapshot, error in
+                isLoadingSuggestions = false
+                guard let docs = snapshot?.documents else {
+                    suggestions = []
+                    return
+                }
+                let lowerInput = input.lowercased()
+                suggestions = docs.compactMap { doc in
+                    let data = doc.data()
+                    let uid = doc.documentID
+                    let username = data["username"] as? String ?? ""
+                    let displayName = data["name"] as? String
+                    // Don't show yourself in suggestions
+                    if uid == authViewModel.user?.uid { return nil }
+                    // Match username or display name
+                    if username.lowercased().contains(lowerInput) || (displayName?.lowercased().contains(lowerInput) ?? false) {
+                        return UserSuggestion(
+                            id: uid,
+                            username: username,
+                            displayName: displayName,
+                            photoURL: data["photoURL"] as? String
+                        )
+                    }
+                    return nil
+                }
+            }
     }
     
     private func createChatWith(participantId: String) {
         guard let myId = authViewModel.user?.uid else { return }
-        chatService.createChat(participants: [myId, participantId], isGroup: false, name: nil) { chatId in
-            isLoading = false
-            if let chatId = chatId {
-                chatService.fetchChatById(chatId) { chat in
-                    if let chat = chat {
-                        createdChat = chat
+        if participantId == myId {
+            self.error = "You cannot start a chat with yourself."
+            self.showErrorAlert = true
+            self.isLoading = false
+            return
+        }
+        isLoading = true
+        chatService.findDirectChat(between: myId, and: participantId) { existingChat in
+            if let chat = existingChat {
+                isLoading = false
+                onChatCreated?(chat)
+                presentationMode.wrappedValue.dismiss()
+            } else {
+                chatService.createChat(participants: [myId, participantId], isGroup: false, name: nil) { chatId in
+                    isLoading = false
+                    if let chatId = chatId {
+                        chatService.fetchChatById(chatId) { chat in
+                            if let chat = chat {
+                                onChatCreated?(chat)
+                                presentationMode.wrappedValue.dismiss()
+                            } else {
+                                error = "Chat created, but not found. Try again."
+                                showErrorAlert = true
+                            }
+                        }
                     } else {
-                        error = "Chat created, but not found. Try again."
+                        error = "Failed to create chat."
                         showErrorAlert = true
                     }
                 }
-            } else {
-                error = "Failed to create chat."
-                showErrorAlert = true
             }
         }
-    }
-    
-    func isValidEmail(_ input: String) -> Bool {
-        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
-        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
-        return emailPred.evaluate(with: input)
-    }
-    
-    func isValidUserId(_ input: String) -> Bool {
-        let userIdRegEx = "[A-Za-z0-9]{4,}"
-        let userIdPred = NSPredicate(format: "SELF MATCHES %@", userIdRegEx)
-        return userIdPred.evaluate(with: input)
     }
 } 
 

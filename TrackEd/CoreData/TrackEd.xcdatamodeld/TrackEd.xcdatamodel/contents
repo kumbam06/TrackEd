@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24233.11" systemVersion="25A5279m" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24233.11" systemVersion="25A5295e" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
     <entity name="AchievementEntity" representedClassName="AchievementEntity" syncable="YES" codeGenerationType="class">
         <attribute name="achievementDescription" optional="YES" attributeType="String"/>
         <attribute name="category" optional="YES" attributeType="String"/>
@@ -60,15 +60,6 @@
         <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
     </entity>
-    <entity name="NoteEntity" representedClassName="NoteEntity" syncable="YES" codeGenerationType="class">
-        <attribute name="content" optional="YES" attributeType="String"/>
-        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="isFavorite" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="tags" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String]"/>
-        <attribute name="title" optional="YES" attributeType="String"/>
-        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-    </entity>
     <entity name="PlannerTask" representedClassName="PlannerTask" syncable="YES" codeGenerationType="class">
         <attribute name="categoryId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="completed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -81,7 +72,9 @@
         <attribute name="title" optional="YES" attributeType="String"/>
     </entity>
     <entity name="Profile" representedClassName="Profile" syncable="YES" codeGenerationType="class">
+        <attribute name="address" optional="YES" attributeType="String"/>
         <attribute name="bio" optional="YES" attributeType="String"/>
+        <attribute name="dob" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="email" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="linkedin" optional="YES" attributeType="String"/>

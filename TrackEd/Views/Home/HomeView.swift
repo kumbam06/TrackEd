@@ -8,6 +8,37 @@
 import SwiftUI
 import Combine
 
+// Simple shimmer effect for loading placeholders
+struct ShimmerView: View {
+    @State private var phase: CGFloat = 0
+    var body: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(Color.gray.opacity(0.3))
+            .frame(height: 20)
+            .shimmer(phase: phase)
+            .onAppear {
+                withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+                    phase = 1
+                }
+            }
+    }
+}
+
+extension View {
+    func shimmer(phase: CGFloat) -> some View {
+        self.overlay(
+            LinearGradient(
+                gradient: Gradient(colors: [Color.clear, Color.white.opacity(0.6), Color.clear]),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .rotationEffect(.degrees(30))
+            .offset(x: phase * 350)
+        )
+        .mask(self)
+    }
+}
+
 struct HomeView: View {
     @EnvironmentObject private var profileManager: ProfileManager
     @EnvironmentObject private var taskManager: TaskManager
@@ -17,6 +48,7 @@ struct HomeView: View {
     
     @State private var todayTasks: [PlannerTask] = []
     @State private var showAddTask = false
+    @State private var isLoading = false
     
     private var timeOfDay: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -57,67 +89,52 @@ struct HomeView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                LazyVStack(spacing: 24) {
-                    // Welcome Section
-                    if preferencesManager.preferences.showWelcomeSection {
-                        welcomeSection
+            if isLoading {
+                CustomLoaderOverlay()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 24) {
+                        // Welcome Section
+                        if preferencesManager.preferences.showWelcomeSection {
+                            welcomeSection
+                        }
+                        
+                        // Today's Progress
+                        if preferencesManager.preferences.showTodayFocus {
+                            todayProgressSection
+                        }
+                        
+                        // Quick Stats
+                        if preferencesManager.preferences.showProductivityStats {
+                            quickStatsSection
+                        }
+                        
+                        // Today's Tasks
+                        todayTasksSection
+                        
+                        // Skills Overview
+                        if preferencesManager.preferences.showSkillsOverview {
+                            skillsOverviewSection
+                        }
+                        
+                        // Career Overview
+                        if preferencesManager.preferences.showCareerOverview {
+                            careerOverviewSection
+                        }
                     }
-                    
-                    // Today's Progress
-                    if preferencesManager.preferences.showTodayFocus {
-                        todayProgressSection
-                    }
-                    
-                    // Quick Stats
-                    if preferencesManager.preferences.showProductivityStats {
-                        quickStatsSection
-                    }
-                    
-                    // Today's Tasks
-                    todayTasksSection
-                    
-                    // Skills Overview
-                    if preferencesManager.preferences.showSkillsOverview {
-                        skillsOverviewSection
-                    }
-                    
-                    // Career Overview
-                    if preferencesManager.preferences.showCareerOverview {
-                        careerOverviewSection
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 100)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 100)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("TrackEd")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showAddTask = true }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.accentColor)
-                    }
+                .background(Color(.systemGroupedBackground))
+                .navigationTitle("TrackEd")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    // Removed create task '+' button
                 }
-            }
-            .onAppear {
-                loadTodayTasks()
-            }
-            .sheet(isPresented: $showAddTask) {
-                AddTaskView { title, notes, dueDate, isAllDay, priority in
-                    taskManager.createTask(
-                        title: title.isEmpty ? "Untitled Task" : title,
-                        dueDate: dueDate,
-                        isAllDay: isAllDay,
-                        notes: notes,
-                        priority: priority
-                    )
+                .onAppear {
                     loadTodayTasks()
                 }
-                .environmentObject(taskManager)
             }
         }
     }

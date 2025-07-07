@@ -398,12 +398,12 @@ struct ProfileView: View {
                     subtitle: "Configure alerts",
                     color: .orange
                 ) {
-                    // Handle notifications
+                    // Notification settings action
                 }
-                
+
                 Divider()
                     .padding(.leading, 56)
-                
+
                 ProfileActionRow(
                     icon: "lock.shield",
                     title: "PRIVACY",

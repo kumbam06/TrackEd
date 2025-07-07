@@ -410,4 +410,41 @@ enum TaskFilter: CaseIterable {
         case .pending: return "Pending"
         }
     }
+}
+
+// MARK: - Filter Pill Button
+struct FilterPill: View {
+    let title: String
+    let isSelected: Bool
+    let count: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(isSelected ? Color.white.opacity(0.2) : Color.gray.opacity(0.15))
+                        .cornerRadius(8)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(isSelected ? Color.accentColor : Color(.systemGray5))
+            .foregroundColor(isSelected ? .white : .primary)
+            .cornerRadius(20)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(isSelected ? Color.accentColor : Color(.systemGray4), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
 } 

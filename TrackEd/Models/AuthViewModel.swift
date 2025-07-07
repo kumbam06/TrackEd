@@ -3,6 +3,8 @@ import FirebaseAuth
 import Combine
 import AuthenticationServices
 import FirebaseFirestore
+import GoogleSignIn
+import FirebaseCore
 
 class AuthViewModel: ObservableObject {
     @Published var user: User?
@@ -13,7 +15,9 @@ class AuthViewModel: ObservableObject {
     private var handle: AuthStateDidChangeListenerHandle?
     
     init() {
+        print("[DEBUG] AuthViewModel.init() - Firebase Auth initialized")
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            print("[DEBUG] AuthViewModel - Auth state changed, user: \(user?.uid ?? "nil")")
             self?.user = user
             self?.isCheckingAuth = false
         }
@@ -25,7 +29,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func signUp(email: String, password: String, username: String, completion: @escaping (Bool) -> Void) {
+    func signUp(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, completion: @escaping (Bool) -> Void) {
         isLoading = true
         errorMessage = nil
         // Check username uniqueness
@@ -55,11 +59,16 @@ class AuthViewModel: ObservableObject {
                         self?.errorMessage = error.localizedDescription
                         completion(false)
                     } else if let user = result?.user {
-                        // Save username and email to Firestore
-                        let userData: [String: Any] = [
+                        // Save profile data to Firestore
+                        var userData: [String: Any] = [
                             "username": username,
-                            "email": email
+                            "email": email,
+                            "name": fullName,
+                            "role": role
                         ]
+                        if let dob = dob {
+                            userData["dob"] = Timestamp(date: dob)
+                        }
                         db.collection("users").document(user.uid).setData(userData) { firestoreError in
                             DispatchQueue.main.async {
                                 self?.isLoading = false
@@ -99,13 +108,70 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func signInWithGoogle() {
-        // TODO: Implement Google Sign-In using GIDSignIn and FirebaseAuth
-        // See: https://firebase.google.com/docs/auth/ios/google-signin
-        // 1. Present Google sign-in flow
-        // 2. Get ID token and access token
-        // 3. Authenticate with Firebase
-        print("Google Sign-In tapped (not yet implemented)")
+    func signInWithGoogle(presentingViewController: UIViewController? = nil, completion: ((Bool, String?) -> Void)? = nil) {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            completion?(false, "Missing Google client ID")
+            return
+        }
+        let presentingVC: UIViewController
+        if let presentingViewController = presentingViewController {
+            presentingVC = presentingViewController
+        } else {
+            guard let rootVC = UIApplication.shared.connectedScenes
+                .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
+                .first else {
+                completion?(false, "No presenting view controller")
+                return
+            }
+            presentingVC = rootVC
+        }
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+        GIDSignIn.sharedInstance.signIn(withPresenting: presentingVC) { [weak self] result, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self?.errorMessage = error.localizedDescription
+                    completion?(false, error.localizedDescription)
+                }
+                return
+            }
+            guard let user = result?.user else {
+                DispatchQueue.main.async {
+                    self?.errorMessage = "Google authentication failed."
+                    completion?(false, "Google authentication failed.")
+                }
+                return
+            }
+            let idToken: String?
+            let accessToken: String?
+            if let idTokenValue = (user.idToken as AnyObject?)?.tokenString as? String,
+               let accessTokenValue = (user.accessToken as AnyObject?)?.tokenString as? String,
+               !idTokenValue.isEmpty, !accessTokenValue.isEmpty {
+                idToken = idTokenValue
+                accessToken = accessTokenValue
+            } else {
+                DispatchQueue.main.async {
+                    self?.errorMessage = "Google authentication failed (missing token)."
+                    completion?(false, "Google authentication failed (missing token).")
+                }
+                return
+            }
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken!, accessToken: accessToken!)
+            Auth.auth().signIn(with: credential) { [weak self] result, error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        self?.errorMessage = error.localizedDescription
+                        completion?(false, error.localizedDescription)
+                    } else if let user = result?.user {
+                        self?.user = user
+                        completion?(true, nil)
+                    } else {
+                        self?.errorMessage = "Unknown error."
+                        completion?(false, "Unknown error.")
+                    }
+                }
+            }
+        }
     }
     
     func signInWithApple(result: Result<ASAuthorization, Error>) {

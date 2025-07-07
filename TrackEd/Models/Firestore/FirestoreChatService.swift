@@ -8,20 +8,32 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
     private var messageListener: ListenerRegistration?
     private let db = Firestore.firestore()
     
-    func loadChats(for userId: String, completion: @escaping ([Chat]) -> Void) {
+    func loadChats(for userId: String, completion: @escaping ([Chat], Error?) -> Void) {
+        print("[DEBUG] Loading chats for userId: \(userId)")
+        print("[DEBUG] FirestoreChatService - Firestore instance: \(db)")
         chatListener?.remove()
+        
         chatListener = db.collection("chats")
             .whereField("participants", arrayContains: userId)
             .order(by: "createdAt", descending: true)
             .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    DispatchQueue.main.async {
+                        completion([], error)
+                    }
+                    return
+                }
                 guard let documents = snapshot?.documents else {
-                    completion([])
+                    DispatchQueue.main.async {
+                        completion([], nil)
+                    }
                     return
                 }
                 let chats = documents.compactMap { doc -> Chat? in
-                    let data = doc.data()
+                    let data = doc.data() 
                     let id = doc.documentID
                     let participants = data["participants"] as? [String] ?? []
+                    print("[DEBUG] Chat \(id) participants: \(participants)")
                     let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
                     let isGroup = data["isGroup"] as? Bool ?? false
                     let name = data["name"] as? String
@@ -35,7 +47,7 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
                     return Chat(id: id, participants: participants, createdAt: createdAt, isGroup: isGroup, name: name, lastMessage: lastMessage)
                 }
                 DispatchQueue.main.async {
-                    completion(chats)
+                    completion(chats, nil)
                 }
             }
     }
@@ -135,6 +147,40 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
                 completion(nil)
             }
         }
+    }
+    
+    // Find an existing 1-1 chat between two users (by UIDs)
+    func findDirectChat(between user1: String, and user2: String, completion: @escaping (Chat?) -> Void) {
+        db.collection("chats")
+            .whereField("isGroup", isEqualTo: false)
+            .whereField("participants", arrayContains: user1)
+            .getDocuments { snapshot, error in
+                guard let docs = snapshot?.documents else {
+                    completion(nil)
+                    return
+                }
+                for doc in docs {
+                    let data = doc.data()
+                    let participants = data["participants"] as? [String] ?? []
+                    if Set(participants) == Set([user1, user2]) {
+                        let id = doc.documentID
+                        let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                        let isGroup = data["isGroup"] as? Bool ?? false
+                        let name = data["name"] as? String
+                        var lastMessage: Message? = nil
+                        if let last = data["lastMessage"] as? [String: Any],
+                           let text = last["text"] as? String,
+                           let senderId = last["senderId"] as? String,
+                           let ts = last["timestamp"] as? Timestamp {
+                            lastMessage = Message(id: UUID().uuidString, senderId: senderId, text: text, timestamp: ts.dateValue())
+                        }
+                        let chat = Chat(id: id, participants: participants, createdAt: createdAt, isGroup: isGroup, name: name, lastMessage: lastMessage)
+                        completion(chat)
+                        return
+                    }
+                }
+                completion(nil)
+            }
     }
     
     deinit {

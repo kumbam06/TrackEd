@@ -1,21 +1,30 @@
 # TrackEd - Student Productivity App
 
-A comprehensive, production-ready iOS app built with SwiftUI and Core Data to help students manage tasks, notes, skills, and career development.
+## 🚦 Badges
+
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![Platform](https://img.shields.io/badge/platform-iOS%2017%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+
+# TrackEd - Student Productivity App
+
+A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Firestore to help students manage tasks, notes, skills, and career development.
 
 ## 🚀 Features
 
 ### 📱 Core Functionality
 - **Home Dashboard**: Overview of daily tasks, skills, and quick actions
 - **Smart Planner**: Hour-based task planning with natural language input
-- **Chat System**: Core Data-backed chat interface for student discussions
+- **Chat System**: Firestore-backed chat interface for student discussions
 - **AI Assistant**: Placeholder for future AI integration (ChatGPT-ready)
 - **Profile Management**: Editable profile with photo, contact info, and social links
+- **Modern Onboarding & Auth**: Chat-style signup, redesigned login, Face ID/biometrics (optional)
 
 ### 🎯 Key Features
 - **Natural Language Task Creation**: "Study SwiftUI at 8pm tomorrow"
 - **Resume Builder**: Auto-generate PDF resumes from profile and skills
 - **Theme System**: 10 beautiful themes with persistent selection
-- **Core Data Integration**: Robust data persistence with proper relationships
+- **Core Data & Firestore Integration**: Robust data persistence and sync
 - **Dark Mode Support**: Full light/dark mode compatibility
 - **Modular Architecture**: Clean separation of concerns
 
@@ -59,6 +68,7 @@ TrackEd/
 │   │   │   └── ChatDetailView.swift  # Individual chat
 │   │   ├── AskAI/
 │   │   │   └── AskAIView.swift       # AI assistant placeholder
+│   │   ├── Onboarding/
 │   │   └── Profile/
 │   │       ├── ProfileView.swift     # Profile display
 │   │       ├── EditProfileView.swift # Profile editing
@@ -70,22 +80,33 @@ TrackEd/
 
 ## 🎨 Design System
 
-### Colors
-- `cardBG`: Card background color
-- `primaryAccent`: Primary theme color
-- `textPrimary`: Primary text color
-- `textSecondary`: Secondary text color
-- `strokeGray`: Border/stroke color
-- `screenBG`: Screen background color
-- `success`, `warning`, `error`, `info`: Status colors
+### Color Palette (Semantic, Accessible, Light/Dark Mode)
+| Name              | Light Mode      | Dark Mode      | Usage                |
+|-------------------|-----------------|---------------|----------------------|
+| appPrimaryAccent  | #176FBF         | #176FBF        | Primary actions, logo|
+| appCardBG         | #FAFAFA         | #262626        | Card backgrounds     |
+| appTextPrimary    | #000000         | #FFFFFF        | Main text            |
+| appTextSecondary  | (gray)          | (gray)         | Secondary text       |
+| appError          | #FF3333         | #FF3333        | Error states         |
+| appSuccess        | #33CC33         | #33CC33        | Success states       |
+| appWarning        | #FF9900         | #FF9900        | Warning states       |
+| appInfo           | #33CCFF         | #33CCFF        | Info states          |
+| appScreenBG       | #F6F6F8         | #181A20        | Screen backgrounds   |
+| appStrokeGray     | #E0E0E0         | #333333        | Borders, strokes     |
 
-### Components
-- **CardView**: Consistent card styling with shadows
-- **FloatingCardView**: Glass morphism effect
-- **TaskView**: Task display with priority indicators
-- **Theme System**: 10 predefined themes with gradients
+- **Semantic color names** are used throughout for maintainability and accessibility.
+- All colors have variants for light and dark mode where appropriate.
+- The primary accent color (`#176FBF`) is used for branding, buttons, and highlights, matching the app logo.
 
-## 📊 Core Data Model
+### Components & UI Principles
+- **CardView**: Consistent card styling with rounded corners and shadows
+- **Modern Auth & Onboarding**: Redesigned login screen, chat-style signup with animated bubbles, password visibility toggle, and error feedback
+- **Floating Action Buttons**: Modern, circular, and adaptive
+- **Accessibility**: High contrast, large touch targets, VoiceOver support
+- **Consistent Spacing**: Generous padding and spacing for clarity and comfort
+- **Light/Dark Mode**: All screens and components adapt to system appearance
+
+## 📊 Core Data & Firestore Model
 
 ### Entities
 - **Profile**: User profile information
@@ -93,7 +114,7 @@ TrackEd/
 - **SkillEntity**: Skills for resume building
 - **Chat**: Chat conversations
 - **Message**: Individual chat messages
-- **NoteEntity**: Notes (for future expansion)
+- **NoteEntity**: Notes
 
 ## 🚀 Getting Started
 

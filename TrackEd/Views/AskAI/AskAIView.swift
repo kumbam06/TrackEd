@@ -17,6 +17,9 @@ struct AskAIView: View {
     @State private var messageText = ""
     @State private var showingQuickActions = false
     @FocusState private var isTextFieldFocused: Bool
+    @State private var debouncedMessageText = ""
+    @State private var debounceWorkItem: DispatchWorkItem?
+    private let debounceDelay = 0.25
     
     init() {
         let tempTaskManager = TaskManager()
@@ -232,6 +235,7 @@ struct AskAIView: View {
                     .onSubmit {
                         sendMessage()
                     }
+                    .onChange(of: messageText) { debounceInput($0) }
                 
                 Button(action: sendMessage) {
                     Image(systemName: "paperplane.fill")
@@ -241,12 +245,12 @@ struct AskAIView: View {
                         .background(
                             Circle()
                                 .fill(
-                                    messageText.isEmpty ? LinearGradient(colors: [Color(.systemBackground).opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing) : LinearGradient(colors: [Color.accentColor, Color(.systemFill)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    debouncedMessageText.isEmpty ? LinearGradient(colors: [Color(.systemBackground).opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing) : LinearGradient(colors: [Color.accentColor, Color(.systemFill)], startPoint: .topLeading, endPoint: .bottomTrailing)
                                 )
                                 .shadow(color: Color(.systemFill).opacity(0.2), radius: 4, x: 0, y: 2)
                         )
                 }
-                .disabled(messageText.isEmpty)
+                .disabled(debouncedMessageText.isEmpty)
                 .buttonStyle(PlainButtonStyle())
             }
             .padding(.horizontal, 20)
@@ -259,6 +263,17 @@ struct AskAIView: View {
         guard !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         aiManager.sendMessage(messageText)
         messageText = ""
+    }
+    
+    private func debounceInput(_ value: String) {
+        debounceWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [value] in
+            DispatchQueue.main.async {
+                debouncedMessageText = value
+            }
+        }
+        debounceWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: workItem)
     }
 }
 

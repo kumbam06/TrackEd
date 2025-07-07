@@ -10,6 +10,7 @@ import CoreData
 import Combine
 import FirebaseFirestore
 import FirebaseAuth
+import FirebaseStorage
 
 class ProfileManager: ObservableObject {
     @Published var currentProfile: Profile?
@@ -49,12 +50,13 @@ class ProfileManager: ObservableObject {
         profile.bio = "Passionate iOS developer with expertise in SwiftUI and Core Data."
         profile.linkedin = "linkedin.com/in/johndoe"
         profile.website = "johndoe.dev"
-        
+        profile.dob = nil
+        profile.address = ""
         currentProfile = profile
         save()
     }
     
-    func updateProfile(name: String, role: String, email: String, phone: String, bio: String, linkedin: String, website: String, username: String) {
+    func updateProfile(name: String, role: String, email: String, phone: String, bio: String, linkedin: String, website: String, username: String, dob: Date?, address: String) {
         guard let profile = currentProfile else { return }
         profile.name = name
         profile.role = role
@@ -64,6 +66,8 @@ class ProfileManager: ObservableObject {
         profile.linkedin = linkedin
         profile.website = website
         profile.username = username
+        profile.dob = dob
+        profile.address = address
         save()
         // Firestore sync
         if let userId = Auth.auth().currentUser?.uid {
@@ -78,7 +82,21 @@ class ProfileManager: ObservableObject {
                         return
                     }
                 }
-                db.collection("users").document(userId).updateData(["username": username])
+                var userData: [String: Any] = [
+                    "name": name,
+                    "role": role,
+                    "email": email,
+                    "phone": phone,
+                    "bio": bio,
+                    "linkedin": linkedin,
+                    "website": website,
+                    "username": username,
+                    "address": address
+                ]
+                if let dob = dob {
+                    userData["dob"] = Timestamp(date: dob)
+                }
+                db.collection("users").document(userId).setData(userData, merge: true)
             }
         }
     }
@@ -87,6 +105,39 @@ class ProfileManager: ObservableObject {
         guard let profile = currentProfile else { return }
         profile.photoData = image.jpegData(compressionQuality: 0.8)
         save()
+        // Upload to Firebase Storage and update Firestore
+        if let userId = Auth.auth().currentUser?.uid, let imageData = image.jpegData(compressionQuality: 0.8) {
+            print("[DEBUG] Starting upload to Firebase Storage for userId: \(userId)")
+            let storageRef = Storage.storage().reference().child("profile_photos/\(userId)")
+            storageRef.putData(imageData, metadata: nil) { metadata, error in
+                if let error = error {
+                    print("[DEBUG] Failed to upload profile photo: \(error.localizedDescription)")
+                    return
+                }
+                print("[DEBUG] Profile photo uploaded successfully. Getting download URL...")
+                storageRef.downloadURL { url, error in
+                    if let error = error {
+                        print("[DEBUG] Failed to get download URL: \(error.localizedDescription)")
+                        return
+                    }
+                    guard let url = url else {
+                        print("[DEBUG] Download URL is nil")
+                        return
+                    }
+                    print("[DEBUG] Got download URL: \(url.absoluteString)")
+                    let db = Firestore.firestore()
+                    db.collection("users").document(userId).setData(["photoURL": url.absoluteString], merge: true) { error in
+                        if let error = error {
+                            print("[DEBUG] Failed to update Firestore with photoURL: \(error.localizedDescription)")
+                        } else {
+                            print("[DEBUG] photoURL successfully saved to Firestore.")
+                        }
+                    }
+                }
+            }
+        } else {
+            print("[DEBUG] Could not get userId or imageData for profile photo upload.")
+        }
     }
     
     private func save() {
@@ -94,6 +145,93 @@ class ProfileManager: ObservableObject {
             try context.save()
         } catch {
             print("Error saving profile: \(error)")
+        }
+    }
+    
+    func loadProfileFromFirestore(uid: String, completion: (() -> Void)? = nil) {
+        let db = Firestore.firestore()
+        db.collection("users").document(uid).getDocument { [weak self] doc, error in
+            guard let self = self, let data = doc?.data() else {
+                completion?()
+                return
+            }
+            // Update or create local Core Data profile
+            let request: NSFetchRequest<Profile> = Profile.fetchRequest()
+            request.fetchLimit = 1
+            let profile: Profile
+            if let existing = try? self.context.fetch(request).first {
+                profile = existing
+            } else {
+                profile = Profile(context: self.context)
+                profile.id = UUID()
+            }
+            profile.name = data["name"] as? String ?? ""
+            profile.role = data["role"] as? String ?? ""
+            profile.email = data["email"] as? String ?? ""
+            profile.phone = data["phone"] as? String ?? ""
+            profile.bio = data["bio"] as? String ?? ""
+            profile.linkedin = data["linkedin"] as? String ?? ""
+            profile.website = data["website"] as? String ?? ""
+            profile.username = data["username"] as? String ?? ""
+            profile.address = data["address"] as? String ?? ""
+            if let dobTimestamp = data["dob"] as? Timestamp {
+                profile.dob = dobTimestamp.dateValue()
+            } else {
+                profile.dob = nil
+            }
+            if let photoURL = data["photoURL"] as? String, let url = URL(string: photoURL) {
+                // Download the image data
+                URLSession.shared.dataTask(with: url) { data, response, error in
+                    if let data = data {
+                        DispatchQueue.main.async {
+                            profile.photoData = data
+                            self.currentProfile = profile
+                            self.save()
+                            completion?()
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            self.currentProfile = profile
+                            self.save()
+                            completion?()
+                        }
+                    }
+                }.resume()
+            } else {
+                self.currentProfile = profile
+                self.save()
+                completion?()
+            }
+        }
+    }
+
+    func clearLocalProfile() {
+        let request: NSFetchRequest<Profile> = Profile.fetchRequest()
+        if let profiles = try? context.fetch(request) {
+            for profile in profiles {
+                context.delete(profile)
+            }
+            save()
+            currentProfile = nil
+        }
+    }
+
+    /// Loads profile from local Core Data if available, otherwise fetches from Firestore. Use for optimized loading.
+    func loadProfileIfNeededOrRefresh(forceRefresh: Bool = false) {
+        let request: NSFetchRequest<Profile> = Profile.fetchRequest()
+        request.fetchLimit = 1
+        let hasLocalProfile: Bool
+        if let profiles = try? context.fetch(request), let profile = profiles.first {
+            hasLocalProfile = true
+            currentProfile = profile
+        } else {
+            hasLocalProfile = false
+        }
+        // Only fetch from Firestore if no local profile or forceRefresh is true
+        if !hasLocalProfile || forceRefresh {
+            if let uid = Auth.auth().currentUser?.uid {
+                loadProfileFromFirestore(uid: uid)
+            }
         }
     }
 } 
