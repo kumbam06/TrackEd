@@ -34,9 +34,11 @@ struct ChatDetailView: View {
     @State private var messageText = ""
     @State private var showErrorAlert = false
     @State private var showMenu = false
+    @State private var partnerDisplayName: String = ""
     @State private var partnerUsername: String = ""
     @State private var partnerPhotoURL: String? = nil
     @State private var partnerStatus: String = "online"
+    @State private var partnerId: String? = nil
     @Environment(\.presentationMode) var presentationMode
     @State private var debouncedMessageText = ""
     @State private var debounceWorkItem: DispatchWorkItem?
@@ -72,7 +74,7 @@ struct ChatDetailView: View {
                                 .frame(width: 40, height: 40)
                             WebImage(url: imageURL)
                                 .resizable()
-                                .indicator(.activity)
+                                .scaledToFit()
                                 .frame(width: 40, height: 40)
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Color("appPrimaryAccent"), lineWidth: 2))
@@ -86,7 +88,7 @@ struct ChatDetailView: View {
                             .shadow(color: Color("appPrimaryAccent").opacity(0.10), radius: 6, x: 0, y: 2)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(partnerUsername.isEmpty ? "Chat" : partnerUsername)
+                        Text(partnerDisplayName.isEmpty ? (partnerUsername.isEmpty ? "Chat" : partnerUsername) : partnerDisplayName)
                             .font(.headline)
                             .fontWeight(.bold)
                             .foregroundColor(Color("appTextPrimary"))
@@ -169,37 +171,61 @@ struct ChatDetailView: View {
                                     }
                                     .padding(.vertical, 40)
                                 }
-                                ForEach(viewModel.messages) { message in
-                                    HStack(alignment: .bottom, spacing: 8) {
-                                        if message.senderId == userId {
-                                            Spacer(minLength: 60)
-                                            VStack(alignment: .trailing, spacing: 4) {
-                                                Text(message.text)
-                                                    .font(.body)
-                                                    .foregroundColor(.white)
-                                                    .padding(.horizontal, 16)
-                                                    .padding(.vertical, 12)
-                                                    .background(
-                                                        LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                                    )
-                                                    .cornerRadius(20)
-                                                    .shadow(color: Color("appPrimaryAccent").opacity(0.08), radius: 4, x: 0, y: 2)
+                                ForEach(groupMessagesByDay(viewModel.messages), id: \.date) { group in
+                                    VStack(alignment: .center, spacing: 8) {
+                                        Text(dateHeaderString(for: group.date))
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(Color("appPrimaryAccent"))
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 6)
+                                            .background(Color("appPrimaryAccent").opacity(0.12))
+                                            .clipShape(Capsule())
+                                            .padding(.vertical, 8)
+                                            .frame(maxWidth: .infinity)
+                                        ForEach(group.messages) { message in
+                                            HStack(alignment: .bottom, spacing: 8) {
+                                                if message.senderId == userId {
+                                                    Spacer(minLength: 60)
+                                                    VStack(alignment: .trailing, spacing: 4) {
+                                                        Text(message.text)
+                                                            .font(.body)
+                                                            .foregroundColor(.white)
+                                                            .padding(.horizontal, 16)
+                                                            .padding(.vertical, 12)
+                                                            .background(
+                                                                LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                                            )
+                                                            .cornerRadius(20)
+                                                            .shadow(color: Color("appPrimaryAccent").opacity(0.08), radius: 4, x: 0, y: 2)
+                                                        Text(timeString(from: message.timestamp))
+                                                            .font(.caption2)
+                                                            .foregroundColor(Color("appTextSecondary"))
+                                                            .padding(.trailing, 8)
+                                                    }
+                                                    .padding(.trailing, 8)
+                                                } else {
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text(message.text)
+                                                            .font(.body)
+                                                            .foregroundColor(Color("appTextPrimary"))
+                                                            .padding(.horizontal, 16)
+                                                            .padding(.vertical, 12)
+                                                            .background(Color("appCardBG"))
+                                                            .cornerRadius(20)
+                                                            .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
+                                                        Text(timeString(from: message.timestamp))
+                                                            .font(.caption2)
+                                                            .foregroundColor(Color("appTextSecondary"))
+                                                            .padding(.leading, 8)
+                                                    }
+                                                    .padding(.leading, 8)
+                                                    Spacer(minLength: 60)
+                                                }
                                             }
-                                        } else {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(message.text)
-                                                    .font(.body)
-                                                    .foregroundColor(Color("appTextPrimary"))
-                                                    .padding(.horizontal, 16)
-                                                    .padding(.vertical, 12)
-                                                    .background(Color("appCardBG"))
-                                                    .cornerRadius(20)
-                                                    .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
-                                            }
-                                            Spacer(minLength: 60)
+                                            .id(message.id)
                                         }
                                     }
-                                    .id(message.id)
                                 }
                             }
                             .padding(.vertical, 8)
@@ -247,7 +273,16 @@ struct ChatDetailView: View {
             viewModel.stopListening()
         }
         .onAppear {
-            loadPartnerInfo()
+            if let pid = chat.participants.first(where: { $0 != userId }) {
+                partnerId = pid
+                if let cached = UserCache.shared.getUserInfo(uid: pid) {
+                    partnerUsername = cached.0
+                    partnerDisplayName = cached.1 ?? ""
+                    partnerPhotoURL = cached.2
+                } else {
+                    fetchPartnerInfoFromBackend(partnerId: pid)
+                }
+            }
         }
         .onTapGesture {
             // Dismiss keyboard when tapping outside
@@ -275,14 +310,17 @@ struct ChatDetailView: View {
         messageText = ""
     }
     
-    private func loadPartnerInfo() {
-        guard let partnerId = chat.participants.first(where: { $0 != userId }) else { return }
+    private func fetchPartnerInfoFromBackend(partnerId: String) {
         let db = FirebaseFirestore.Firestore.firestore()
         db.collection("users").document(partnerId).getDocument { doc, error in
             guard let data = doc?.data() else { return }
-            partnerUsername = data["username"] as? String ?? "User"
-            partnerPhotoURL = data["photoURL"] as? String
-            // If you have online status, set partnerStatus here
+            let newDisplayName = data["name"] as? String ?? ""
+            let newUsername = data["username"] as? String ?? "User"
+            let newPhotoURL = data["photoURL"] as? String
+            partnerDisplayName = newDisplayName
+            partnerUsername = newUsername
+            partnerPhotoURL = newPhotoURL
+            UserCache.shared.setUserInfo(uid: partnerId, username: newUsername, displayName: newDisplayName, photoURL: newPhotoURL)
         }
     }
     
@@ -298,6 +336,39 @@ struct ChatDetailView: View {
         }
         debounceWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: workItem)
+    }
+    
+    private func timeString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    // Helper to group messages by day
+    private func groupMessagesByDay(_ messages: [Message]) -> [(date: Date, messages: [Message])] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: messages) { message in
+            calendar.startOfDay(for: message.timestamp)
+        }
+        return grouped.keys.sorted().map { date in
+            (date, grouped[date]!.sorted { $0.timestamp < $1.timestamp })
+        }
+    }
+    
+    // Helper to format date header
+    private func dateHeaderString(for date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .none
+            return formatter.string(from: date)
+        }
     }
 }
 

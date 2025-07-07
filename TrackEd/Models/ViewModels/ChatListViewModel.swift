@@ -19,7 +19,7 @@ class ChatListViewModel: ObservableObject, Equatable {
         loadChats()
     }
     
-    /// Loads chats from cache if available, otherwise fetches from Firestore. Use forceRefresh to ignore cache.
+    /// Loads chats from cache if available and non-empty, otherwise fetches from Firestore. Use forceRefresh to ignore cache.
     func loadChats(forceRefresh: Bool = false) {
         isLoading = true
         print("[DEBUG] ChatListViewModel.loadChats() called for userId: \(userId), forceRefresh: \(forceRefresh)")
@@ -35,12 +35,18 @@ class ChatListViewModel: ObservableObject, Equatable {
             self.isLoading = false
             return
         }
+        print("[DEBUG] Fetching chats from Firestore for userId: \(userId)")
         chatService.loadChats(for: userId) { [weak self] chats, error in
             guard let self = self else { return }
             print("[DEBUG] loadChats completion: error=\(String(describing: error)), chatCount=\(chats.count)")
             DispatchQueue.main.async {
                 self.chats = chats
-                ChatListViewModel.chatCache[self.userId] = chats
+                // Only cache if chats is non-empty
+                if !chats.isEmpty {
+                    ChatListViewModel.chatCache[self.userId] = chats
+                } else {
+                    ChatListViewModel.chatCache[self.userId] = nil
+                }
                 if let error = error {
                     self.error = error.localizedDescription
                     print("[DEBUG] Error loading chats: \(error.localizedDescription)")
@@ -53,6 +59,7 @@ class ChatListViewModel: ObservableObject, Equatable {
     
     /// Clears the chat cache for this user (e.g., on logout or manual refresh)
     func clearCache() {
+        print("[DEBUG] Clearing chat cache for userId: \(userId)")
         ChatListViewModel.chatCache[userId] = nil
     }
     

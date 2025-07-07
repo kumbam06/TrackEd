@@ -166,28 +166,28 @@ struct EditProfileView: View {
                 TextField("USERNAME", text: $username)
                     .autocapitalization(.none)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onChange(of: username) { debounceInput($0, for: "username") }
+                    .onChange(of: username) { newValue, _ in debounceInput(newValue, for: "username") }
                 HStack(spacing: 12) {
                     TextField("FIRST NAME", text: $firstName)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: firstName) { debounceInput($0, for: "firstName") }
+                        .onChange(of: firstName) { newValue, _ in debounceInput(newValue, for: "firstName") }
                     TextField("LAST NAME", text: $lastName)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: lastName) { debounceInput($0, for: "lastName") }
+                        .onChange(of: lastName) { newValue, _ in debounceInput(newValue, for: "lastName") }
                 }
                 TextField("ROLE/TITLE", text: $role)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onChange(of: role) { debounceInput($0, for: "role") }
+                    .onChange(of: role) { newValue, _ in debounceInput(newValue, for: "role") }
                 TextEditor(text: $bio)
                     .frame(height: 100)
                     .background(Color(.systemGray5))
                     .cornerRadius(8)
-                    .onChange(of: bio) { debounceInput($0, for: "bio") }
+                    .onChange(of: bio) { newValue, _ in debounceInput(newValue, for: "bio") }
                 DatePicker("DATE OF BIRTH", selection: $dob, displayedComponents: .date)
                     .datePickerStyle(CompactDatePickerStyle())
                 TextField("ADDRESS", text: $address)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onChange(of: address) { debounceInput($0, for: "address") }
+                    .onChange(of: address) { newValue, _ in debounceInput(newValue, for: "address") }
             }
         }
     }
@@ -204,11 +204,11 @@ struct EditProfileView: View {
                 TextField("EMAIL", text: $email)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
-                    .onChange(of: email) { debounceInput($0, for: "email") }
+                    .onChange(of: email) { newValue, _ in debounceInput(newValue, for: "email") }
                 
                 TextField("PHONE", text: $phone)
                     .keyboardType(.phonePad)
-                    .onChange(of: phone) { debounceInput($0, for: "phone") }
+                    .onChange(of: phone) { newValue, _ in debounceInput(newValue, for: "phone") }
             }
         }
         .padding(20)
@@ -228,11 +228,11 @@ struct EditProfileView: View {
             VStack(spacing: 16) {
                 TextField("LINKEDIN", text: $linkedin)
                     .autocapitalization(.none)
-                    .onChange(of: linkedin) { debounceInput($0, for: "linkedin") }
+                    .onChange(of: linkedin) { newValue, _ in debounceInput(newValue, for: "linkedin") }
                 
                 TextField("WEBSITE", text: $website)
                     .autocapitalization(.none)
-                    .onChange(of: website) { debounceInput($0, for: "website") }
+                    .onChange(of: website) { newValue, _ in debounceInput(newValue, for: "website") }
             }
         }
         .padding(20)

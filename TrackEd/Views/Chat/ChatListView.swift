@@ -289,6 +289,12 @@ struct ChatListView: View {
                 vm.loadChats()
             }
         }
+        .onChange(of: authViewModel.user?.uid) { newUid in
+            print("[DEBUG] ChatListView.onChange - authViewModel.user?.uid changed: \(String(describing: newUid))")
+            if newUid == nil {
+                viewModel?.clearCache()
+            }
+        }
     }
     
     func timeAgo(_ date: Date) -> String {
