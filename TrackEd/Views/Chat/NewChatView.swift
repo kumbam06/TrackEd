@@ -1,12 +1,13 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import SDWebImageSwiftUI
 
 struct UserSuggestion: Identifiable {
     let id: String // UID
     let username: String
     let displayName: String?
-    let photoURL: String?
+    var photoURL: String?
 }
 
 struct NewChatView: View {
@@ -77,10 +78,15 @@ struct NewChatView: View {
                                 Button(action: { createChatWith(participantId: user.id) }) {
                                     HStack(spacing: 16) {
                                         if let url = user.photoURL, let imageURL = URL(string: url) {
-                                            AsyncImage(url: imageURL) { image in
-                                                image.resizable().frame(width: 44, height: 44).clipShape(Circle())
-                                            } placeholder: {
-                                                Circle().fill(Color.gray.opacity(0.2)).frame(width: 44, height: 44)
+                                            ZStack {
+                                                Circle()
+                                                    .fill(Color.gray.opacity(0.2))
+                                                    .frame(width: 44, height: 44)
+                                                WebImage(url: imageURL)
+                                                    .resizable()
+                                                    .indicator(.activity)
+                                                    .clipShape(Circle())
+                                                    .frame(width: 44, height: 44)
                                             }
                                         } else {
                                             Circle().fill(Color("appPrimaryAccent").opacity(0.12)).frame(width: 44, height: 44)

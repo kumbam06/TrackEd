@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseFirestore
+import SDWebImageSwiftUI
 
 // Animated waving hand icon for empty state
 struct AnimatedWaveHand: View {
@@ -65,15 +66,18 @@ struct ChatDetailView: View {
                             .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
                     }
                     if let url = partnerPhotoURL, let imageURL = URL(string: url) {
-                        AsyncImage(url: imageURL) { image in
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Circle().fill(Color.gray.opacity(0.2))
+                        ZStack {
+                            Circle()
+                                .fill(Color.gray.opacity(0.2))
+                                .frame(width: 40, height: 40)
+                            WebImage(url: imageURL)
+                                .resizable()
+                                .indicator(.activity)
+                                .frame(width: 40, height: 40)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color("appPrimaryAccent"), lineWidth: 2))
+                                .shadow(color: Color("appPrimaryAccent").opacity(0.10), radius: 6, x: 0, y: 2)
                         }
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color("appPrimaryAccent"), lineWidth: 2))
-                        .shadow(color: Color("appPrimaryAccent").opacity(0.10), radius: 6, x: 0, y: 2)
                     } else {
                         Circle().fill(Color("appPrimaryAccent").opacity(0.12))
                             .frame(width: 40, height: 40)

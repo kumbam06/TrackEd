@@ -1,11 +1,18 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import SDWebImageSwiftUI
 
 // Simple in-memory user info cache
 class UserCache {
     static var shared = UserCache()
     private var cache: [String: (username: String, displayName: String?, photoURL: String?)] = [:]
+    private let userDefaultsKey = "UserCacheData"
+    
+    init() {
+        loadFromUserDefaults()
+    }
+    
     func getUserInfo(uid: String) -> (String, String?, String?)? {
         if let (username, displayName, photoURL) = cache[uid] {
             return (username, displayName, photoURL)
@@ -14,6 +21,22 @@ class UserCache {
     }
     func setUserInfo(uid: String, username: String, displayName: String?, photoURL: String?) {
         cache[uid] = (username, displayName, photoURL)
+        saveToUserDefaults()
+    }
+    
+    private func saveToUserDefaults() {
+        let dict = cache.mapValues { [ $0.0, $0.1 ?? "", $0.2 ?? "" ] }
+        UserDefaults.standard.set(dict, forKey: userDefaultsKey)
+    }
+    
+    private func loadFromUserDefaults() {
+        guard let dict = UserDefaults.standard.dictionary(forKey: userDefaultsKey) as? [String: [String]] else { return }
+        for (uid, arr) in dict {
+            let username = arr.count > 0 ? arr[0] : "User"
+            let displayName = arr.count > 1 ? (arr[1].isEmpty ? nil : arr[1]) : nil
+            let photoURL = arr.count > 2 ? (arr[2].isEmpty ? nil : arr[2]) : nil
+            cache[uid] = (username, displayName, photoURL)
+        }
     }
 }
 
@@ -37,20 +60,28 @@ struct ChatListView: View {
         }
     }
     
-    // Batch preload user info for all chat participants
+    // Batch preload user info for all chat participants (batched)
     private func preloadUserInfos(for chats: [Chat], myId: String) {
         let partnerIds = Set(chats.compactMap { $0.participants.first(where: { $0 != myId }) })
+        let uncachedIds = partnerIds.filter { UserCache.shared.getUserInfo(uid: $0) == nil && userInfos[$0] == nil }
+        guard !uncachedIds.isEmpty else { return }
         let db = Firestore.firestore()
-        for partnerId in partnerIds {
-            if UserCache.shared.getUserInfo(uid: partnerId) == nil && userInfos[partnerId] == nil {
-                db.collection("users").document(partnerId).getDocument { doc, error in
-                    guard let data = doc?.data() else { return }
+        // Firestore allows up to 10 'in' values per query, so batch if needed
+        let batchSize = 10
+        let uncachedIdsArray = Array(uncachedIds)
+        let batches = stride(from: 0, to: uncachedIdsArray.count, by: batchSize).map { Array(uncachedIdsArray[$0..<min($0+batchSize, uncachedIdsArray.count)]) }
+        for batch in batches {
+            db.collection("users").whereField(FieldPath.documentID(), in: batch).getDocuments { snapshot, error in
+                guard let docs = snapshot?.documents else { return }
+                for doc in docs {
+                    let data = doc.data()
+                    let uid = doc.documentID
                     let username = data["username"] as? String ?? "User"
                     let displayName = data["name"] as? String
                     let photoURL = data["photoURL"] as? String
-                    UserCache.shared.setUserInfo(uid: partnerId, username: username, displayName: displayName, photoURL: photoURL)
+                    UserCache.shared.setUserInfo(uid: uid, username: username, displayName: displayName, photoURL: photoURL)
                     DispatchQueue.main.async {
-                        userInfos[partnerId] = (username, displayName, photoURL)
+                        userInfos[uid] = (username, displayName, photoURL)
                     }
                 }
             }
@@ -307,23 +338,15 @@ struct ChatRowView: View {
         Button(action: onSelect) {
             HStack(alignment: .center, spacing: 16) {
                 if let userInfo = userInfo, let url = userInfo.2, let imageURL = URL(string: url) {
-                    AsyncImage(url: imageURL) { phase in
-                        switch phase {
-                        case .empty:
-                            Circle().fill(Color.gray.opacity(0.2))
-                                .frame(width: 48, height: 48)
-                        case .success(let image):
-                            image.resizable()
-                                .clipShape(Circle())
-                                .frame(width: 48, height: 48)
-                        case .failure:
-                            Circle().fill(Color("appPrimaryAccent").opacity(0.12))
-                                .frame(width: 48, height: 48)
-                                .overlay(Image(systemName: "person.fill").foregroundColor(Color("appPrimaryAccent")))
-                        @unknown default:
-                            Circle().fill(Color.gray.opacity(0.2))
-                                .frame(width: 48, height: 48)
-                        }
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 48, height: 48)
+                        WebImage(url: imageURL)
+                            .resizable()
+                            .indicator(.activity)
+                            .clipShape(Circle())
+                            .frame(width: 48, height: 48)
                     }
                 } else {
                     Circle().fill(Color("appPrimaryAccent").opacity(0.12))
