@@ -18,18 +18,29 @@ class TaskManager: ObservableObject {
     
     init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         self.context = context
-        loadTasks()
+        Task {
+            await loadTasksAsync()
+        }
     }
     
-    func loadTasks() {
+    @MainActor
+    func loadTasksAsync() async {
+        isLoading = true
         let request: NSFetchRequest<PlannerTask> = PlannerTask.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \PlannerTask.dueDate, ascending: true)]
-        
         do {
-            tasks = try context.fetch(request)
+            let fetchedTasks = try await context.perform {
+                try request.execute()
+            }
+            tasks = fetchedTasks
         } catch {
             print("Error loading tasks: \(error)")
         }
+        isLoading = false
+    }
+    
+    func loadTasks() {
+        Task { await loadTasksAsync() }
     }
     
     func createTask(title: String, dueDate: Date?, isAllDay: Bool = false, notes: String = "", priority: Int16 = 1, categoryId: UUID? = nil) {
@@ -43,7 +54,6 @@ class TaskManager: ObservableObject {
         task.categoryId = categoryId
         task.completed = false
         task.createdAt = Date()
-        
         save()
         loadTasks()
     }
@@ -51,7 +61,6 @@ class TaskManager: ObservableObject {
     func createTaskFromNaturalLanguage(_ text: String, categoryId: UUID? = nil) {
         let parser = NaturalLanguageParser()
         let parsedTask = parser.parseTask(text)
-        
         createTask(
             title: parsedTask.title,
             dueDate: parsedTask.dueDate,
@@ -81,7 +90,6 @@ class TaskManager: ObservableObject {
         task.notes = notes
         task.priority = priority
         task.categoryId = categoryId
-        
         save()
         loadTasks()
     }

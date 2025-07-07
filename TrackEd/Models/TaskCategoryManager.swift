@@ -10,21 +10,30 @@ class TaskCategoryManager: ObservableObject {
     
     init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         self.context = context
-        loadCategories()
-        if categories.isEmpty {
-            setupDefaultCategories()
+        Task {
+            await loadCategoriesAsync()
+            if categories.isEmpty {
+                setupDefaultCategories()
+            }
+        }
+    }
+    
+    @MainActor
+    func loadCategoriesAsync() async {
+        let request: NSFetchRequest<TaskCategoryEntity> = TaskCategoryEntity.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \TaskCategoryEntity.createdAt, ascending: true)]
+        do {
+            let fetchedCategories = try await context.perform {
+                try request.execute()
+            }
+            categories = fetchedCategories
+        } catch {
+            print("Error loading task categories: \(error)")
         }
     }
     
     func loadCategories() {
-        let request: NSFetchRequest<TaskCategoryEntity> = TaskCategoryEntity.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \TaskCategoryEntity.createdAt, ascending: true)]
-        
-        do {
-            categories = try context.fetch(request)
-        } catch {
-            print("Error loading task categories: \(error)")
-        }
+        Task { await loadCategoriesAsync() }
     }
     
     func addCategory(_ category: TaskCategory) {
@@ -36,7 +45,6 @@ class TaskCategoryManager: ObservableObject {
         entity.isDefault = false
         entity.createdAt = Date()
         entity.updatedAt = Date()
-        
         save()
         loadCategories()
     }
@@ -44,7 +52,6 @@ class TaskCategoryManager: ObservableObject {
     func updateCategory(_ category: TaskCategory) {
         let request: NSFetchRequest<TaskCategoryEntity> = TaskCategoryEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", category.id as CVarArg)
-        
         do {
             let results = try context.fetch(request)
             if let entity = results.first {
@@ -52,7 +59,6 @@ class TaskCategoryManager: ObservableObject {
                 entity.color = category.color
                 entity.icon = category.icon
                 entity.updatedAt = Date()
-                
                 save()
                 loadCategories()
             }
@@ -64,7 +70,6 @@ class TaskCategoryManager: ObservableObject {
     func deleteCategory(_ category: TaskCategory) {
         let request: NSFetchRequest<TaskCategoryEntity> = TaskCategoryEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", category.id as CVarArg)
-        
         do {
             let results = try context.fetch(request)
             if let entity = results.first {

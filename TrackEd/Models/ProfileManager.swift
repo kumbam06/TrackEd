@@ -20,15 +20,20 @@ class ProfileManager: ObservableObject {
     
     init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         self.context = context
-        loadProfile()
+        Task {
+            await loadProfileAsync()
+        }
     }
     
-    func loadProfile() {
+    @MainActor
+    func loadProfileAsync() async {
+        isLoading = true
         let request: NSFetchRequest<Profile> = Profile.fetchRequest()
         request.fetchLimit = 1
-        
         do {
-            let profiles = try context.fetch(request)
+            let profiles = try await context.perform {
+                try request.execute()
+            }
             if let profile = profiles.first {
                 currentProfile = profile
             } else {
@@ -38,6 +43,11 @@ class ProfileManager: ObservableObject {
             print("Error loading profile: \(error)")
             createDefaultProfile()
         }
+        isLoading = false
+    }
+    
+    func loadProfile() {
+        Task { await loadProfileAsync() }
     }
     
     private func createDefaultProfile() {
