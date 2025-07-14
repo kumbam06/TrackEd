@@ -1,14 +1,16 @@
-# TrackEd - Student Productivity App
+# GradMate - Student Productivity App
 
 ## 🚦 Badges
 
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 ![Platform](https://img.shields.io/badge/platform-iOS%2017%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![Firebase](https://img.shields.io/badge/Firebase-Enabled-orange)
+![Google Sign-In](https://img.shields.io/badge/Google%20Sign--In-Supported-green)
 
-# TrackEd - Student Productivity App
+# GradMate - Student Productivity App
 
-A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Firestore to help students manage tasks, notes, skills, and career development.
+A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Firebase to help students manage tasks, notes, skills, and career development.
 
 ## 🚀 Features
 
@@ -18,7 +20,7 @@ A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Fir
 - **Chat System**: Firestore-backed chat interface for student discussions
 - **AI Assistant**: Placeholder for future AI integration (ChatGPT-ready)
 - **Profile Management**: Editable profile with photo, contact info, and social links
-- **Modern Onboarding & Auth**: Chat-style signup, redesigned login, Face ID/biometrics (optional)
+- **Modern Onboarding & Auth**: Chat-style signup, redesigned login, Google Sign-In integration
 
 ### 🎯 Key Features
 - **Natural Language Task Creation**: "Study SwiftUI at 8pm tomorrow"
@@ -27,10 +29,14 @@ A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Fir
 - **Core Data & Firestore Integration**: Robust data persistence and sync
 - **Dark Mode Support**: Full light/dark mode compatibility
 - **Modular Architecture**: Clean separation of concerns
+- **Google Sign-In**: Seamless authentication with Google accounts
+- **Real-time Chat**: Firestore-powered chat system for student collaboration
 
 ### 🛠 Technical Stack
 - **SwiftUI**: Modern declarative UI framework
 - **Core Data**: Robust data persistence (not SwiftData)
+- **Firebase**: Authentication, Firestore database, and Storage
+- **Google Sign-In**: OAuth authentication
 - **PDFKit**: Resume generation and export
 - **PhotosUI**: Profile photo selection
 - **Modular Architecture**: Models, Views, ViewModels, Services
@@ -38,24 +44,31 @@ A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Fir
 ## 📁 Project Structure
 
 ```
-TrackEd/
-├── TrackEd/
-│   ├── TrackEdApp.swift              # Main app entry point
+GradMate/
+├── GradMate/
+│   ├── GradMate.swift                # Main app entry point
+│   ├── AppDelegate.swift             # Firebase & Google Sign-In setup
 │   ├── ContentView.swift             # Tab-based main view
 │   ├── CoreData/
-│   │   ├── TrackEd.xcdatamodeld/     # Core Data model
+│   │   ├── GradMate.xcdatamodeld/    # Core Data model
 │   │   └── PersistenceController.swift
-│   ├── Design/
-│   │   ├── AppColors.swift           # Color system
-│   │   └── AppTheme.swift            # Theme management
 │   ├── Models/
+│   │   ├── AuthViewModel.swift       # Authentication management
 │   │   ├── ProfileManager.swift      # Profile data management
 │   │   ├── TaskManager.swift         # Task CRUD operations
 │   │   ├── SkillManager.swift        # Skills management
-│   │   └── ChatManager.swift         # Chat functionality
+│   │   ├── Firestore/
+│   │   │   ├── FirestoreChatService.swift
+│   │   │   └── ChatServiceProtocol.swift
+│   │   └── Services/
+│   │       ├── CareerDataService.swift
+│   │       ├── CoverLetterDataService.swift
+│   │       └── ProgressDataService.swift
 │   ├── Components/
 │   │   ├── CardView.swift            # Reusable card components
-│   │   └── TaskView.swift            # Task display components
+│   │   ├── TaskView.swift            # Task display components
+│   │   ├── CustomLoaderOverlay.swift # Global loading overlay
+│   │   └── TrackEdLoader.swift       # Custom loading animation
 │   ├── Views/
 │   │   ├── Home/
 │   │   │   └── HomeView.swift        # Dashboard view
@@ -65,17 +78,55 @@ TrackEd/
 │   │   │   └── NaturalLanguageInputView.swift
 │   │   ├── Chat/
 │   │   │   ├── ChatListView.swift    # Chat list
-│   │   │   └── ChatDetailView.swift  # Individual chat
+│   │   │   ├── ChatDetailView.swift  # Individual chat
+│   │   │   └── NewChatView.swift     # Create new chat
 │   │   ├── AskAI/
 │   │   │   └── AskAIView.swift       # AI assistant placeholder
 │   │   ├── Onboarding/
-│   │   └── Profile/
-│   │       ├── ProfileView.swift     # Profile display
-│   │       ├── EditProfileView.swift # Profile editing
-│   │       ├── ThemePickerView.swift # Theme selection
-│   │       ├── ResumeExportView.swift # PDF generation
-│   │       └── AddSkillView.swift    # Skill addition
-│   └── Assets.xcassets/              # Color assets and images
+│   │   │   ├── AuthView.swift        # Login & Google Sign-In
+│   │   │   ├── SignupChatFlowView.swift # Chat-style signup
+│   │   │   └── OnboardingView.swift  # App introduction
+│   │   ├── Profile/
+│   │   │   ├── ProfileView.swift     # Profile display
+│   │   │   ├── EditProfileView.swift # Profile editing
+│   │   │   ├── ResumeExportView.swift # PDF generation
+│   │   │   ├── AddSkillView.swift    # Skill addition
+│   │   │   ├── ProjectListView.swift # Project management
+│   │   │   ├── InternshipListView.swift # Internship tracking
+│   │   │   └── WorkExperienceListView.swift # Work experience
+│   │   └── Analytics/
+│   │       └── ProgressDashboardView.swift # Progress tracking
+│   ├── Assets.xcassets/              # Color assets and images
+│   ├── GoogleService-Info.plist      # Firebase configuration
+│   └── Info.plist                    # App configuration
+```
+
+## 🔥 Firebase Integration
+
+### Authentication
+- **Google Sign-In**: OAuth authentication with Google accounts
+- **Email/Password**: Traditional email and password authentication
+- **User Profile Sync**: Automatic profile data saving to Firestore
+
+### Firestore Database
+- **User Profiles**: Stored with Google account information
+- **Chat System**: Real-time messaging with Firestore
+- **Data Persistence**: Core Data + Firestore hybrid approach
+
+### Security Rules
+```javascript
+// Firestore Rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /chats/{chatId} {
+      allow read, write: if request.auth != null && 
+        request.resource.data.participants.hasAny([request.auth.uid]);
+    }
+  }
+}
 ```
 
 ## 🎨 Design System
@@ -94,13 +145,10 @@ TrackEd/
 | appScreenBG       | #F6F6F8         | #181A20        | Screen backgrounds   |
 | appStrokeGray     | #E0E0E0         | #333333        | Borders, strokes     |
 
-- **Semantic color names** are used throughout for maintainability and accessibility.
-- All colors have variants for light and dark mode where appropriate.
-- The primary accent color (`#176FBF`) is used for branding, buttons, and highlights, matching the app logo.
-
 ### Components & UI Principles
 - **CardView**: Consistent card styling with rounded corners and shadows
-- **Modern Auth & Onboarding**: Redesigned login screen, chat-style signup with animated bubbles, password visibility toggle, and error feedback
+- **Modern Auth & Onboarding**: Redesigned login screen, chat-style signup with animated bubbles, Google Sign-In integration
+- **Global Loading System**: Centralized loading state management
 - **Floating Action Buttons**: Modern, circular, and adaptive
 - **Accessibility**: High contrast, large touch targets, VoiceOver support
 - **Consistent Spacing**: Generous padding and spacing for clarity and comfort
@@ -122,11 +170,24 @@ TrackEd/
 - Xcode 15.0+
 - iOS 17.0+
 - Swift 5.9+
+- Firebase project setup
 
 ### Installation
 1. Clone the repository
-2. Open `TrackEd.xcodeproj` in Xcode
-3. Build and run on simulator or device
+2. Open `GradMate.xcodeproj` in Xcode
+3. Configure Firebase:
+   - Add your `GoogleService-Info.plist` to the project
+   - Update Firestore security rules
+   - Configure Google Sign-In in Firebase Console
+4. Build and run on simulator or device
+
+### Firebase Setup
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Add iOS app to your Firebase project
+3. Download `GoogleService-Info.plist` and add to project
+4. Enable Authentication with Google Sign-In
+5. Set up Firestore database with security rules
+6. Configure Firebase Storage for profile photos
 
 ### Core Data Setup
 The app automatically creates the Core Data stack and initializes with sample data on first launch.
@@ -143,6 +204,11 @@ Modify `NaturalLanguageParser` in `TaskManager.swift` to add new time/date patte
 
 ## 📱 Usage
 
+### Authentication
+- **Google Sign-In**: Tap the Google Sign-In button for seamless authentication
+- **Email/Password**: Traditional login with email and password
+- **Profile Sync**: User data automatically syncs between Google account and app
+
 ### Task Management
 - Use natural language: "Study SwiftUI at 8pm tomorrow"
 - Set priorities: "Submit report urgent"
@@ -155,8 +221,25 @@ Modify `NaturalLanguageParser` in `TaskManager.swift` to add new time/date patte
 
 ### Chat System
 - Create new chats for different topics
-- Real-time message updates
+- Real-time message updates via Firestore
 - Persistent chat history
+
+## 🎯 Recent Updates
+
+### v2.0.0 - Firebase Integration & Authentication
+- ✅ **Google Sign-In**: Complete OAuth integration with Google accounts
+- ✅ **Firebase Configuration**: Proper AppDelegate setup and initialization
+- ✅ **User Data Persistence**: Automatic profile data saving to Firestore
+- ✅ **Global Loading System**: Centralized loading state management
+- ✅ **Real-time Chat**: Firestore-powered chat system
+- ✅ **Security**: Proper Firestore security rules implementation
+- ✅ **UI Improvements**: Fixed loader behavior and Google Sign-In button
+
+### Technical Improvements
+- **AppDelegate Integration**: Proper Firebase initialization
+- **Error Handling**: Comprehensive error management for authentication
+- **Data Sync**: Seamless Core Data and Firestore integration
+- **Performance**: Optimized loading states and data fetching
 
 ## 🎯 Future Enhancements
 
@@ -189,9 +272,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Acknowledgments
 
 - SwiftUI and Core Data documentation
+- Firebase documentation and SDKs
+- Google Sign-In iOS SDK
 - Apple Human Interface Guidelines
 - iOS development community
 
 ---
 
-**TrackEd** - Empowering students to track their educational journey and build their future careers. 
+**GradMate** - Empowering students to track their educational journey and build their future careers with modern authentication and real-time collaboration. 
