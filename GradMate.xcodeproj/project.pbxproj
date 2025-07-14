@@ -1,0 +1,714 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CB4901D22E1C11AF001FB8EA /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = CB4901D12E1C11AF001FB8EA /* SDWebImageSwiftUI */; };
+		CB50E9FE2E16B7D400FC7351 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = CB50E9FD2E16B7D400FC7351 /* GoogleSignIn */; };
+		CB50EAA92E16B8BD00FC7351 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = CB50EAA82E16B8BD00FC7351 /* GoogleSignInSwift */; };
+		CB9D24A32E0AC56200AEA421 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = CB9D24A22E0AC56200AEA421 /* FirebaseAnalytics */; };
+		CB9D24A52E0AC56200AEA421 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CB9D24A42E0AC56200AEA421 /* FirebaseAuth */; };
+		CB9D24A72E0AC56200AEA421 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = CB9D24A62E0AC56200AEA421 /* FirebaseCrashlytics */; };
+		CB9D24A92E0AC56200AEA421 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = CB9D24A82E0AC56200AEA421 /* FirebaseFirestore */; };
+		CB9D24AB2E0AC56200AEA421 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CB9D24AA2E0AC56200AEA421 /* FirebaseMessaging */; };
+		CB9D24AD2E0AC56200AEA421 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = CB9D24AC2E0AC56200AEA421 /* FirebaseStorage */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CB8990332E09ED4200F92CE9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CB89901D2E09ED4000F92CE9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CB8990242E09ED4000F92CE9;
+			remoteInfo = GradMate;
+		};
+		CB89903D2E09ED4200F92CE9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CB89901D2E09ED4000F92CE9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CB8990242E09ED4000F92CE9;
+			remoteInfo = GradMate;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		CB8990252E09ED4000F92CE9 /* GradMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GradMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB8990322E09ED4200F92CE9 /* GradMateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GradMateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB89903C2E09ED4200F92CE9 /* GradMateUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GradMateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CBCC0D502E149EC40075C257 /* Exceptions for "GradMate" folder in "GradMate" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CB8990242E09ED4000F92CE9 /* GradMate */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CB8990272E09ED4000F92CE9 /* GradMate */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CBCC0D502E149EC40075C257 /* Exceptions for "GradMate" folder in "GradMate" target */,
+			);
+			path = GradMate;
+			sourceTree = "<group>";
+		};
+		CB8990352E09ED4200F92CE9 /* GradMateTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GradMateTests;
+			sourceTree = "<group>";
+		};
+		CB89903F2E09ED4200F92CE9 /* GradMateUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GradMateUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CB8990222E09ED4000F92CE9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CB9D24A72E0AC56200AEA421 /* FirebaseCrashlytics in Frameworks */,
+				CB9D24A92E0AC56200AEA421 /* FirebaseFirestore in Frameworks */,
+				CB9D24AB2E0AC56200AEA421 /* FirebaseMessaging in Frameworks */,
+				CB4901D22E1C11AF001FB8EA /* SDWebImageSwiftUI in Frameworks */,
+				CB50EAA92E16B8BD00FC7351 /* GoogleSignInSwift in Frameworks */,
+				CB9D24A32E0AC56200AEA421 /* FirebaseAnalytics in Frameworks */,
+				CB9D24A52E0AC56200AEA421 /* FirebaseAuth in Frameworks */,
+				CB9D24AD2E0AC56200AEA421 /* FirebaseStorage in Frameworks */,
+				CB50E9FE2E16B7D400FC7351 /* GoogleSignIn in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CB89902F2E09ED4200F92CE9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CB8990392E09ED4200F92CE9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CB89901C2E09ED4000F92CE9 = {
+			isa = PBXGroup;
+			children = (
+				CB8990272E09ED4000F92CE9 /* GradMate */,
+				CB8990352E09ED4200F92CE9 /* GradMateTests */,
+				CB89903F2E09ED4200F92CE9 /* GradMateUITests */,
+				CB8990262E09ED4000F92CE9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CB8990262E09ED4000F92CE9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CB8990252E09ED4000F92CE9 /* GradMate.app */,
+				CB8990322E09ED4200F92CE9 /* GradMateTests.xctest */,
+				CB89903C2E09ED4200F92CE9 /* GradMateUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CB8990242E09ED4000F92CE9 /* GradMate */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CB8990462E09ED4200F92CE9 /* Build configuration list for PBXNativeTarget "GradMate" */;
+			buildPhases = (
+				CB8990212E09ED4000F92CE9 /* Sources */,
+				CB8990222E09ED4000F92CE9 /* Frameworks */,
+				CB8990232E09ED4000F92CE9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CB8990272E09ED4000F92CE9 /* GradMate */,
+			);
+			name = GradMate;
+			packageProductDependencies = (
+				CB9D24A22E0AC56200AEA421 /* FirebaseAnalytics */,
+				CB9D24A42E0AC56200AEA421 /* FirebaseAuth */,
+				CB9D24A62E0AC56200AEA421 /* FirebaseCrashlytics */,
+				CB9D24A82E0AC56200AEA421 /* FirebaseFirestore */,
+				CB9D24AA2E0AC56200AEA421 /* FirebaseMessaging */,
+				CB9D24AC2E0AC56200AEA421 /* FirebaseStorage */,
+				CB50E9FD2E16B7D400FC7351 /* GoogleSignIn */,
+				CB50EAA82E16B8BD00FC7351 /* GoogleSignInSwift */,
+				CB4901D12E1C11AF001FB8EA /* SDWebImageSwiftUI */,
+			);
+			productName = GradMate;
+			productReference = CB8990252E09ED4000F92CE9 /* GradMate.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CB8990312E09ED4200F92CE9 /* GradMateTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CB8990492E09ED4200F92CE9 /* Build configuration list for PBXNativeTarget "GradMateTests" */;
+			buildPhases = (
+				CB89902E2E09ED4200F92CE9 /* Sources */,
+				CB89902F2E09ED4200F92CE9 /* Frameworks */,
+				CB8990302E09ED4200F92CE9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CB8990342E09ED4200F92CE9 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CB8990352E09ED4200F92CE9 /* GradMateTests */,
+			);
+			name = GradMateTests;
+			packageProductDependencies = (
+			);
+			productName = GradMateTests;
+			productReference = CB8990322E09ED4200F92CE9 /* GradMateTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CB89903B2E09ED4200F92CE9 /* GradMateUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CB89904C2E09ED4200F92CE9 /* Build configuration list for PBXNativeTarget "GradMateUITests" */;
+			buildPhases = (
+				CB8990382E09ED4200F92CE9 /* Sources */,
+				CB8990392E09ED4200F92CE9 /* Frameworks */,
+				CB89903A2E09ED4200F92CE9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CB89903E2E09ED4200F92CE9 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CB89903F2E09ED4200F92CE9 /* GradMateUITests */,
+			);
+			name = GradMateUITests;
+			packageProductDependencies = (
+			);
+			productName = GradMateUITests;
+			productReference = CB89903C2E09ED4200F92CE9 /* GradMateUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CB89901D2E09ED4000F92CE9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					CB8990242E09ED4000F92CE9 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					CB8990312E09ED4200F92CE9 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = CB8990242E09ED4000F92CE9;
+					};
+					CB89903B2E09ED4200F92CE9 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = CB8990242E09ED4000F92CE9;
+					};
+				};
+			};
+			buildConfigurationList = CB8990202E09ED4000F92CE9 /* Build configuration list for PBXProject "GradMate" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CB89901C2E09ED4000F92CE9;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CB9D24A12E0AC56200AEA421 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				CB50E9FC2E16B7D400FC7351 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				CB4901D02E1C11AF001FB8EA /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CB8990262E09ED4000F92CE9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CB8990242E09ED4000F92CE9 /* GradMate */,
+				CB8990312E09ED4200F92CE9 /* GradMateTests */,
+				CB89903B2E09ED4200F92CE9 /* GradMateUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CB8990232E09ED4000F92CE9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CB8990302E09ED4200F92CE9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CB89903A2E09ED4200F92CE9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CB8990212E09ED4000F92CE9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CB89902E2E09ED4200F92CE9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CB8990382E09ED4200F92CE9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CB8990342E09ED4200F92CE9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CB8990242E09ED4000F92CE9 /* GradMate */;
+			targetProxy = CB8990332E09ED4200F92CE9 /* PBXContainerItemProxy */;
+		};
+		CB89903E2E09ED4200F92CE9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CB8990242E09ED4000F92CE9 /* GradMate */;
+			targetProxy = CB89903D2E09ED4200F92CE9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		CB8990442E09ED4200F92CE9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 7N735R5XD3;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CB8990452E09ED4200F92CE9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 7N735R5XD3;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CB8990472E09ED4200F92CE9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N735R5XD3;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GradMate/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GradMate;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "anvilabs-GradMate";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CB8990482E09ED4200F92CE9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N735R5XD3;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GradMate/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GradMate;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "anvilabs-GradMate";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CB89904A2E09ED4200F92CE9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N735R5XD3;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = anvilabs.GradMateTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TrackEd.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TrackEd";
+			};
+			name = Debug;
+		};
+		CB89904B2E09ED4200F92CE9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N735R5XD3;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = anvilabs.GradMateTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TrackEd.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TrackEd";
+			};
+			name = Release;
+		};
+		CB89904D2E09ED4200F92CE9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N735R5XD3;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = anvilabs.GradMateUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TrackEd;
+			};
+			name = Debug;
+		};
+		CB89904E2E09ED4200F92CE9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N735R5XD3;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = anvilabs.GradMateUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TrackEd;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CB8990202E09ED4000F92CE9 /* Build configuration list for PBXProject "GradMate" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB8990442E09ED4200F92CE9 /* Debug */,
+				CB8990452E09ED4200F92CE9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CB8990462E09ED4200F92CE9 /* Build configuration list for PBXNativeTarget "GradMate" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB8990472E09ED4200F92CE9 /* Debug */,
+				CB8990482E09ED4200F92CE9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CB8990492E09ED4200F92CE9 /* Build configuration list for PBXNativeTarget "GradMateTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB89904A2E09ED4200F92CE9 /* Debug */,
+				CB89904B2E09ED4200F92CE9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CB89904C2E09ED4200F92CE9 /* Build configuration list for PBXNativeTarget "GradMateUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB89904D2E09ED4200F92CE9 /* Debug */,
+				CB89904E2E09ED4200F92CE9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CB4901D02E1C11AF001FB8EA /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SDWebImage/SDWebImageSwiftUI";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.1.3;
+			};
+		};
+		CB50E9FC2E16B7D400FC7351 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+		CB9D24A12E0AC56200AEA421 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.15.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CB4901D12E1C11AF001FB8EA /* SDWebImageSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB4901D02E1C11AF001FB8EA /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */;
+			productName = SDWebImageSwiftUI;
+		};
+		CB50E9FD2E16B7D400FC7351 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB50E9FC2E16B7D400FC7351 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		CB50EAA82E16B8BD00FC7351 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB50E9FC2E16B7D400FC7351 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		CB9D24A22E0AC56200AEA421 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB9D24A12E0AC56200AEA421 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		CB9D24A42E0AC56200AEA421 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB9D24A12E0AC56200AEA421 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		CB9D24A62E0AC56200AEA421 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB9D24A12E0AC56200AEA421 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		CB9D24A82E0AC56200AEA421 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB9D24A12E0AC56200AEA421 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		CB9D24AA2E0AC56200AEA421 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB9D24A12E0AC56200AEA421 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		CB9D24AC2E0AC56200AEA421 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB9D24A12E0AC56200AEA421 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = CB89901D2E09ED4000F92CE9 /* Project object */;
+}

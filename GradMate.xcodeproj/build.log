@@ -1,0 +1,3 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project GradMate.xcodeproj -scheme GradMate -destination id=AC095C0A-32A8-4459-9AD2-5C6BCB80C4C5 build
+
