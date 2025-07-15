@@ -16,11 +16,11 @@ struct CardView<Content: View>: View {
         content
             .padding(20)
             .frame(maxWidth: .infinity, minHeight: 120)
-            .background(Color(.systemGray6))
+            .background(Color("appCardBG"))
             .cornerRadius(16)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color(.separator), lineWidth: 1)
+                    .stroke(Color("appStrokeGray"), lineWidth: 1)
             )
     }
 }
@@ -43,16 +43,16 @@ struct FloatingCardView<Content: View>: View {
             .padding(padding)
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color(.systemBackground))
+                    .fill(Color("appCardBG"))
                     .shadow(
-                        color: Color.primary.opacity(colorScheme == .light ? 0.05 : 0.15),
+                        color: Color.black.opacity(0.05),
                         radius: 10,
                         x: 0,
                         y: 4
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.gray.opacity(0.10), lineWidth: 1)
+                            .stroke(Color("appStrokeGray"), lineWidth: 1)
                     )
             )
     }

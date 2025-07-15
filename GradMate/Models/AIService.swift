@@ -56,6 +56,21 @@ enum AIActionType {
     case generateReport
 }
 
+// MARK: - AI Message
+struct AIMessage: Identifiable {
+    let id: UUID
+    let content: String
+    let timestamp: Date
+    let isFromUser: Bool
+    
+    init(content: String, isFromUser: Bool, timestamp: Date = Date()) {
+        self.id = UUID()
+        self.content = content
+        self.isFromUser = isFromUser
+        self.timestamp = timestamp
+    }
+}
+
 // MARK: - Study Plan
 struct StudyPlan {
     let title: String

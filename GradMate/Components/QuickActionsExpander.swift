@@ -52,7 +52,7 @@ struct QuickActionsExpander: View {
                             }
                             .padding(6)
                             .background(Color(.systemGray6))
-                            .cornerRadius(18, corners: [.topRight, .bottomRight])
+                            .cornerRadius(18, corners: [UIRectCorner.topRight, UIRectCorner.bottomRight])
                             .shadow(color: .black.opacity(0.08), radius: 4, x: 2, y: 2)
                         }
                         .frame(width: 44, height: 80)
@@ -134,20 +134,10 @@ struct QuickAction: Identifiable {
     let icon: String
     let label: String
     let handler: () -> Void
-}
+} 
 
-// Helper for corner radius on specific corners
-fileprivate extension View {
+extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape( RoundedCorner(radius: radius, corners: corners) )
-    }
-}
-
-fileprivate struct RoundedCorner: Shape {
-    var radius: CGFloat = 0.0
-    var corners: UIRectCorner = .allCorners
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
+        clipShape(RoundedCorner(radius: radius, corners: corners))
     }
 } 

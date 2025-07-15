@@ -35,7 +35,7 @@ struct AskAIView: View {
     
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            Color("appScreenBG").ignoresSafeArea()
             NavigationView {
                 VStack(spacing: 0) {
                     aiHeader5D
@@ -58,6 +58,7 @@ struct AskAIView: View {
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 16)
                             }
+                            .padding(.bottom, 100) // Add padding for floating tab bar
                             .onChange(of: aiManager.messages.count) {
                                 if let lastMessage = aiManager.messages.last {
                                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -87,7 +88,6 @@ struct AskAIView: View {
                 }
             }
         }
-        .background(.ultraThinMaterial)
     }
     
     private func updateAIManager() {
@@ -99,65 +99,63 @@ struct AskAIView: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .fill(Color.accentColor)
+                        .fill(Color("appPrimaryAccent"))
                         .frame(width: 44, height: 44)
-                        .shadow(color: Color(.systemFill).opacity(0.2), radius: 12, x: 0, y: 4)
+                        .shadow(color: Color("appPrimaryAccent").opacity(0.2), radius: 12, x: 0, y: 4)
                     Image(systemName: "sparkles")
                         .font(.title2)
                         .foregroundColor(.white)
-                        .shadow(color: Color(.systemFill).opacity(0.2), radius: 16, x: 0, y: 0)
+                        .shadow(color: Color("appPrimaryAccent").opacity(0.2), radius: 16, x: 0, y: 0)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("GRADMATE AI")
                         .font(.headline)
                         .fontWeight(.heavy)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color("appTextPrimary"))
                         .kerning(1)
-                        .shadow(color: Color(.systemFill).opacity(0.2), radius: 16, x: 0, y: 0)
                     Text("YOUR PERSONAL STUDY ASSISTANT")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color("appTextSecondary"))
                         .kerning(0.5)
-                        .shadow(color: Color(.systemFill).opacity(0.2), radius: 8, x: 0, y: 0)
                 }
                 Spacer()
                 Button(action: { showingQuickActions.toggle() }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.title2)
-                        .foregroundColor(Color.accentColor)
-                        .shadow(color: Color.accentColor.opacity(0.18), radius: 8, x: 0, y: 4)
+                        .foregroundColor(Color("appPrimaryAccent"))
+                        .shadow(color: Color("appPrimaryAccent").opacity(0.18), radius: 8, x: 0, y: 4)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
             Divider()
-                .background(Color(.systemFill).opacity(0.15))
+                .background(Color("appStrokeGray"))
         }
-        .background(.ultraThinMaterial)
+        .background(Color("appCardBG"))
     }
     
     private var welcomeMessage5D: some View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(Color(.systemFill).opacity(0.1))
+                    .fill(Color("appPrimaryAccent").opacity(0.1))
                     .frame(width: 80, height: 80)
                 Image(systemName: "sparkles")
                     .font(.system(size: 40))
-                    .foregroundColor(Color.accentColor)
-                    .shadow(color: Color(.systemFill).opacity(0.2), radius: 12, x: 0, y: 0)
+                    .foregroundColor(Color("appPrimaryAccent"))
+                    .shadow(color: Color("appPrimaryAccent").opacity(0.2), radius: 12, x: 0, y: 0)
             }
             VStack(spacing: 12) {
                 Text("HELLO! I'M YOUR AI STUDY ASSISTANT")
                     .font(.title2)
                     .fontWeight(.heavy)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("appTextPrimary"))
                     .kerning(1)
                     .multilineTextAlignment(.center)
                 Text("I can help you with study planning, code review, career advice, and much more. What would you like to work on today?")
                     .font(.body)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(Color("appTextSecondary"))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
             }
@@ -170,7 +168,7 @@ struct AskAIView: View {
             Text("QUICK ACTIONS")
                 .font(.headline)
                 .fontWeight(.heavy)
-                .foregroundColor(.white)
+                .foregroundColor(Color("appTextPrimary"))
                 .kerning(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -179,7 +177,7 @@ struct AskAIView: View {
                     icon: "graduationcap.fill",
                     title: "Study Plan",
                     subtitle: "Create a personalized study schedule",
-                    color: Color.accentColor
+                    color: Color("appPrimaryAccent")
                 ) {
                     aiManager.sendMessage("Create a study plan for my current courses and help me organize my learning schedule.")
                 }
@@ -188,7 +186,7 @@ struct AskAIView: View {
                     icon: "code",
                     title: "Code Review",
                     subtitle: "Get feedback on your code",
-                    color: .blue
+                    color: Color("appPrimaryAccent")
                 ) {
                     aiManager.sendMessage("Can you review my code and suggest improvements?")
                 }
@@ -197,7 +195,7 @@ struct AskAIView: View {
                     icon: "briefcase.fill",
                     title: "Career Advice",
                     subtitle: "Get guidance on your career path",
-                    color: .green
+                    color: Color("appSuccess")
                 ) {
                     aiManager.sendMessage("I need career advice for someone in my field. Can you help?")
                 }
@@ -206,7 +204,7 @@ struct AskAIView: View {
                     icon: "brain.head.profile",
                     title: "Learning Tips",
                     subtitle: "Improve your study techniques",
-                    color: .mint
+                    color: Color("appWarning")
                 ) {
                     aiManager.sendMessage("What are some effective study techniques I can use?")
                 }
@@ -219,7 +217,7 @@ struct AskAIView: View {
     private var messageInputArea5D: some View {
         VStack(spacing: 0) {
             Divider()
-                .background(Color(.systemFill).opacity(0.15))
+                .background(Color("appStrokeGray"))
             HStack(spacing: 12) {
                 TextField("Ask me anything...", text: $messageText, axis: .vertical)
                     .textFieldStyle(PlainTextFieldStyle())
@@ -229,13 +227,13 @@ struct AskAIView: View {
                     .padding(.vertical, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color(.systemBackground).opacity(0.3))
+                            .fill(Color("appStrokeGray"))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
-                                    .strokeBorder(Color(.systemFill).opacity(0.2), lineWidth: 1)
+                                    .strokeBorder(Color("appStrokeGray"), lineWidth: 1)
                             )
                     )
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("appTextPrimary"))
                     .onSubmit {
                         sendMessage()
                     }
@@ -249,9 +247,9 @@ struct AskAIView: View {
                         .background(
                             Circle()
                                 .fill(
-                                    debouncedMessageText.isEmpty ? LinearGradient(colors: [Color(.systemBackground).opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing) : LinearGradient(colors: [Color.accentColor, Color(.systemFill)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    debouncedMessageText.isEmpty ? Color("appStrokeGray") : Color("appPrimaryAccent")
                                 )
-                                .shadow(color: Color(.systemFill).opacity(0.2), radius: 4, x: 0, y: 2)
+                                .shadow(color: Color("appPrimaryAccent").opacity(0.2), radius: 4, x: 0, y: 2)
                         )
                 }
                 .disabled(debouncedMessageText.isEmpty)
@@ -259,7 +257,7 @@ struct AskAIView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .background(Color(.systemBackground).opacity(0.2))
+            .background(Color("appCardBG"))
         }
     }
     
@@ -295,7 +293,7 @@ struct QuickActionCard5D: View {
                     Image(systemName: icon)
                         .font(.title2)
                         .foregroundColor(color)
-                        .shadow(color: Color(.systemFill).opacity(0.2), radius: 8, x: 0, y: 0)
+                        .shadow(color: color.opacity(0.2), radius: 8, x: 0, y: 0)
                     Spacer()
                 }
                 
@@ -303,17 +301,17 @@ struct QuickActionCard5D: View {
                     Text(title)
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .shadow(color: Color(.systemFill).opacity(0.2), radius: 8, x: 0, y: 0)
+                        .foregroundColor(Color("appTextPrimary"))
                     
                     Text(subtitle)
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color("appTextSecondary"))
                         .lineLimit(2)
                 }
             }
             .padding(16)
-            .background(.ultraThinMaterial)
+            .background(Color("appCardBG"))
+            .cornerRadius(16)
             .shadow(color: color.opacity(0.18), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(PlainButtonStyle())
@@ -336,29 +334,29 @@ struct AIMessageBubble5D: View {
                         .background(
                             RoundedRectangle(cornerRadius: 20)
                                 .fill(
-                                    LinearGradient(colors: [Color.accentColor, Color(.systemFill)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
                                 )
-                                .shadow(color: Color(.systemFill).opacity(0.2), radius: 4, x: 0, y: 2)
+                                .shadow(color: Color("appPrimaryAccent").opacity(0.2), radius: 4, x: 0, y: 2)
                         )
                     Text(formatTime(message.timestamp))
                         .font(.caption2)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color("appTextSecondary"))
                 }
             } else {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(message.content)
                         .font(.body)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color("appTextPrimary"))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         .background(
                             RoundedRectangle(cornerRadius: 20)
-                                .fill(Color(.systemBackground).opacity(0.3))
-                                .shadow(color: Color(.systemFill).opacity(0.08), radius: 4, x: 0, y: 2)
+                                .fill(Color("appCardBG"))
+                                .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
                         )
                     Text(formatTime(message.timestamp))
                         .font(.caption2)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color("appTextSecondary"))
                 }
                 Spacer(minLength: 80)
             }
@@ -381,7 +379,7 @@ struct TypingIndicator5D: View {
                 HStack(spacing: 4) {
                     ForEach(0..<3, id: \.self) { index in
                         Circle()
-                            .fill(Color.accentColor)
+                            .fill(Color("appPrimaryAccent"))
                             .frame(width: 8, height: 8)
                             .scaleEffect(1.0 + 0.3 * sin(animationOffset + Double(index) * 0.5))
                             .animation(
@@ -396,8 +394,8 @@ struct TypingIndicator5D: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(Color(.systemBackground).opacity(0.3))
-                        .shadow(color: Color(.systemFill).opacity(0.08), radius: 4, x: 0, y: 2)
+                        .fill(Color("appCardBG"))
+                        .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
                 )
             }
             Spacer(minLength: 80)
@@ -449,26 +447,32 @@ class AIManager: ObservableObject {
             } catch {
                 await MainActor.run {
                     self.isTyping = false
-                    let errorMessage = AIMessage(content: "I'm sorry, I encountered an error. Please try again.", isFromUser: false)
+                    let errorMessage = AIMessage(content: "Sorry, I encountered an error. Please try again.", isFromUser: false)
                     self.messages.append(errorMessage)
                 }
             }
         }
     }
     
+    func updateManagers(taskManager: TaskManager, skillManager: SkillManager, profileManager: ProfileManager) {
+        self.taskManager = taskManager
+        self.skillManager = skillManager
+        self.profileManager = profileManager
+    }
+    
     private func buildAIContext() -> AIContext {
         let userProfile = AIContext.UserProfile(
-            name: profileManager.currentProfile?.name ?? "Student",
-            major: nil, // No major in Core Data
-            year: nil, // No year in Core Data
-            goals: [] // No goals in Core Data
+            name: profileManager.currentProfile?.name ?? "User",
+            major: nil,
+            year: nil,
+            goals: []
         )
         
         return AIContext(
             userProfile: userProfile,
-            currentTasks: taskManager.getTasksForDate(Date()),
+            currentTasks: taskManager.tasks,
             skills: skillManager.skills,
-            recentMessages: messages.suffix(5).map { AIMessage(content: $0.content, isFromUser: $0.isFromUser) },
+            recentMessages: messages,
             currentDate: Date()
         )
     }
@@ -477,58 +481,23 @@ class AIManager: ObservableObject {
         for action in actions {
             switch action.type {
             case .createTask:
-                if let _ = action.data["duration"] as? Int,
-                   let _ = action.data["topic"] as? String {
-                    // Use TaskManager's public create method
-                    taskManager.createTask(title: action.title, dueDate: Date(), isAllDay: false, notes: action.description, priority: 1)
+                if let taskData = action.data as? [String: Any],
+                   let title = taskData["title"] as? String {
+                    taskManager.createTask(title: title, dueDate: nil)
                 }
-                
             case .addSkill:
-                if let category = action.data["category"] as? String {
-                    // Use SkillManager's public add method
-                    skillManager.addSkill(name: action.title, category: category, description: action.description, proficiency: 1)
+                if let skillData = action.data as? [String: Any],
+                   let skillName = skillData["name"] as? String,
+                   let proficiency = skillData["proficiency"] as? Int {
+                    skillManager.addSkill(name: skillName, category: "General", proficiency: Int16(proficiency))
                 }
-                
-            case .scheduleStudy:
-                // Handle study scheduling
-                break
-                
-            case .setReminder:
-                // Handle reminder setting
-                break
-                
-            case .generateReport:
-                // Handle report generation
+            case .scheduleStudy, .setReminder, .generateReport:
+                // Handle other action types as needed
                 break
             }
         }
     }
-    
-    // MARK: - Advanced AI Features
-    
-    func generateStudyPlan(for courses: [String]) async throws -> StudyPlan {
-        return try await aiService.generateStudyPlan(for: courses)
-    }
-    
-    func analyzeCode(_ code: String, language: String) async throws -> CodeAnalysis {
-        return try await aiService.analyzeCode(code, language: language)
-    }
-    
-    func generateCareerAdvice(for skills: [String], goal: String) async throws -> CareerAdvice {
-        return try await aiService.generateCareerAdvice(for: skills, goal: goal)
-    }
-    
-    func updateManagers(taskManager: TaskManager, skillManager: SkillManager, profileManager: ProfileManager) {
-        self.taskManager = taskManager
-        self.skillManager = skillManager
-        self.profileManager = profileManager
-    }
 }
 
-// AI Message Model
-struct AIMessage: Identifiable {
-    let id = UUID()
-    let content: String
-    let isFromUser: Bool
-    let timestamp = Date()
-} 
+// MARK: - Supporting Models
+// All AI-related types are defined in AIService.swift 

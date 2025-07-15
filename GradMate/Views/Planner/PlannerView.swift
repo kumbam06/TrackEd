@@ -73,28 +73,30 @@ struct PlannerView: View {
     }
     
     var body: some View {
-        NavigationView {
+        ZStack {
+            Color("appScreenBG").ignoresSafeArea()
             VStack(spacing: 0) {
                 // Search and Filter Bar
                 VStack(spacing: 16) {
                     // Search Bar
                     HStack {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color("appTextSecondary"))
                         
                         TextField("Search tasks...", text: $searchText)
                             .textFieldStyle(PlainTextFieldStyle())
+                            .foregroundColor(Color("appTextPrimary"))
                         
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(Color("appTextSecondary"))
                             }
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(Color(.systemGray6))
+                    .background(Color("appStrokeGray"))
                     .cornerRadius(12)
                     
                     // Filter Pills
@@ -116,7 +118,7 @@ struct PlannerView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
                 .padding(.bottom, 8)
-                .background(Color(.systemBackground))
+                .background(Color("appCardBG"))
                 
                 // Tasks List
                 if filteredTasks.isEmpty {
@@ -139,34 +141,37 @@ struct PlannerView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
-                        .padding(.bottom, 100)
+                        .padding(.bottom, 44)
+                    }
+                    .bottomFadeMask(fadeHeight: 80)
+                    .safeAreaInset(edge: .bottom) {
+                        Spacer().frame(height: 80)
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Planner")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showAddTask = true }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.accentColor)
-                    }
+        }
+        .navigationTitle("Planner")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showAddTask = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(Color("appPrimaryAccent"))
                 }
             }
-            .sheet(isPresented: $showAddTask) {
-                AddTaskView { title, notes, dueDate, isAllDay, priority in
-                    taskManager.createTask(
-                        title: title.isEmpty ? "Untitled Task" : title,
-                        dueDate: dueDate,
-                        isAllDay: isAllDay,
-                        notes: notes,
-                        priority: priority
-                    )
-                }
-                .environmentObject(taskManager)
+        }
+        .sheet(isPresented: $showAddTask) {
+            AddTaskView { title, notes, dueDate, isAllDay, priority in
+                taskManager.createTask(
+                    title: title.isEmpty ? "Untitled Task" : title,
+                    dueDate: dueDate,
+                    isAllDay: isAllDay,
+                    notes: notes,
+                    priority: priority
+                )
             }
+            .environmentObject(taskManager)
         }
     }
     
@@ -176,16 +181,16 @@ struct PlannerView: View {
             
             Image(systemName: emptyStateIcon)
                 .font(.system(size: 60))
-                .foregroundColor(.secondary)
+                .foregroundColor(Color("appTextSecondary"))
             
             Text(emptyStateTitle)
                 .font(.title2)
                 .fontWeight(.semibold)
-                .foregroundColor(.primary)
+                .foregroundColor(Color("appTextPrimary"))
             
             Text(emptyStateMessage)
                 .font(.body)
-                .foregroundColor(.secondary)
+                .foregroundColor(Color("appTextSecondary"))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
             
@@ -198,7 +203,7 @@ struct PlannerView: View {
                 .foregroundColor(.white)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 12)
-                .background(Color.accentColor)
+                .background(Color("appPrimaryAccent"))
                 .cornerRadius(12)
             }
             
@@ -271,7 +276,7 @@ struct TaskSectionView: View {
             Text(title)
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundColor(.primary)
+                .foregroundColor(Color("appTextPrimary"))
             
             LazyVStack(spacing: 8) {
                 ForEach(tasks, id: \.id) { task in
@@ -295,10 +300,10 @@ struct TaskCardView: View {
     
     private var priorityColor: Color {
         switch task.priority {
-        case 1: return .green
-        case 2: return .orange
-        case 3: return .red
-        default: return .gray
+        case 1: return Color("appSuccess")
+        case 2: return Color("appWarning")
+        case 3: return Color("appError")
+        default: return Color("appTextSecondary")
         }
     }
     
@@ -317,7 +322,7 @@ struct TaskCardView: View {
             Button(action: onToggle) {
                 Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundColor(task.completed ? .green : .secondary)
+                    .foregroundColor(task.completed ? Color("appSuccess") : Color("appTextSecondary"))
             }
             
             // Task Content
@@ -326,7 +331,7 @@ struct TaskCardView: View {
                     Text(task.title ?? "Untitled Task")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color("appTextPrimary"))
                         .strikethrough(task.completed)
                         .lineLimit(2)
                     
@@ -348,7 +353,7 @@ struct TaskCardView: View {
                 if let notes = task.notes, !notes.isEmpty {
                     Text(notes)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("appTextSecondary"))
                         .lineLimit(2)
                 }
                 
@@ -356,11 +361,11 @@ struct TaskCardView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color("appTextSecondary"))
                         
                         Text(formatDueDate(dueDate))
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color("appTextSecondary"))
                     }
                 }
             }
@@ -369,13 +374,13 @@ struct TaskCardView: View {
             Button(action: { showingDeleteAlert = true }) {
                 Image(systemName: "trash")
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundColor(Color("appError"))
             }
         }
         .padding(16)
-        .background(Color(.systemBackground))
+        .background(Color("appCardBG"))
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
         .alert("Delete Task", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) { onDelete() }
@@ -431,18 +436,18 @@ struct FilterPill: View {
                         .fontWeight(.bold)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(isSelected ? Color.white.opacity(0.2) : Color.gray.opacity(0.15))
+                        .background(isSelected ? Color.white.opacity(0.2) : Color("appTextSecondary").opacity(0.15))
                         .cornerRadius(8)
                 }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(isSelected ? Color.accentColor : Color(.systemGray5))
-            .foregroundColor(isSelected ? .white : .primary)
+            .background(isSelected ? Color("appPrimaryAccent") : Color("appStrokeGray"))
+            .foregroundColor(isSelected ? .white : Color("appTextPrimary"))
             .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.accentColor : Color(.systemGray4), lineWidth: 1)
+                    .stroke(isSelected ? Color("appPrimaryAccent") : Color("appStrokeGray"), lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())

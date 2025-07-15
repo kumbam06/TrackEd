@@ -16,9 +16,9 @@ struct TaskView: View {
     
     private var priorityColor: Color {
         switch task.priority {
-        case 3: return .red
-        case 2: return .orange
-        default: return .blue
+        case 3: return Color("appError")
+        case 2: return Color("appWarning")
+        default: return Color("appPrimaryAccent")
         }
     }
     
@@ -36,7 +36,7 @@ struct TaskView: View {
                 Button(action: onToggle) {
                     Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
                         .font(.title2)
-                        .foregroundColor(task.completed ? .accentColor : .secondary)
+                        .foregroundColor(task.completed ? Color("appPrimaryAccent") : Color("appTextSecondary"))
                 }
                 .buttonStyle(PlainButtonStyle())
                 
@@ -44,7 +44,7 @@ struct TaskView: View {
                     Text(task.title ?? "Untitled Task")
                         .font(.system(.body, design: .rounded))
                         .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color("appTextPrimary"))
                         .strikethrough(task.completed)
                         .opacity(task.completed ? 0.6 : 1.0)
                     
@@ -52,11 +52,11 @@ struct TaskView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "clock")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color("appTextSecondary"))
                             
                             Text(formatDate(dueDate))
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color("appTextSecondary"))
                             
                             if task.isAllDay {
                                 Text("All Day")
@@ -65,9 +65,9 @@ struct TaskView: View {
                                     .padding(.vertical, 2)
                                     .background(
                                         Capsule()
-                                            .fill(Color.accentColor.opacity(0.1))
+                                            .fill(Color("appPrimaryAccent").opacity(0.1))
                                     )
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(Color("appPrimaryAccent"))
                             }
                         }
                     }
@@ -75,7 +75,7 @@ struct TaskView: View {
                     if let notes = task.notes, !notes.isEmpty {
                         Text(notes)
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color("appTextSecondary"))
                             .lineLimit(2)
                     }
                 }
@@ -97,7 +97,7 @@ struct TaskView: View {
                     Button(action: onDelete) {
                         Image(systemName: "trash")
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(Color("appError"))
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -125,7 +125,7 @@ struct TaskRowView: View {
             Button(action: onToggle) {
                 Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundColor(task.completed ? .accentColor : .secondary)
+                    .foregroundColor(task.completed ? Color("appPrimaryAccent") : Color("appTextSecondary"))
             }
             .buttonStyle(PlainButtonStyle())
             
@@ -133,14 +133,14 @@ struct TaskRowView: View {
                 Text(task.title ?? "Untitled Task")
                     .font(.system(.body, design: .rounded))
                     .fontWeight(.medium)
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color("appTextPrimary"))
                     .strikethrough(task.completed)
                     .opacity(task.completed ? 0.6 : 1.0)
                 
                 if let dueDate = task.dueDate {
                     Text(formatTime(dueDate))
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("appTextSecondary"))
                 }
             }
             
@@ -158,9 +158,9 @@ struct TaskRowView: View {
     
     private var priorityColor: Color {
         switch task.priority {
-        case 3: return .red
-        case 2: return .orange
-        default: return .clear
+        case 3: return Color("appError")
+        case 2: return Color("appWarning")
+        default: return Color.clear
         }
     }
     

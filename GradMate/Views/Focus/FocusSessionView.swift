@@ -25,7 +25,7 @@ struct FocusSessionView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(.systemBackground).ignoresSafeArea()
+                Color("appScreenBG").ignoresSafeArea()
                 
                 VStack(spacing: 32) {
                     focusHeader5D
@@ -37,6 +37,7 @@ struct FocusSessionView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
+                .padding(.bottom, 100) // Add padding for floating tab bar
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showingTaskPicker) {
@@ -50,26 +51,26 @@ struct FocusSessionView: View {
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(Color("appTextPrimary").opacity(0.7))
             }
             Spacer()
             VStack(spacing: 4) {
                 Text(viewModel.isActive ? "FOCUS MODE" : "READY TO FOCUS")
                     .font(.headline)
                     .fontWeight(.heavy)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("appTextPrimary"))
                     .kerning(1)
                 Text(viewModel.currentMode.rawValue.uppercased())
                     .font(.subheadline)
                     .fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(Color("appTextSecondary"))
                     .kerning(0.5)
             }
             Spacer()
             Button(action: { showingTaskPicker = true }) {
                 Image(systemName: "list.bullet.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(Color("appPrimaryAccent"))
             }
         }
     }
@@ -78,13 +79,13 @@ struct FocusSessionView: View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .stroke(Color(.secondarySystemBackground).opacity(0.3), lineWidth: 12)
+                    .stroke(Color("appStrokeGray").opacity(0.3), lineWidth: 12)
                     .frame(width: 280, height: 280)
                 Circle()
                     .trim(from: 0, to: viewModel.progress)
                     .stroke(
                         LinearGradient(
-                            colors: [.accentColor, .primary],
+                            colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -93,16 +94,16 @@ struct FocusSessionView: View {
                     .frame(width: 280, height: 280)
                     .rotationEffect(.degrees(-90))
                     .animation(.easeInOut(duration: 1), value: viewModel.progress)
-                    .shadow(color: .accentColor.opacity(0.3), radius: 12, x: 0, y: 0)
+                    .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 12, x: 0, y: 0)
                 VStack(spacing: 8) {
                     Text(viewModel.timeString)
                         .font(.system(size: 48, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(Color("appTextPrimary"))
                         .monospacedDigit()
                     Text(viewModel.isActive ? "FOCUSING..." : "READY")
                         .font(.subheadline)
                         .fontWeight(.bold)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color("appTextSecondary"))
                         .kerning(1)
                 }
             }
@@ -122,7 +123,7 @@ struct FocusSessionView: View {
                         Text(mode.rawValue.uppercased())
                             .font(.caption)
                             .fontWeight(.bold)
-                            .foregroundColor(viewModel.currentMode == mode ? .white : .white.opacity(0.7))
+                            .foregroundColor(viewModel.currentMode == mode ? .white : Color("appTextPrimary"))
                             .kerning(0.5)
                     }
                     .padding(.vertical, 12)
@@ -138,12 +139,12 @@ struct FocusSessionView: View {
         RoundedRectangle(cornerRadius: 12)
             .fill(
                 isSelected ?
-                LinearGradient(colors: [.accentColor, .primary], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                LinearGradient(colors: [Color(.secondarySystemBackground), Color(.secondarySystemBackground)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                LinearGradient(colors: [Color("appStrokeGray"), Color("appStrokeGray")], startPoint: .topLeading, endPoint: .bottomTrailing)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.accentColor.opacity(0.2), lineWidth: 1)
+                    .stroke(Color("appPrimaryAccent").opacity(0.2), lineWidth: 1)
             )
     }
     
@@ -154,33 +155,33 @@ struct FocusSessionView: View {
                     Text("CURRENT TASK")
                         .font(.subheadline)
                         .fontWeight(.bold)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(Color("appTextSecondary"))
                         .kerning(0.5)
                     Text(task.title ?? "UNTITLED TASK")
                         .font(.headline)
                         .fontWeight(.heavy)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color("appTextPrimary"))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
-                .background(Color(.systemGray6))
+                .background(Color("appCardBG"))
                 .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
             } else {
                 Button(action: { showingTaskPicker = true }) {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
-                            .foregroundColor(.accentColor)
-                            .shadow(color: .accentColor.opacity(0.18), radius: 8, x: 0, y: 4)
+                            .foregroundColor(Color("appPrimaryAccent"))
+                            .shadow(color: Color("appPrimaryAccent").opacity(0.18), radius: 8, x: 0, y: 4)
                         Text("SELECT TASK")
                             .font(.headline)
                             .fontWeight(.bold)
-                            .foregroundColor(.primary)
+                            .foregroundColor(Color("appTextPrimary"))
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
-                    .background(Color(.systemGray5))
+                    .background(Color("appStrokeGray"))
                     .cornerRadius(12)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -199,7 +200,7 @@ struct FocusSessionView: View {
             }) {
                 Image(systemName: viewModel.isActive ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: 64))
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(Color("appPrimaryAccent"))
             }
             .disabled(selectedTask == nil)
             .alert(isPresented: $showTaskRequiredAlert) {
@@ -210,7 +211,7 @@ struct FocusSessionView: View {
             }) {
                 Image(systemName: "stop.circle.fill")
                     .font(.system(size: 64))
-                    .foregroundColor(.red)
+                    .foregroundColor(Color("appError"))
             }
         }
     }
@@ -221,13 +222,13 @@ struct FocusSessionView: View {
                 title: "SESSIONS",
                 value: "\(viewModel.todaySessions.count)",
                 icon: "timer",
-                color: .accentColor
+                color: Color("appPrimaryAccent")
             )
             StatCard5D(
                 title: "TOTAL TIME",
                 value: String(format: "%02d:%02d", viewModel.todayTotalMinutes / 60, viewModel.todayTotalMinutes % 60),
                 icon: "clock",
-                color: .accentColor
+                color: Color("appPrimaryAccent")
             )
         }
     }
@@ -255,20 +256,20 @@ struct StatCard5D: View {
                 Text(value)
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("appTextPrimary"))
                 
                 Text(title)
                     .font(.caption2)
                     .fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(Color("appTextSecondary"))
                     .kerning(0.5)
             }
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
-        .background(Color(.systemGray6))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
     }
 }
 
@@ -280,13 +281,13 @@ struct TaskPickerView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(.systemBackground).ignoresSafeArea()
+                Color("appScreenBG").ignoresSafeArea()
                 
                 VStack(spacing: 20) {
                     Text("SELECT TASK")
                         .font(.title2)
                         .fontWeight(.heavy)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color("appTextPrimary"))
                         .kerning(1)
                         .padding(.top, 20)
                     
@@ -318,25 +319,25 @@ struct TaskRow5D: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .fill(isSelected ? Color.accentColor : Color.accentColor.opacity(0.1))
+                        .fill(isSelected ? Color("appPrimaryAccent") : Color("appPrimaryAccent").opacity(0.1))
                         .frame(width: 44, height: 44)
                     
                     Image(systemName: isSelected ? "checkmark" : "circle")
                         .font(.title3)
-                        .foregroundColor(isSelected ? .white : Color.accentColor)
+                        .foregroundColor(isSelected ? .white : Color("appPrimaryAccent"))
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(task.title ?? "UNTITLED TASK")
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color("appTextPrimary"))
                         .kerning(0.5)
                     
                     if let notes = task.notes, !notes.isEmpty {
                         Text(notes)
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(Color("appTextSecondary"))
                             .lineLimit(2)
                     }
                 }
@@ -344,9 +345,9 @@ struct TaskRow5D: View {
                 Spacer()
             }
             .padding(16)
-            .background(Color(.systemGray6))
+            .background(Color("appCardBG"))
             .cornerRadius(16)
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -449,41 +450,23 @@ class FocusManager: ObservableObject {
     }
     
     private func playStartSound() {
-        // Play start sound
+        // Implement sound playing logic
     }
     
     private func playStopSound() {
-        // Play stop sound
+        // Implement sound playing logic
     }
     
     private func playPauseSound() {
-        // Play pause sound
+        // Implement sound playing logic
     }
     
     private func playResumeSound() {
-        // Play resume sound
+        // Implement sound playing logic
     }
     
     private func playCompletionSound() {
-        // Play completion sound
-    }
-    
-    // MARK: - Computed properties (placeholders)
-    
-    var completedSessions: Int {
-        0 // TODO: Implement logic
-    }
-    
-    var totalTimeString: String {
-        "00:00" // TODO: Implement logic
-    }
-    
-    var breakProgress: Double {
-        0.5 // TODO: Implement logic
-    }
-    
-    var breakTimeString: String {
-        "05:00" // TODO: Implement logic
+        // Implement sound playing logic
     }
 }
 

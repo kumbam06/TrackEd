@@ -20,17 +20,17 @@ struct StatCard: View {
                 Text(value)
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color("appTextPrimary"))
                 Text(title)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color("appTextSecondary"))
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .padding(.horizontal, 12)
-        .background(Color(.systemGray6))
+        .background(Color("appStrokeGray"))
         .cornerRadius(12)
     }
 } 

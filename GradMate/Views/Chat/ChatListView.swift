@@ -49,16 +49,7 @@ struct ChatListView: View {
     @State private var navigateToChat = false
     @State private var userInfos: [String: (username: String, displayName: String?, photoURL: String?)] = [:]
     @State private var hasInitializedViewModel = false
-    @State private var isRefreshing = false
-    
-    // Debug computed property to log view state
-    private var debugInfo: String {
-        if let vm = viewModel {
-            return "viewModel exists, isLoading: \(vm.isLoading), chatCount: \(vm.chats.count)"
-        } else {
-            return "viewModel is nil"
-        }
-    }
+    @State private var showAskAI = false
     
     // Batch preload user info for all chat participants (batched)
     private func preloadUserInfos(for chats: [Chat], myId: String) {
@@ -102,195 +93,192 @@ struct ChatListView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color("appScreenBG").ignoresSafeArea()
-                VStack(spacing: 0) {
-                    HStack {
-                        Text("Chats")
-                            .font(.largeTitle)
-                            .fontWeight(.black)
-                            .foregroundColor(Color("appTextPrimary"))
-                            .kerning(1.5)
-                        Spacer()
-                        Button(action: { showNewChat = true }) {
-                            Image(systemName: "plus")
-                                .font(.title2.bold())
-                                .foregroundColor(Color("appPrimaryAccent"))
-                                .padding(10)
-                                .background(Color("appPrimaryAccent").opacity(0.08))
-                                .clipShape(Circle())
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 24)
-                    .padding(.bottom, 8)
-                    
-                    if let viewModel = viewModel {
-                        if viewModel.isLoading {
-                            Spacer()
-                            CustomLoaderOverlay()
-                            Spacer()
-                        } else if let error = viewModel.error {
-                            Spacer()
-                            VStack(spacing: 16) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(Color("appError"))
-                                Text("Failed to load chats")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(Color("appTextPrimary"))
-                                Text(error)
-                                    .font(.body)
-                                    .foregroundColor(Color("appTextSecondary"))
-                                Button(action: { viewModel.loadChats(forceRefresh: true) }) {
-                                    Text("Retry")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 32)
-                                        .padding(.vertical, 12)
-                                        .background(Color("appPrimaryAccent"))
-                                        .cornerRadius(12)
-                                }
-                            }
-                            Spacer()
-                        } else if viewModel.chats.isEmpty {
-                            Spacer()
-                            if authViewModel.user?.uid == nil {
-                                // User is not logged in
-                                VStack(spacing: 24) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color("appPrimaryAccent").opacity(0.08))
-                                            .frame(width: 120, height: 120)
-                                        Image(systemName: "person.crop.circle.badge.exclamationmark")
-                                            .font(.system(size: 48))
-                                            .foregroundColor(Color("appPrimaryAccent"))
-                                    }
-                                    Text("Please Log In")
-                                        .font(.title2)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(Color("appTextPrimary"))
-                                    Text("You need to be logged in to view your chats.")
-                                        .font(.body)
-                                        .foregroundColor(Color("appTextSecondary"))
-                                        .multilineTextAlignment(.center)
-                                        .padding(.horizontal, 40)
-                                }
-                                .padding(.vertical, 32)
-                            } else {
-                                EmptyChatListView()
-                            }
-                            Spacer()
-                        } else {
-                            ScrollView {
-                                VStack(spacing: 18) {
-                                    ForEach(viewModel.chats) { chat in
-                                        let myId = authViewModel.user?.uid ?? ""
-                                        let partnerId = chat.participants.first(where: { $0 != myId }) ?? ""
-                                        let userInfo = userInfos[partnerId] ?? UserCache.shared.getUserInfo(uid: partnerId)
-                                        ChatRowView(
-                                            chat: chat,
-                                            myId: myId,
-                                            userInfo: userInfo,
-                                            timeAgo: timeAgo,
-                                            onSelect: { selectedChat = chat; navigateToChat = true },
-                                            onDelete: { deleteChat(chat) }
-                                        )
-                                    }
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.top, 8)
-                                .padding(.bottom, 80)
-                            }
-                            .refreshable {
-                                isRefreshing = true
-                                viewModel.loadChats(forceRefresh: true)
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    isRefreshing = false
-                                }
-                            }
-                            .onAppear {
-                                let myId = authViewModel.user?.uid ?? ""
-                                preloadUserInfos(for: viewModel.chats, myId: myId)
-                            }
-                        }
-                    } else {
-                        Spacer()
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: Color("appPrimaryAccent")))
-                            .scaleEffect(1.3)
-                        Spacer()
+        ZStack {
+            Color("appScreenBG").ignoresSafeArea()
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Chats")
+                        .font(.largeTitle)
+                        .fontWeight(.black)
+                        .foregroundColor(Color("appTextPrimary"))
+                        .kerning(1.5)
+                    Spacer()
+                    Button(action: { showNewChat = true }) {
+                        Image(systemName: "plus")
+                            .font(.title2.bold())
+                            .foregroundColor(Color("appPrimaryAccent"))
+                            .padding(10)
+                            .background(Color("appPrimaryAccent").opacity(0.08))
+                            .clipShape(Circle())
                     }
                 }
-                NavigationLink(
-                    destination:
-                        (selectedChat != nil && authViewModel.user?.uid != nil)
-                        ? AnyView(ChatDetailView(chat: selectedChat!, userId: authViewModel.user!.uid, chatService: chatService)
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 8)
+                
+                if let viewModel = viewModel {
+                    if let error = viewModel.error {
+                        Spacer()
+                        VStack(spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(Color("appError"))
+                            Text("Failed to load chats")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(Color("appTextPrimary"))
+                            Text(error)
+                                .font(.body)
+                                .foregroundColor(Color("appTextSecondary"))
+                            Button(action: { viewModel.loadChats(forceRefresh: true) }) {
+                                Text("Retry")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 32)
+                                    .padding(.vertical, 12)
+                                    .background(Color("appPrimaryAccent"))
+                                    .cornerRadius(12)
+                            }
+                        }
+                        Spacer()
+                    } else if viewModel.chats.isEmpty {
+                        Spacer()
+                        if authViewModel.user?.uid == nil {
+                            // User is not logged in
+                            VStack(spacing: 24) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color("appPrimaryAccent").opacity(0.08))
+                                        .frame(width: 120, height: 120)
+                                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(Color("appPrimaryAccent"))
+                                }
+                                Text("Please Log In")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color("appTextPrimary"))
+                                Text("You need to be logged in to view your chats.")
+                                    .font(.body)
+                                    .foregroundColor(Color("appTextSecondary"))
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 40)
+                            }
+                            .padding(.vertical, 32)
+                        } else {
+                            EmptyChatListView()
+                        }
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            VStack(spacing: 18) {
+                                ForEach(viewModel.chats) { chat in
+                                    let myId = authViewModel.user?.uid ?? ""
+                                    let partnerId = chat.participants.first(where: { $0 != myId }) ?? ""
+                                    let userInfo = userInfos[partnerId] ?? UserCache.shared.getUserInfo(uid: partnerId)
+                                    ChatRowView(
+                                        chat: chat,
+                                        myId: myId,
+                                        userInfo: userInfo,
+                                        timeAgo: timeAgo,
+                                        onSelect: { 
+                                            selectedChat = chat
+                                            navigateToChat = true
+                                        },
+                                        onDelete: { deleteChat(chat) }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+                            .padding(.bottom, 24)
+                        }
+                        .bottomFadeMask(fadeHeight: 80)
+                        .safeAreaInset(edge: .bottom) {
+                            Spacer().frame(height: 80)
+                        }
+                        .refreshable {
+                            viewModel.loadChats(forceRefresh: true)
+                        }
+                        .onAppear {
+                            let myId = authViewModel.user?.uid ?? ""
+                            preloadUserInfos(for: viewModel.chats, myId: myId)
+                        }
+                    }
+                } else {
+                    Spacer()
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: Color("appPrimaryAccent")))
+                        .scaleEffect(1.3)
+                    Spacer()
+                }
+            }
+            
+            // Navigation to chat detail
+            NavigationLink(
+                destination: Group {
+                    if let chat = selectedChat, let userId = authViewModel.user?.uid {
+                        ChatDetailView(chat: chat, userId: userId, chatService: chatService)
                             .onDisappear {
                                 selectedChat = nil
                                 navigateToChat = false
                             }
-                        )
-                        : AnyView(EmptyView()),
-                    isActive: $navigateToChat,
-                    label: { EmptyView() }
-                )
-                .onChange(of: navigateToChat) { isActive in
-                    if !isActive {
-                        selectedChat = nil
                     }
-                }
-                .onAppear {
-                    // Ensure tab bar is visible when returning to chat list
-                    if !navigateToChat {
-                        selectedChat = nil
+                },
+                isActive: $navigateToChat,
+                label: { EmptyView() }
+            )
+            
+            // Floating AskAI Button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: { showAskAI = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color("appPrimaryAccent"), Color("appSecondaryAccent")],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 56, height: 56)
+                                .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 12, x: 0, y: 6)
+                            
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
                     }
+                    .scaleEffect(1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: showAskAI)
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 100) // Position above tab bar
                 }
-            }
-            .sheet(isPresented: $showNewChat) {
-                NewChatView(onChatCreated: { chat in
-                    selectedChat = chat
-                    navigateToChat = true
-                })
             }
         }
+        .sheet(isPresented: $showNewChat) {
+            NewChatView(onChatCreated: { chat in
+                selectedChat = chat
+                navigateToChat = true
+            })
+        }
+        .sheet(isPresented: $showAskAI) {
+            AskAIView()
+        }
         .onAppear {
-            print("[DEBUG] ChatListView.onAppear - viewModel is nil: \(viewModel == nil), hasInitializedViewModel: \(hasInitializedViewModel)")
-            print("[DEBUG] ChatListView.onAppear - debugInfo: \(debugInfo)")
             if viewModel == nil && !hasInitializedViewModel {
                 hasInitializedViewModel = true
                 if let userId = authViewModel.user?.uid {
-                    print("[DEBUG] Creating ChatListViewModel with userId: \(userId)")
                     viewModel = ChatListViewModel(chatService: chatService, userId: userId)
-                    print("[DEBUG] ChatListViewModel created, triggering UI update")
                 } else {
-                    print("[DEBUG] Creating ChatListViewModel with empty userId (not logged in)")
-                    // User is not logged in, show empty state
                     viewModel = ChatListViewModel(chatService: chatService, userId: "")
                 }
             }
-            // Reset navigation state when returning to chat list
-            if !navigateToChat {
-                selectedChat = nil
-            }
-        }
-        .onChange(of: viewModel) { newViewModel in
-            print("[DEBUG] ChatListView.onChange - viewModel changed, newViewModel is nil: \(newViewModel == nil)")
-            if let vm = newViewModel {
-                print("[DEBUG] ChatListView.onChange - new viewModel isLoading: \(vm.isLoading), chatCount: \(vm.chats.count)")
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            // Force refresh when app comes to foreground
-            if let vm = viewModel {
-                print("[DEBUG] ChatListView - forcing refresh on foreground")
-                vm.loadChats()
-            }
         }
         .onChange(of: authViewModel.user?.uid) { newUid in
-            print("[DEBUG] ChatListView.onChange - authViewModel.user?.uid changed: \(String(describing: newUid))")
             if newUid == nil {
                 viewModel?.clearCache()
             }

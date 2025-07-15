@@ -8,37 +8,6 @@
 import SwiftUI
 import Combine
 
-// Simple shimmer effect for loading placeholders
-struct ShimmerView: View {
-    @State private var phase: CGFloat = 0
-    var body: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(Color.gray.opacity(0.3))
-            .frame(height: 20)
-            .shimmer(phase: phase)
-            .onAppear {
-                withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
-                    phase = 1
-                }
-            }
-    }
-}
-
-extension View {
-    func shimmer(phase: CGFloat) -> some View {
-        self.overlay(
-            LinearGradient(
-                gradient: Gradient(colors: [Color.clear, Color.white.opacity(0.6), Color.clear]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-            .rotationEffect(.degrees(30))
-            .offset(x: phase * 350)
-        )
-        .mask(self)
-    }
-}
-
 struct HomeView: View {
     @EnvironmentObject private var profileManager: ProfileManager
     @EnvironmentObject private var taskManager: TaskManager
@@ -49,6 +18,7 @@ struct HomeView: View {
     @State private var todayTasks: [PlannerTask] = []
     @State private var showAddTask = false
     @State private var isLoading = false
+    @State private var selectedTab = 0
     
     private var timeOfDay: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -88,55 +58,47 @@ struct HomeView: View {
     }
     
     var body: some View {
-        NavigationView {
-            if isLoading {
-                // Loader is now shown globally
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 24) {
-                        // Welcome Section
-                        if preferencesManager.preferences.showWelcomeSection {
-                            welcomeSection
-                        }
-                        
-                        // Today's Progress
-                        if preferencesManager.preferences.showTodayFocus {
-                            todayProgressSection
-                        }
-                        
-                        // Quick Stats
-                        if preferencesManager.preferences.showProductivityStats {
-                            quickStatsSection
-                        }
-                        
-                        // Today's Tasks
-                        todayTasksSection
-                        
-                        // Skills Overview
-                        if preferencesManager.preferences.showSkillsOverview {
-                            skillsOverviewSection
-                        }
-                        
-                        // Career Overview
-                        if preferencesManager.preferences.showCareerOverview {
-                            careerOverviewSection
-                        }
+        ZStack {
+            Color("appScreenBG").ignoresSafeArea()
+            ScrollView {
+                LazyVStack(spacing: 24) {
+                    // Welcome Section
+                    if preferencesManager.preferences.showWelcomeSection {
+                        welcomeSection
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 100)
+                    // Today's Progress
+                    if preferencesManager.preferences.showTodayFocus {
+                        todayProgressSection
+                    }
+                    // Quick Stats
+                    if preferencesManager.preferences.showProductivityStats {
+                        quickStatsSection
+                    }
+                    // Today's Tasks
+                    todayTasksSection
+                    // Skills Overview
+                    if preferencesManager.preferences.showSkillsOverview {
+                        skillsOverviewSection
+                    }
+                    // Career Overview
+                    if preferencesManager.preferences.showCareerOverview {
+                        careerOverviewSection
+                    }
                 }
-                .background(Color(.systemGroupedBackground))
-                .navigationTitle("GradMate")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    // Removed create task '+' button
-                }
-                .onAppear {
-                    loadTodayTasks()
-                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 44)
+            }
+            .bottomFadeMask(fadeHeight: 80)
+            .safeAreaInset(edge: .bottom) {
+                Spacer().frame(height: 80)
+            }
+            .onAppear {
+                loadTodayTasks()
             }
         }
+        .navigationTitle("GradMate")
+        .navigationBarTitleDisplayMode(.large)
     }
     
     // MARK: - Welcome Section
@@ -147,44 +109,44 @@ struct HomeView: View {
                     Text(greetingText)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("appTextSecondary"))
                     Text(firstName(profileManager.currentProfile?.name ?? "Student"))
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color("appTextPrimary"))
                 }
                 Spacer()
                 
                 // Progress Ring
                 ZStack {
                     Circle()
-                        .stroke(Color.accentColor.opacity(0.2), lineWidth: 8)
+                        .stroke(Color("appPrimaryAccent").opacity(0.2), lineWidth: 8)
                         .frame(width: 60, height: 60)
                     
                     Circle()
                         .trim(from: 0, to: todayProgress)
-                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .stroke(Color("appPrimaryAccent"), style: StrokeStyle(lineWidth: 8, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .frame(width: 60, height: 60)
                     
                     Text("\(Int(todayProgress * 100))%")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(Color("appPrimaryAccent"))
                 }
             }
             
             if preferencesManager.preferences.showMotivationalQuote {
                 Text(motivationalQuote)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color("appTextSecondary"))
                     .italic()
             }
         }
         .padding(20)
-        .background(Color(.systemBackground))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
     
     // MARK: - Today's Progress Section
@@ -193,34 +155,35 @@ struct HomeView: View {
             Text("Today's Progress")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .foregroundColor(Color("appTextPrimary"))
             
             HStack(spacing: 20) {
                 StatCard(
                     title: "Tasks",
                     value: "\(todayCompletedCount)/\(todayTasks.count)",
                     icon: "checkmark.circle.fill",
-                    color: .green
+                    color: Color("appSuccess")
                 )
                 
                 StatCard(
                     title: "Streak",
                     value: streak,
                     icon: "flame.fill",
-                    color: .orange
+                    color: Color("appWarning")
                 )
                 
                 StatCard(
                     title: "Skills",
                     value: "\(skillManager.skills.count)",
                     icon: "star.fill",
-                    color: .blue
+                    color: Color("appPrimaryAccent")
                 )
             }
         }
         .padding(20)
-        .background(Color(.systemBackground))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
     
     // MARK: - Quick Stats Section
@@ -229,41 +192,42 @@ struct HomeView: View {
             Text("Quick Stats")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .foregroundColor(Color("appTextPrimary"))
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
                 QuickStatCard(
                     title: "Total Tasks",
                     value: "\(taskManager.tasks.count)",
                     icon: "list.bullet",
-                    color: .blue
+                    color: Color("appPrimaryAccent")
                 )
                 
                 QuickStatCard(
                     title: "Completed",
                     value: "\(taskManager.tasks.filter { $0.completed }.count)",
                     icon: "checkmark.circle",
-                    color: .green
+                    color: Color("appSuccess")
                 )
                 
                 QuickStatCard(
                     title: "Due Today",
                     value: "\(todayTasks.count)",
                     icon: "calendar",
-                    color: .orange
+                    color: Color("appWarning")
                 )
                 
                 QuickStatCard(
                     title: "High Priority",
                     value: "\(taskManager.tasks.filter { $0.priority == 3 }.count)",
                     icon: "exclamationmark.triangle",
-                    color: .red
+                    color: Color("appError")
                 )
             }
         }
         .padding(20)
-        .background(Color(.systemBackground))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
     
     // MARK: - Today's Tasks Section
@@ -273,34 +237,36 @@ struct HomeView: View {
                 Text("Today's Tasks")
                     .font(.headline)
                     .fontWeight(.semibold)
+                    .foregroundColor(Color("appTextPrimary"))
                 
                 Spacer()
                 
-                Button("View All") {
-                    // Navigate to Planner
+                NavigationLink(destination: PlannerView()) {
+                    Text("View All")
+                        .font(.subheadline)
+                        .foregroundColor(Color("appPrimaryAccent"))
                 }
-                .font(.subheadline)
-                .foregroundColor(.accentColor)
             }
             
             if todayTasks.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 40))
-                        .foregroundColor(.green)
+                        .foregroundColor(Color("appSuccess"))
                     
                     Text("No tasks for today!")
                         .font(.headline)
                         .fontWeight(.medium)
+                        .foregroundColor(Color("appTextPrimary"))
                     
                     Text("Great job! All tasks are completed.")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("appTextSecondary"))
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
-                .background(Color(.systemGray6))
+                .background(Color("appStrokeGray"))
                 .cornerRadius(12)
             } else {
                 LazyVStack(spacing: 8) {
@@ -314,9 +280,9 @@ struct HomeView: View {
             }
         }
         .padding(20)
-        .background(Color(.systemBackground))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
     
     // MARK: - Skills Overview Section
@@ -326,24 +292,25 @@ struct HomeView: View {
                 Text("Career Skills")
                     .font(.headline)
                     .fontWeight(.semibold)
+                    .foregroundColor(Color("appTextPrimary"))
                 
                 Spacer()
                 
-                Button("Manage") {
-                    // Navigate to Profile
+                NavigationLink(destination: ProfileView()) {
+                    Text("Manage")
+                        .font(.subheadline)
+                        .foregroundColor(Color("appPrimaryAccent"))
                 }
-                .font(.subheadline)
-                .foregroundColor(.accentColor)
             }
             
             if skillManager.skills.isEmpty {
                 VStack(spacing: 8) {
                     Text("No skills added yet")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("appTextSecondary"))
                     Text("Add skills to build your career profile")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("appTextSecondary"))
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -357,9 +324,9 @@ struct HomeView: View {
             }
         }
         .padding(20)
-        .background(Color(.systemBackground))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
     
     // MARK: - Career Overview Section
@@ -368,17 +335,18 @@ struct HomeView: View {
             Text("Career Progress")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .foregroundColor(Color("appTextPrimary"))
             
             VStack(spacing: 12) {
-                ProgressRow(title: "Resume", progress: 0.8, color: .blue)
-                ProgressRow(title: "Portfolio", progress: 0.6, color: .green)
-                ProgressRow(title: "Certifications", progress: 0.4, color: .orange)
+                ProgressRow(title: "Resume", progress: 0.8, color: Color("appPrimaryAccent"))
+                ProgressRow(title: "Portfolio", progress: 0.6, color: Color("appSuccess"))
+                ProgressRow(title: "Certifications", progress: 0.4, color: Color("appWarning"))
             }
         }
         .padding(20)
-        .background(Color(.systemBackground))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
     
     // MARK: - Helper Methods
@@ -427,17 +395,17 @@ struct QuickStatCard: View {
                 Text(value)
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color("appTextPrimary"))
                 
                 Text(title)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color("appTextSecondary"))
             }
             
             Spacer()
         }
         .padding(12)
-        .background(Color(.systemGray6))
+        .background(Color("appStrokeGray"))
         .cornerRadius(12)
     }
 }
@@ -451,11 +419,11 @@ struct SkillRowView: View {
                 Text(skill.name ?? "Unknown Skill")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color("appTextPrimary"))
                 
                 Text(skill.category ?? "General")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color("appTextSecondary"))
             }
             
             Spacer()
@@ -464,12 +432,12 @@ struct SkillRowView: View {
                 ForEach(0..<5, id: \.self) { index in
                     Image(systemName: index < Int(skill.proficiency) ? "star.fill" : "star")
                         .font(.caption)
-                        .foregroundColor(index < Int(skill.proficiency) ? .yellow : .gray)
+                        .foregroundColor(index < Int(skill.proficiency) ? Color("appWarning") : Color("appTextSecondary"))
                 }
             }
         }
         .padding(12)
-        .background(Color(.systemGray6))
+        .background(Color("appStrokeGray"))
         .cornerRadius(8)
     }
 }
@@ -485,12 +453,13 @@ struct ProgressRow: View {
                 Text(title)
                     .font(.subheadline)
                     .fontWeight(.medium)
+                    .foregroundColor(Color("appTextPrimary"))
                 
                 Spacer()
                 
                 Text("\(Int(progress * 100))%")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color("appTextSecondary"))
             }
             
             ProgressView(value: progress)

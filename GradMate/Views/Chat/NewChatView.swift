@@ -67,9 +67,30 @@ struct NewChatView: View {
                     .padding(.horizontal, 8)
                     
                     if isLoadingSuggestions {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: Color("appPrimaryAccent")))
-                            .scaleEffect(1.1)
+                        HStack {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: Color("appPrimaryAccent")))
+                                .scaleEffect(0.8)
+                            Text("Searching...")
+                                .font(.subheadline)
+                                .foregroundColor(Color("appTextSecondary"))
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    
+                    if suggestions.isEmpty && !searchText.isEmpty && !isLoadingSuggestions {
+                        VStack(spacing: 16) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 48))
+                                .foregroundColor(Color("appTextSecondary").opacity(0.5))
+                            Text("No users found")
+                                .font(.headline)
+                                .foregroundColor(Color("appTextSecondary"))
+                            Text("Try searching with a different username")
+                                .font(.subheadline)
+                                .foregroundColor(Color("appTextSecondary").opacity(0.7))
+                        }
+                        .padding(.vertical, 32)
                     }
                     
                     ScrollView {
@@ -110,6 +131,7 @@ struct NewChatView: View {
                                     .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
                                 }
                                 .buttonStyle(PlainButtonStyle())
+                                .disabled(isLoading)
                             }
                         }
                         .padding(.horizontal, 8)
@@ -149,29 +171,31 @@ struct NewChatView: View {
             .order(by: "username")
             .limit(to: 30)
             .getDocuments { snapshot, error in
-                isLoadingSuggestions = false
-                guard let docs = snapshot?.documents else {
-                    suggestions = []
-                    return
-                }
-                let lowerInput = input.lowercased()
-                suggestions = docs.compactMap { doc in
-                    let data = doc.data()
-                    let uid = doc.documentID
-                    let username = data["username"] as? String ?? ""
-                    let displayName = data["name"] as? String
-                    // Don't show yourself in suggestions
-                    if uid == authViewModel.user?.uid { return nil }
-                    // Match username or display name
-                    if username.lowercased().contains(lowerInput) || (displayName?.lowercased().contains(lowerInput) ?? false) {
-                        return UserSuggestion(
-                            id: uid,
-                            username: username,
-                            displayName: displayName,
-                            photoURL: data["photoURL"] as? String
-                        )
+                DispatchQueue.main.async {
+                    isLoadingSuggestions = false
+                    guard let docs = snapshot?.documents else {
+                        suggestions = []
+                        return
                     }
-                    return nil
+                    let lowerInput = input.lowercased()
+                    suggestions = docs.compactMap { doc in
+                        let data = doc.data()
+                        let uid = doc.documentID
+                        let username = data["username"] as? String ?? ""
+                        let displayName = data["name"] as? String
+                        // Don't show yourself in suggestions
+                        if uid == authViewModel.user?.uid { return nil }
+                        // Match username or display name
+                        if username.lowercased().contains(lowerInput) || (displayName?.lowercased().contains(lowerInput) ?? false) {
+                            return UserSuggestion(
+                                id: uid,
+                                username: username,
+                                displayName: displayName,
+                                photoURL: data["photoURL"] as? String
+                            )
+                        }
+                        return nil
+                    }
                 }
             }
     }
@@ -181,31 +205,36 @@ struct NewChatView: View {
         if participantId == myId {
             self.error = "You cannot start a chat with yourself."
             self.showErrorAlert = true
-            self.isLoading = false
             return
         }
         isLoading = true
         chatService.findDirectChat(between: myId, and: participantId) { existingChat in
-            if let chat = existingChat {
-                isLoading = false
-                onChatCreated?(chat)
-                presentationMode.wrappedValue.dismiss()
-            } else {
-                chatService.createChat(participants: [myId, participantId], isGroup: false, name: nil) { chatId in
+            DispatchQueue.main.async {
+                if let chat = existingChat {
                     isLoading = false
-                    if let chatId = chatId {
-                        chatService.fetchChatById(chatId) { chat in
-                            if let chat = chat {
-                                onChatCreated?(chat)
-                                presentationMode.wrappedValue.dismiss()
+                    onChatCreated?(chat)
+                    presentationMode.wrappedValue.dismiss()
+                } else {
+                    chatService.createChat(participants: [myId, participantId], isGroup: false, name: nil) { chatId in
+                        DispatchQueue.main.async {
+                            isLoading = false
+                            if let chatId = chatId {
+                                chatService.fetchChatById(chatId) { chat in
+                                    DispatchQueue.main.async {
+                                        if let chat = chat {
+                                            onChatCreated?(chat)
+                                            presentationMode.wrappedValue.dismiss()
+                                        } else {
+                                            error = "Chat created, but not found. Try again."
+                                            showErrorAlert = true
+                                        }
+                                    }
+                                }
                             } else {
-                                error = "Chat created, but not found. Try again."
+                                error = "Failed to create chat."
                                 showErrorAlert = true
                             }
                         }
-                    } else {
-                        error = "Failed to create chat."
-                        showErrorAlert = true
                     }
                 }
             }

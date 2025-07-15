@@ -238,12 +238,17 @@ class AuthViewModel: ObservableObject {
         print("Apple Sign-In tapped (not yet implemented)")
     }
     
-    func logout() {
+    @MainActor
+    func signOut() async {
+        isLoading = true
+        errorMessage = nil
         do {
             try Auth.auth().signOut()
             self.user = nil
+            // Optionally clear any other user-related state here
         } catch {
             self.errorMessage = error.localizedDescription
         }
+        isLoading = false
     }
 } 
