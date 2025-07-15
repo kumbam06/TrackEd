@@ -53,6 +53,7 @@ struct WorkExperienceEditView: View {
                         .padding()
                         .background(Color("appCardBG"))
                         .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
                         
                         // Duration
                         VStack(alignment: .leading, spacing: 16) {
@@ -66,13 +67,14 @@ struct WorkExperienceEditView: View {
                                     .datePickerStyle(.compact)
                                     .labelsHidden()
                                     .padding()
-                                    .background(Color("appScreenBG"))
+                                    .background(Color("appStrokeGray"))
                                     .cornerRadius(12)
                                 
                                 Toggle("I currently work here", isOn: $isCurrent)
                                     .foregroundColor(Color("appTextPrimary"))
+                                    .toggleStyle(SwitchToggleStyle(tint: Color("appPrimaryAccent")))
                                     .padding()
-                                    .background(Color("appScreenBG"))
+                                    .background(Color("appStrokeGray"))
                                     .cornerRadius(12)
                                 
                                 if !isCurrent {
@@ -80,7 +82,7 @@ struct WorkExperienceEditView: View {
                                         .datePickerStyle(.compact)
                                         .labelsHidden()
                                         .padding()
-                                        .background(Color("appScreenBG"))
+                                        .background(Color("appStrokeGray"))
                                         .cornerRadius(12)
                                 }
                             }
@@ -88,6 +90,7 @@ struct WorkExperienceEditView: View {
                         .padding()
                         .background(Color("appCardBG"))
                         .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
                         
                         // Description
                         VStack(alignment: .leading, spacing: 16) {
@@ -99,16 +102,29 @@ struct WorkExperienceEditView: View {
                             TextEditor(text: $description)
                                 .frame(minHeight: 120)
                                 .padding()
-                                .background(Color("appScreenBG"))
+                                .background(Color("appStrokeGray"))
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color("appStrokeGray"), lineWidth: 1)
                                 )
+                                .overlay(
+                                    Group {
+                                        if description.isEmpty {
+                                            Text("Describe your role, responsibilities, and achievements...")
+                                                .foregroundColor(Color("appTextSecondary"))
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 12)
+                                                .allowsHitTesting(false)
+                                        }
+                                    },
+                                    alignment: .topLeading
+                                )
                         }
                         .padding()
                         .background(Color("appCardBG"))
                         .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
                         
                         // Technologies
                         VStack(alignment: .leading, spacing: 16) {
@@ -119,8 +135,7 @@ struct WorkExperienceEditView: View {
                             
                             VStack(spacing: 12) {
                                 HStack {
-                                    TextField("Add technology", text: $newTechnology)
-                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    CustomTextField(title: "", text: $newTechnology, placeholder: "e.g., Swift, React, AWS")
                                     
                                     Button(action: addTechnology) {
                                         Image(systemName: "plus.circle.fill")
@@ -145,7 +160,7 @@ struct WorkExperienceEditView: View {
                                                     removeTechnology(technology)
                                                 }) {
                                                     Image(systemName: "xmark.circle.fill")
-                                                        .foregroundColor(.red)
+                                                        .foregroundColor(Color("appError"))
                                                         .font(.caption)
                                                 }
                                             }
@@ -161,8 +176,10 @@ struct WorkExperienceEditView: View {
                         .padding()
                         .background(Color("appCardBG"))
                         .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
                     }
                     .padding()
+                    .padding(.bottom, 100)
                 }
             }
             .navigationTitle(workExperience == nil ? "Add Work Experience" : "Edit Work Experience")
@@ -233,23 +250,7 @@ struct WorkExperienceEditView: View {
     }
 }
 
-struct CustomTextField: View {
-    let title: String
-    @Binding var text: String
-    let placeholder: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(Color("appTextPrimary"))
-            
-            TextField(placeholder, text: $text)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-        }
-    }
-}
+// Note: CustomTextField and CustomTextFieldStyle are now defined in SharedFormComponents.swift
 
 #Preview {
     WorkExperienceEditView(workExperience: nil) { _ in }

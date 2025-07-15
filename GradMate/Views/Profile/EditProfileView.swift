@@ -45,7 +45,7 @@ struct EditProfileView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(.systemBackground).ignoresSafeArea()
+                Color("appScreenBG").ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -66,7 +66,7 @@ struct EditProfileView: View {
                         dismiss()
                     }
                     .fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(Color("appTextSecondary"))
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -74,7 +74,7 @@ struct EditProfileView: View {
                         saveProfile()
                     }
                     .fontWeight(.bold)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(Color("appPrimaryAccent"))
                     .disabled(firstName.isEmpty || lastName.isEmpty || role.isEmpty)
                 }
             }
@@ -97,7 +97,7 @@ struct EditProfileView: View {
             Text("PROFILE PHOTO")
                 .font(.headline)
                 .fontWeight(.heavy)
-                .foregroundColor(.white)
+                .foregroundColor(Color("appTextPrimary"))
                 .kerning(1)
             
             HStack {
@@ -112,9 +112,9 @@ struct EditProfileView: View {
                             .clipShape(Circle())
                             .overlay(
                                 Circle()
-                                    .strokeBorder(LinearGradient(colors: [.accentColor, .primary], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
+                                    .strokeBorder(LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
                             )
-                            .shadow(color: Color.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 8, x: 0, y: 4)
                     } else if let photoData = profileManager.currentProfile?.photoData,
                               let uiImage = UIImage(data: photoData) {
                         Image(uiImage: uiImage)
@@ -124,25 +124,25 @@ struct EditProfileView: View {
                             .clipShape(Circle())
                             .overlay(
                                 Circle()
-                                    .strokeBorder(LinearGradient(colors: [.accentColor, .primary], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
+                                    .strokeBorder(LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
                             )
-                            .shadow(color: Color.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 8, x: 0, y: 4)
                     } else {
                         ZStack {
                             Circle()
-                                .fill(Color(.secondarySystemBackground).opacity(0.3))
+                                .fill(Color("appStrokeGray").opacity(0.3))
                                 .frame(width: 120, height: 120)
                                 .overlay(
                                     Circle()
-                                        .stroke(Color.accentColor.opacity(0.2), lineWidth: 1)
+                                        .stroke(Color("appPrimaryAccent").opacity(0.2), lineWidth: 1)
                                 )
                             
                             Image(systemName: "person.circle.fill")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 80, height: 80)
-                                .foregroundColor(.accentColor)
-                                .shadow(color: .accentColor, radius: 6, x: 0, y: 0)
+                                .foregroundColor(Color("appPrimaryAccent"))
+                                .shadow(color: Color("appPrimaryAccent"), radius: 6, x: 0, y: 0)
                         }
                     }
                 }
@@ -151,9 +151,9 @@ struct EditProfileView: View {
             }
         }
         .padding(20)
-        .background(Color(.systemGray6))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
     }
     
     private var basicInfoSection: some View {
@@ -162,32 +162,37 @@ struct EditProfileView: View {
                 Text("BASIC INFORMATION")
                     .font(.headline)
                     .fontWeight(.heavy)
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color("appTextPrimary"))
                     .kerning(1)
-                TextField("USERNAME", text: $username)
-                    .autocapitalization(.none)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                CustomTextField(title: "Username", text: $username, placeholder: "Enter your username")
                     .onChange(of: username) { newValue, _ in debounceInput(newValue, for: "username") }
                 HStack(spacing: 12) {
-                    TextField("FIRST NAME", text: $firstName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    CustomTextField(title: "First Name", text: $firstName, placeholder: "Enter your first name")
                         .onChange(of: firstName) { newValue, _ in debounceInput(newValue, for: "firstName") }
-                    TextField("LAST NAME", text: $lastName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    CustomTextField(title: "Last Name", text: $lastName, placeholder: "Enter your last name")
                         .onChange(of: lastName) { newValue, _ in debounceInput(newValue, for: "lastName") }
                 }
-                TextField("ROLE/TITLE", text: $role)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                CustomTextField(title: "Role/Title", text: $role, placeholder: "e.g., iOS Developer, Student")
                     .onChange(of: role) { newValue, _ in debounceInput(newValue, for: "role") }
-                TextEditor(text: $bio)
-                    .frame(height: 100)
-                    .background(Color(.systemGray5))
-                    .cornerRadius(8)
-                    .onChange(of: bio) { newValue, _ in debounceInput(newValue, for: "bio") }
-                DatePicker("DATE OF BIRTH", selection: $dob, displayedComponents: .date)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Bio")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(Color("appTextPrimary"))
+                    TextEditor(text: $bio)
+                        .frame(height: 100)
+                        .padding(12)
+                        .background(Color("appStrokeGray"))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color("appStrokeGray"), lineWidth: 1)
+                        )
+                        .onChange(of: bio) { newValue, _ in debounceInput(newValue, for: "bio") }
+                }
+                DatePicker("Date of Birth", selection: $dob, displayedComponents: .date)
                     .datePickerStyle(CompactDatePickerStyle())
-                TextField("ADDRESS", text: $address)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                CustomTextField(title: "Address", text: $address, placeholder: "Enter your address")
                     .onChange(of: address) { newValue, _ in debounceInput(newValue, for: "address") }
             }
         }
@@ -198,24 +203,21 @@ struct EditProfileView: View {
             Text("CONTACT INFORMATION")
                 .font(.headline)
                 .fontWeight(.heavy)
-                .foregroundColor(.white)
+                .foregroundColor(Color("appTextPrimary"))
                 .kerning(1)
             
-            VStack(spacing: 16) {
-                TextField("EMAIL", text: $email)
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
+            VStack(spacing: 12) {
+                CustomTextField(title: "Email", text: $email, placeholder: "Enter your email address")
                     .onChange(of: email) { newValue, _ in debounceInput(newValue, for: "email") }
                 
-                TextField("PHONE", text: $phone)
-                    .keyboardType(.phonePad)
+                CustomTextField(title: "Phone", text: $phone, placeholder: "Enter your phone number")
                     .onChange(of: phone) { newValue, _ in debounceInput(newValue, for: "phone") }
             }
         }
         .padding(20)
-        .background(Color(.systemGray6))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
     }
     
     private var socialLinksSection: some View {
@@ -223,30 +225,31 @@ struct EditProfileView: View {
             Text("SOCIAL LINKS")
                 .font(.headline)
                 .fontWeight(.heavy)
-                .foregroundColor(.white)
+                .foregroundColor(Color("appTextPrimary"))
                 .kerning(1)
             
-            VStack(spacing: 16) {
-                TextField("LINKEDIN", text: $linkedin)
-                    .autocapitalization(.none)
+            VStack(spacing: 12) {
+                CustomTextField(title: "LinkedIn", text: $linkedin, placeholder: "linkedin.com/in/yourprofile")
                     .onChange(of: linkedin) { newValue, _ in debounceInput(newValue, for: "linkedin") }
                 
-                TextField("WEBSITE", text: $website)
-                    .autocapitalization(.none)
+                CustomTextField(title: "Website", text: $website, placeholder: "yourwebsite.com")
                     .onChange(of: website) { newValue, _ in debounceInput(newValue, for: "website") }
             }
         }
         .padding(20)
-        .background(Color(.systemGray6))
+        .background(Color("appCardBG"))
         .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
     }
     
     private func loadProfileData() {
         guard let profile = profileManager.currentProfile else { return }
-        let nameParts = (profile.name ?? "").split(separator: " ", maxSplits: 1).map(String.init)
-        firstName = nameParts.first ?? ""
-        lastName = nameParts.count > 1 ? nameParts[1] : ""
+        
+        // Split the name into first and last name
+        let nameComponents = (profile.name ?? "").components(separatedBy: " ")
+        firstName = nameComponents.first ?? ""
+        lastName = nameComponents.dropFirst().joined(separator: " ")
+        
         role = profile.role ?? ""
         email = profile.email ?? ""
         phone = profile.phone ?? ""
@@ -254,20 +257,15 @@ struct EditProfileView: View {
         linkedin = profile.linkedin ?? ""
         website = profile.website ?? ""
         username = profile.username ?? ""
-        if let profileDob = profile.dob {
-            dob = profileDob
-        } else {
-            dob = Date()
-        }
         address = profile.address ?? ""
+        
+        if let dobData = profile.dob {
+            dob = dobData
+        }
     }
     
     private func saveProfile() {
-        guard username.range(of: "^[A-Za-z0-9]{4,}$", options: .regularExpression) != nil else {
-            // Show error or alert for invalid username
-            return
-        }
-        let fullName = firstName + (lastName.isEmpty ? "" : " " + lastName)
+        let fullName = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
         profileManager.updateProfile(
             name: fullName,
             role: role,
@@ -280,31 +278,30 @@ struct EditProfileView: View {
             dob: dob,
             address: address
         )
+        
+        // Update profile photo if selected
         if let profileImage = profileImage {
             profileManager.updateProfilePhoto(profileImage)
         }
-        // Force reload from Firestore to update all screens
-        if let userId = Auth.auth().currentUser?.uid {
-            profileManager.loadProfileFromFirestore(uid: userId)
-        }
+        
         dismiss()
     }
     
     private func debounceInput(_ value: String, for field: String) {
         debounceWorkItem?.cancel()
-        let workItem = DispatchWorkItem {
+        let workItem = DispatchWorkItem { [value] in
             DispatchQueue.main.async {
                 switch field {
-                case "username": self.debouncedUsername = value
-                case "firstName": self.debouncedFirstName = value
-                case "lastName": self.debouncedLastName = value
-                case "role": self.debouncedRole = value
-                case "bio": self.debouncedBio = value
-                case "email": self.debouncedEmail = value
-                case "phone": self.debouncedPhone = value
-                case "linkedin": self.debouncedLinkedin = value
-                case "website": self.debouncedWebsite = value
-                case "address": self.debouncedAddress = value
+                case "username": debouncedUsername = value
+                case "firstName": debouncedFirstName = value
+                case "lastName": debouncedLastName = value
+                case "role": debouncedRole = value
+                case "bio": debouncedBio = value
+                case "email": debouncedEmail = value
+                case "phone": debouncedPhone = value
+                case "linkedin": debouncedLinkedin = value
+                case "website": debouncedWebsite = value
+                case "address": debouncedAddress = value
                 default: break
                 }
             }
@@ -312,4 +309,6 @@ struct EditProfileView: View {
         debounceWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: workItem)
     }
-} 
+}
+
+// Note: CustomTextFieldStyle is now defined in SharedFormComponents.swift 

@@ -16,90 +16,117 @@ struct CoverLetterComposerView: View {
                 Color("appScreenBG")
                     .ignoresSafeArea()
                 
-                VStack(spacing: 20) {
-                    // Company and Position Info
-                    VStack(spacing: 16) {
-                        Text("COMPANY & POSITION")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color("appTextPrimary"))
-                            .kerning(1.5)
-                        
-                        VStack(spacing: 12) {
-                            TextField("Company Name", text: $companyName)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .font(.subheadline)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Company and Position Info
+                        VStack(spacing: 16) {
+                            Text("COMPANY & POSITION")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(Color("appTextPrimary"))
+                                .kerning(1.5)
                             
-                            TextField("Position Title", text: $positionTitle)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .font(.subheadline)
+                            VStack(spacing: 12) {
+                                CustomTextField(
+                                    title: "Company Name",
+                                    text: $companyName,
+                                    placeholder: "Enter company name"
+                                )
+                                
+                                CustomTextField(
+                                    title: "Position Title",
+                                    text: $positionTitle,
+                                    placeholder: "Enter position title"
+                                )
+                            }
                         }
+                        .padding()
+                        .background(Color("appCardBG"))
+                        .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
+                        
+                        // Cover Letter Content
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("COVER LETTER CONTENT")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(Color("appTextPrimary"))
+                                .kerning(1.5)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Write your cover letter content")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(Color("appTextPrimary"))
+                                
+                                TextEditor(text: $coverLetterContent)
+                                    .font(.body)
+                                    .foregroundColor(Color("appTextPrimary"))
+                                    .background(Color("appStrokeGray"))
+                                    .cornerRadius(12)
+                                    .frame(minHeight: 300)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color("appStrokeGray"), lineWidth: 1)
+                                    )
+                                    .overlay(
+                                        Group {
+                                            if coverLetterContent.isEmpty {
+                                                Text("Dear Hiring Manager,\n\nI am writing to express my interest in the [Position Title] role at [Company Name]...")
+                                                    .foregroundColor(Color("appTextSecondary"))
+                                                    .padding(.horizontal, 16)
+                                                    .padding(.vertical, 12)
+                                                    .allowsHitTesting(false)
+                                            }
+                                        },
+                                        alignment: .topLeading
+                                    )
+                            }
+                        }
+                        .padding()
+                        .background(Color("appCardBG"))
+                        .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
+                        
+                        // Action Buttons
+                        HStack(spacing: 16) {
+                            Button(action: saveCoverLetter) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "square.and.arrow.down")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Save")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color("appPrimaryAccent"))
+                                .cornerRadius(12)
+                            }
+                            .disabled(companyName.isEmpty || positionTitle.isEmpty || coverLetterContent.isEmpty)
+                            
+                            Button(action: { navigateToExport = true }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Export")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color("appSuccess"))
+                                .cornerRadius(12)
+                            }
+                            .disabled(companyName.isEmpty || positionTitle.isEmpty || coverLetterContent.isEmpty)
+                        }
+                        .padding(.top, 20)
                     }
                     .padding()
-                    .background(Color("appCardBG"))
-                    .cornerRadius(16)
-                    
-                    // Cover Letter Content
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("COVER LETTER CONTENT")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color("appTextPrimary"))
-                            .kerning(1.5)
-                        
-                        TextEditor(text: $coverLetterContent)
-                            .font(.body)
-                            .foregroundColor(Color("appTextPrimary"))
-                            .background(Color("appScreenBG"))
-                            .cornerRadius(12)
-                            .frame(minHeight: 300)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color("appStrokeGray"), lineWidth: 1)
-                            )
-                    }
-                    .padding()
-                    .background(Color("appCardBG"))
-                    .cornerRadius(16)
-                    
-                    Spacer()
-                    
-                    // Action Buttons
-                    HStack(spacing: 16) {
-                        Button(action: saveCoverLetter) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "square.and.arrow.down")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("Save")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color("appPrimaryAccent"))
-                            .cornerRadius(12)
-                        }
-                        .disabled(companyName.isEmpty || positionTitle.isEmpty || coverLetterContent.isEmpty)
-                        
-                        Button(action: { navigateToExport = true }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("Export")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color("appSecondaryAccent"))
-                            .cornerRadius(12)
-                        }
-                        .disabled(companyName.isEmpty || positionTitle.isEmpty || coverLetterContent.isEmpty)
-                    }
+                    .padding(.bottom, 100)
                 }
-                .padding()
             }
             .navigationTitle("Cover Letter")
             .navigationBarTitleDisplayMode(.inline)
@@ -108,6 +135,7 @@ struct CoverLetterComposerView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(Color("appTextSecondary"))
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -115,6 +143,8 @@ struct CoverLetterComposerView: View {
                         saveCoverLetter()
                         dismiss()
                     }
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("appPrimaryAccent"))
                     .disabled(companyName.isEmpty || positionTitle.isEmpty || coverLetterContent.isEmpty)
                 }
             }
@@ -150,6 +180,8 @@ struct CoverLetterComposerView: View {
         showingSaveAlert = true
     }
 }
+
+// Note: CustomTextField and CustomTextFieldStyle are now defined in SharedFormComponents.swift
 
 #Preview {
     CoverLetterComposerView()
