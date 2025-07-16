@@ -185,6 +185,68 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
             }
     }
     
+    // MARK: - Chat Request System
+    // Only create chat request document, do NOT create chat here
+    func sendChatRequest(from senderId: String, to recipientId: String, completion: @escaping (Bool) -> Void) {
+        let db = Firestore.firestore()
+        let requestId = "\(senderId)_\(recipientId)"
+        let data: [String: Any] = [
+            "fromUserId": senderId,
+            "toUserId": recipientId,
+            "status": "pending",
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        db.collection("chatRequests").document(requestId).setData(data) { error in
+            completion(error == nil)
+        }
+    }
+
+    // Only create chat when request is accepted
+    func acceptChatRequest(from senderId: String, to recipientId: String, completion: @escaping (Bool) -> Void) {
+        let db = Firestore.firestore()
+        let requestId = "\(senderId)_\(recipientId)"
+        db.collection("chatRequests").document(requestId).updateData(["status": "accepted"]) { error in
+            if error == nil {
+                // Create chat document only now
+                self.createChat(participants: [senderId, recipientId], isGroup: false, name: nil) { chatId in
+                    completion(chatId != nil)
+                }
+            } else {
+                completion(false)
+            }
+        }
+    }
+
+    func declineChatRequest(from senderId: String, to recipientId: String, completion: @escaping (Bool) -> Void) {
+        let db = Firestore.firestore()
+        let requestId = "\(senderId)_\(recipientId)"
+        db.collection("chatRequests").document(requestId).updateData(["status": "declined"]) { error in
+            completion(error == nil)
+        }
+    }
+
+    func checkChatRequestStatus(from senderId: String, to recipientId: String, completion: @escaping (String?) -> Void) {
+        let db = Firestore.firestore()
+        let requestId = "\(senderId)_\(recipientId)"
+        db.collection("chatRequests").document(requestId).getDocument { doc, error in
+            if let data = doc?.data(), let status = data["status"] as? String {
+                completion(status)
+            } else {
+                completion(nil)
+            }
+        }
+    }
+
+    func fetchIncomingChatRequests(for userId: String, completion: @escaping ([DocumentSnapshot]) -> Void) {
+        let db = Firestore.firestore()
+        db.collection("chatRequests")
+            .whereField("toUserId", isEqualTo: userId)
+            .whereField("status", isEqualTo: "pending")
+            .getDocuments { snapshot, error in
+                completion(snapshot?.documents ?? [])
+            }
+    }
+    
     deinit {
         stopListening()
     }

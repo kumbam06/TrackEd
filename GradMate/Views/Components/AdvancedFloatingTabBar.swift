@@ -43,7 +43,7 @@ struct WaveShape: Shape {
 struct AdvancedFloatingTabBar: View {
     @Binding var selectedTab: Int
     @State private var animationOffset: CGFloat = 0
-    @Namespace private var tabCircleNamespace
+    @Namespace private var tabBarNamespace
     @State private var wavePhase: CGFloat = 0
     private let waveTimer = Timer.publish(every: 1/60, on: .main, in: .common).autoconnect()
     
@@ -71,7 +71,7 @@ struct AdvancedFloatingTabBar: View {
                         hapticFeedback()
                     }
                 )
-                .environment(\._tabCircleNamespace, tabCircleNamespace)
+                .environment(\._tabCircleNamespace, tabBarNamespace)
             }
         }
         .padding(.top, 8)

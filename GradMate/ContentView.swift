@@ -13,12 +13,18 @@ struct ContentView: View {
     @EnvironmentObject private var skillManager: SkillManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTab = 0
+    @State private var isChatDetailActive = false
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            TabContent(selectedTab: selectedTab)
-            AdvancedFloatingTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, 16)
+            TabContent(selectedTab: selectedTab, isChatDetailActive: $isChatDetailActive)
+            if !isChatDetailActive {
+                AdvancedFloatingTabBar(selectedTab: $selectedTab)
+                    .padding(.horizontal, 16)
+                    .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity),
+                                             removal: .move(edge: .bottom).combined(with: .opacity)))
+                    .animation(.easeInOut(duration: 0.28), value: isChatDetailActive)
+            }
         }
         .ignoresSafeArea(.keyboard)
     }
@@ -27,6 +33,7 @@ struct ContentView: View {
 struct TabContent: View {
     @EnvironmentObject private var taskManager: TaskManager
     let selectedTab: Int
+    @Binding var isChatDetailActive: Bool
     
     var body: some View {
         if selectedTab == 0 {
@@ -40,7 +47,7 @@ struct TabContent: View {
             }
         } else if selectedTab == 2 {
             NavigationStack {
-                ChatListView()
+                ChatListView(isChatDetailActive: $isChatDetailActive)
             }
         } else if selectedTab == 3 {
             NavigationStack {

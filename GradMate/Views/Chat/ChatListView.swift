@@ -50,6 +50,9 @@ struct ChatListView: View {
     @State private var userInfos: [String: (username: String, displayName: String?, photoURL: String?)] = [:]
     @State private var hasInitializedViewModel = false
     @State private var showAskAI = false
+    @Binding var isChatDetailActive: Bool
+    @State private var incomingRequests: [DocumentSnapshot] = []
+    @State private var isLoadingRequests = false
     
     // Batch preload user info for all chat participants (batched)
     private func preloadUserInfos(for chats: [Chat], myId: String) {
@@ -115,6 +118,30 @@ struct ChatListView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 24)
                 .padding(.bottom, 8)
+
+                // Chat Requests Section
+                if isLoadingRequests {
+                    HStack {
+                        ProgressView()
+                        Text("Loading requests...")
+                            .font(.subheadline)
+                            .foregroundColor(Color("appTextSecondary"))
+                    }
+                    .padding(.vertical, 8)
+                } else if !incomingRequests.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Chat Requests")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color("appPrimaryAccent"))
+                            .padding(.leading, 8)
+                        ForEach(incomingRequests, id: \.documentID) { doc in
+                            ChatRequestRow(requestDoc: doc)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                }
                 
                 if let viewModel = viewModel {
                     if let error = viewModel.error {
@@ -219,9 +246,11 @@ struct ChatListView: View {
                 destination: Group {
                     if let chat = selectedChat, let userId = authViewModel.user?.uid {
                         ChatDetailView(chat: chat, userId: userId, chatService: chatService)
+                            .onAppear { isChatDetailActive = true }
                             .onDisappear {
                                 selectedChat = nil
                                 navigateToChat = false
+                                isChatDetailActive = false
                             }
                     }
                 },
@@ -277,6 +306,7 @@ struct ChatListView: View {
                     viewModel = ChatListViewModel(chatService: chatService, userId: "")
                 }
             }
+            fetchRequests()
         }
         .onChange(of: authViewModel.user?.uid) { newUid in
             if newUid == nil {
@@ -289,6 +319,89 @@ struct ChatListView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func fetchRequests() {
+        guard let myId = authViewModel.user?.uid else { return }
+        isLoadingRequests = true
+        chatService.fetchIncomingChatRequests(for: myId) { docs in
+            incomingRequests = docs
+            isLoadingRequests = false
+        }
+    }
+
+    @ViewBuilder
+    private func ChatRequestRow(requestDoc: DocumentSnapshot) -> some View {
+        let data = requestDoc.data() as? [String: Any] ?? [:]
+        let fromUserId = data["fromUserId"] as? String ?? ""
+        let displayName = data["fromDisplayName"] as? String ?? "User"
+        let username = data["fromUsername"] as? String ?? ""
+        let photoURL = data["fromPhotoURL"] as? String
+        @State var isProcessing = false
+        HStack(spacing: 12) {
+            if let url = photoURL, let imageURL = URL(string: url) {
+                WebImage(url: imageURL)
+                    .resizable()
+                    .clipShape(Circle())
+                    .frame(width: 36, height: 36)
+            } else {
+                Circle().fill(Color("appPrimaryAccent").opacity(0.12))
+                    .frame(width: 36, height: 36)
+                    .overlay(Image(systemName: "person.fill").foregroundColor(Color("appPrimaryAccent")))
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayName)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("appTextPrimary"))
+                Text("@\(username)")
+                    .font(.caption2)
+                    .foregroundColor(Color("appTextSecondary"))
+            }
+            Spacer()
+            if isProcessing {
+                ProgressView()
+            } else {
+                Button(action: {
+                    isProcessing = true
+                    chatService.acceptChatRequest(from: fromUserId, to: authViewModel.user?.uid ?? "") { success in
+                        isProcessing = false
+                        fetchRequests()
+                        // Optionally, show a toast or feedback
+                    }
+                }) {
+                    Text("Accept")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color("appPrimaryAccent"))
+                        .cornerRadius(8)
+                }
+                Button(action: {
+                    isProcessing = true
+                    chatService.declineChatRequest(from: fromUserId, to: authViewModel.user?.uid ?? "") { success in
+                        isProcessing = false
+                        fetchRequests()
+                    }
+                }) {
+                    Text("Decline")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color("appError"))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color("appError").opacity(0.1))
+                        .cornerRadius(8)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color("appCardBG"))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 1)
     }
 }
 

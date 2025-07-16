@@ -56,39 +56,28 @@ struct ChatDetailView: View {
         ZStack {
             Color("appScreenBG").ignoresSafeArea()
             VStack(spacing: 0) {
-                // Custom Navigation Bar
-                HStack(spacing: 16) {
+                // WhatsApp/Instagram-style custom header
+                HStack(spacing: 14) {
                     Button(action: { presentationMode.wrappedValue.dismiss() }) {
                         Image(systemName: "chevron.left")
-                            .font(.title2)
+                            .font(.title2.bold())
                             .foregroundColor(Color("appPrimaryAccent"))
                             .padding(8)
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
-                            .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
                     }
                     if let url = partnerPhotoURL, let imageURL = URL(string: url) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(width: 40, height: 40)
-                            WebImage(url: imageURL)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 40, height: 40)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color("appPrimaryAccent"), lineWidth: 2))
-                                .shadow(color: Color("appPrimaryAccent").opacity(0.10), radius: 6, x: 0, y: 2)
-                        }
+                        WebImage(url: imageURL)
+                            .resizable()
+                            .clipShape(Circle())
+                            .frame(width: 40, height: 40)
                     } else {
                         Circle().fill(Color("appPrimaryAccent").opacity(0.12))
                             .frame(width: 40, height: 40)
                             .overlay(Image(systemName: "person.fill").foregroundColor(Color("appPrimaryAccent")))
-                            .overlay(Circle().stroke(Color("appPrimaryAccent"), lineWidth: 2))
-                            .shadow(color: Color("appPrimaryAccent").opacity(0.10), radius: 6, x: 0, y: 2)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(partnerDisplayName.isEmpty ? (partnerUsername.isEmpty ? "Chat" : partnerUsername) : partnerDisplayName)
+                        Text(partnerDisplayName.isEmpty ? partnerUsername : partnerDisplayName)
                             .font(.headline)
                             .fontWeight(.bold)
                             .foregroundColor(Color("appTextPrimary"))
@@ -108,17 +97,13 @@ struct ChatDetailView: View {
                             .font(.title2)
                             .foregroundColor(Color("appPrimaryAccent"))
                             .padding(8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                            .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
                 .padding(.bottom, 8)
                 .background(.ultraThinMaterial)
-                .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-                
+                .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
                 Divider().opacity(0.05)
                 
                 if viewModel.isLoading {
@@ -269,6 +254,7 @@ struct ChatDetailView: View {
                 .background(Color("appScreenBG").opacity(0.98))
             }
         }
+        .navigationBarHidden(true)
         .onDisappear {
             viewModel.stopListening()
         }
@@ -285,7 +271,6 @@ struct ChatDetailView: View {
             }
         }
         .onTapGesture {
-            // Dismiss keyboard when tapping outside
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
         .onChange(of: viewModel.error) { newValue in
@@ -300,7 +285,8 @@ struct ChatDetailView: View {
                 }
             )
         }
-        .navigationBarHidden(true)
+        // REMOVE .navigationBarHidden(true)
+        // .toolbar(.hidden, for: .tabBar) can remain if you want to hide the tab bar in native TabView
     }
     
     private func sendMessage() {

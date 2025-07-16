@@ -13,249 +13,289 @@ extension View {
 
 struct AuthView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var isLoginMode = true
+    @State private var name = ""
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
-    @State private var showSignup = false
-    @State private var navigateToSignup = false
     @State private var isLoading = false
     @State private var error: String?
     @State private var showPassword = false
     @State private var showConfirmPassword = false
-    @State private var username = ""
-    @State private var firstName = ""
-    @State private var lastName = ""
-    @State private var dob: Date? = nil
-    @State private var signupStep: SignupStep = .username
-    @FocusState private var isInputFocused: Bool
-    @State private var role = ""
     @State private var showForgotPassword = false
     @State private var forgotPasswordEmail = ""
     @State private var forgotPasswordMessage: String? = nil
     @State private var forgotPasswordLoading = false
-    @State private var debouncedEmail = ""
-    @State private var debouncedPassword = ""
-    private let debounceDelay = 0.25
-    @State private var debounceWorkItem: DispatchWorkItem? = nil
-    @State private var cardAppear = false // For animation
-
-    enum SignupStep: Int, CaseIterable {
-        case username, email, password, confirmPassword, firstName, lastName, role, dob, review
-    }
+    @FocusState private var isInputFocused: Bool
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                LinearGradient(gradient: Gradient(colors: [Color(uiColor: .systemGray6), Color(uiColor: .systemGray4)]), startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
-                VStack(spacing: 0) {
-                    Spacer(minLength: 32)
-                    // App Logo (always show at top)
+        ZStack {
+            Color("appScreenBG").ignoresSafeArea()
+            VStack(spacing: 0) {
+                Spacer(minLength: 32)
+                // Logo & App Name
+                VStack(spacing: 8) {
                     Image("AppLogo")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 72, height: 72)
                         .shadow(color: Color.accentColor.opacity(0.12), radius: 12, y: 4)
-                        .padding(.bottom, 20)
-                        .opacity(cardAppear ? 1 : 0)
-                        .offset(y: cardAppear ? 0 : 40)
-                        .animation(.easeOut(duration: 0.7).delay(0.1), value: cardAppear)
-                    Text("Welcome back!")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .padding(.bottom, 18)
-                        .opacity(cardAppear ? 1 : 0)
-                        .offset(y: cardAppear ? 0 : 40)
-                        .animation(.easeOut(duration: 0.7).delay(0.2), value: cardAppear)
-                    // Card
-                    VStack(spacing: 24) {
-                        LoginFormView(
-                            email: $email,
-                            password: $password,
-                            debouncedEmail: $debouncedEmail,
-                            debouncedPassword: $debouncedPassword,
-                            isLoading: $isLoading,
-                            error: $error,
-                            showPassword: $showPassword,
-                            isInputFocused: $isInputFocused,
-                            authViewModel: authViewModel,
-                            debounceInput: debounceInput
-                        )
-                        .padding(24)
-                        .background(
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(Color(uiColor: .systemGray6))
-                                .shadow(color: Color(.black).opacity(0.10), radius: 16, y: 4)
-                        )
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 18)
-                        .opacity(cardAppear ? 1 : 0)
-                        .offset(y: cardAppear ? 0 : 40)
-                        .animation(.easeOut(duration: 0.7).delay(0.3), value: cardAppear)
-                        // Or divider
-                        HStack {
-                            Rectangle().frame(height: 1).foregroundColor(.gray.opacity(0.3))
-                            Text("or")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            Rectangle().frame(height: 1).foregroundColor(.gray.opacity(0.3))
-                        }
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 8)
-                        .opacity(cardAppear ? 1 : 0)
-                        .offset(y: cardAppear ? 0 : 40)
-                        .animation(.easeOut(duration: 0.7).delay(0.4), value: cardAppear)
-                        // Google sign in
-                        Button(action: {
-                            authViewModel.isLoading = true
-                            error = nil
-                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                               let rootVC = windowScene.windows.first?.rootViewController {
-                                authViewModel.signInWithGoogle(presentingViewController: rootVC) { success, errMsg in
-                                    DispatchQueue.main.async {
-                                        authViewModel.isLoading = false
-                                        if !success {
-                                            error = errMsg ?? "Google sign-in failed."
-                                        }
-                                    }
-                                }
+                    Text("GradMate")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color("appPrimaryAccent"))
+                }
+                .padding(.bottom, 24)
+                // Auth Card
+                VStack(spacing: 20) {
+                    if isLoginMode {
+                        Text("Welcome back!")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color("appPrimaryAccent"))
+                            .padding(.bottom, 4)
+                    }
+                    if !isLoginMode {
+                        TextField("Name", text: $name)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 14)
+                            .background(Color("appScreenBG").opacity(0.7))
+                            .cornerRadius(14)
+                            .foregroundColor(Color("appTextPrimary"))
+                            .autocapitalization(.words)
+                            .focused($isInputFocused)
+                    }
+                    TextField("Email", text: $email)
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 14)
+                        .background(Color("appScreenBG").opacity(0.7))
+                        .cornerRadius(14)
+                        .foregroundColor(Color("appTextPrimary"))
+                    ZStack(alignment: .trailing) {
+                        Group {
+                            if showPassword {
+                                TextField("Password", text: $password)
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 14)
+                                    .background(Color("appScreenBG").opacity(0.7))
+                                    .cornerRadius(14)
+                                    .foregroundColor(Color("appTextPrimary"))
                             } else {
-                                authViewModel.isLoading = false
-                                error = "Unable to get root view controller."
-                            }
-                        }) {
-                            HStack {
-                                Text("G")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.blue)
-                                    .frame(width: 22, height: 22)
-                                Text("Sign in with Google")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color(uiColor: .systemGray6))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color(uiColor: .systemGray4), lineWidth: 1.1)
-                            )
-                            .cornerRadius(12)
-                            .shadow(color: Color(.black).opacity(0.04), radius: 4, y: 2)
-                        }
-                        .padding(.horizontal, 32)
-                        .padding(.bottom, 8)
-                        .opacity(cardAppear ? 1 : 0)
-                        .offset(y: cardAppear ? 0 : 40)
-                        .animation(.easeOut(duration: 0.7).delay(0.5), value: cardAppear)
-                        Spacer()
-                        HStack(spacing: 4) {
-                            Text("Don't have an account?")
-                                .foregroundColor(.secondary)
-                            Button(action: { navigateToSignup = true }) {
-                                Text("Sign Up")
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.accentColor)
+                                SecureField("Password", text: $password)
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 14)
+                                    .background(Color("appScreenBG").opacity(0.7))
+                                    .cornerRadius(14)
+                                    .foregroundColor(Color("appTextPrimary"))
                             }
                         }
-                        .font(.footnote)
-                        .padding(.bottom, 18)
-                        .opacity(cardAppear ? 1 : 0)
-                        .offset(y: cardAppear ? 0 : 40)
-                        .animation(.easeOut(duration: 0.7).delay(0.6), value: cardAppear)
-                        // NavigationLink for signup
-                        NavigationLink(destination: SignupChatFlowView()
-                            .environmentObject(authViewModel), isActive: $navigateToSignup) {
-                            EmptyView()
+                        Button(action: { showPassword.toggle() }) {
+                            Image(systemName: showPassword ? "eye.slash" : "eye")
+                                .foregroundColor(.gray)
+                                .padding(.trailing, 14)
                         }
-                        .hidden()
+                    }
+                    if !isLoginMode {
+                        ZStack(alignment: .trailing) {
+                            Group {
+                                if showConfirmPassword {
+                                    TextField("Confirm Password", text: $confirmPassword)
+                                        .padding(.vertical, 16)
+                                        .padding(.horizontal, 14)
+                                        .background(Color("appScreenBG").opacity(0.7))
+                                        .cornerRadius(14)
+                                        .foregroundColor(Color("appTextPrimary"))
+                                } else {
+                                    SecureField("Confirm Password", text: $confirmPassword)
+                                        .padding(.vertical, 16)
+                                        .padding(.horizontal, 14)
+                                        .background(Color("appScreenBG").opacity(0.7))
+                                        .cornerRadius(14)
+                                        .foregroundColor(Color("appTextPrimary"))
+                                }
+                            }
+                            Button(action: { showConfirmPassword.toggle() }) {
+                                Image(systemName: showConfirmPassword ? "eye.slash" : "eye")
+                                    .foregroundColor(.gray)
+                                    .padding(.trailing, 14)
+                            }
+                        }
+                    }
+                    if let error = error {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .padding(.top, 2)
+                    }
+                    Button(action: {
+                        isLoading = true
+                        error = nil
+                        if isLoginMode {
+                            authViewModel.login(email: email, password: password) { success in
+                                isLoading = false
+                                if !success {
+                                    error = authViewModel.errorMessage ?? "Login failed. Please try again."
+                                }
+                            }
+                        } else {
+                            guard !name.isEmpty, !email.isEmpty, !password.isEmpty, !confirmPassword.isEmpty, password == confirmPassword, password.count >= 6 else {
+                                isLoading = false
+                                error = "Please fill all fields correctly."
+                                return
+                            }
+                            authViewModel.signUp(email: email, password: password, username: "", fullName: name, role: "Student", dob: nil) { success in
+                                isLoading = false
+                                if !success {
+                                    error = authViewModel.errorMessage ?? "Signup failed. Please try again."
+                                }
+                            }
+                        }
+                    }) {
+                        if isLoading {
+                            ProgressView()
+                        } else {
+                            Text(isLoginMode ? "Log In" : "Sign Up")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.vertical, 12)
+                                .frame(maxWidth: .infinity)
+                                .background(Color("appPrimaryAccent"))
+                                .cornerRadius(12)
+                        }
+                    }
+                    .disabled(isLoginMode ? (email.isEmpty || password.isEmpty) : (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty || password != confirmPassword || password.count < 6))
+                    .padding(.top, 4)
+                    if isLoginMode {
+                        Button(action: { showForgotPassword = true }) {
+                            Text("Forgot password?")
+                                .font(.footnote)
+                                .foregroundColor(Color("appPrimaryAccent"))
+                        }
+                        .padding(.top, 2)
+                    }
+                    // Divider
+                    HStack {
+                        Rectangle().frame(height: 1).foregroundColor(.gray.opacity(0.2))
+                        Text("or").foregroundColor(.secondary)
+                        Rectangle().frame(height: 1).foregroundColor(.gray.opacity(0.2))
+                    }
+                    // Google Sign-In
+                    Button(action: {
+                        if let rootVC = UIApplication.shared.connectedScenes
+                            .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
+                            .first {
+                            authViewModel.signInWithGoogle(presentingViewController: rootVC) { success, error in
+                                if !success {
+                                    self.error = error ?? "Google sign-in failed."
+                                }
+                            }
+                        }
+                    }) {
+                        HStack {
+                            Image("GoogleLogo")
+                                .resizable()
+                                .frame(width: 20, height: 20)
+                            // Always show 'Sign in with Google' because Google auth is always a login action
+                            Text("Sign in with Google")
+                                .fontWeight(.semibold)
+                                .foregroundColor(.black)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color(.black).opacity(0.08), radius: 2, y: 1)
                     }
                 }
-                .sheet(isPresented: $showForgotPassword) {
-                    VStack(spacing: 24) {
-                        Text("Reset Password")
-                            .font(.title2).fontWeight(.bold)
-                            .padding(.top, 24)
-                        Text("Enter your email and we'll send you a password reset link.")
-                            .font(.body)
+                .padding(24)
+                .background(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Color.white.opacity(0.95))
+                        .shadow(color: Color(.black).opacity(0.10), radius: 16, y: 4)
+                )
+                .padding(.horizontal, 24)
+                .padding(.bottom, 18)
+                Spacer()
+                // Toggle Footer
+                HStack(spacing: 4) {
+                    Text(isLoginMode ? "Don't have an account?" : "Already have an account?")
+                        .foregroundColor(.secondary)
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            isLoginMode.toggle()
+                            error = nil
+                        }
+                    }) {
+                        Text(isLoginMode ? "Sign Up" : "Log In")
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color("appPrimaryAccent"))
+                    }
+                }
+                .font(.footnote)
+                .padding(.bottom, 18)
+            }
+            .sheet(isPresented: $showForgotPassword) {
+                VStack(spacing: 24) {
+                    Text("Reset Password")
+                        .font(.title2).fontWeight(.bold)
+                        .padding(.top, 24)
+                    Text("Enter your email and we'll send you a password reset link.")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                    TextField("Email", text: $forgotPasswordEmail)
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color(uiColor: .systemGray6))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color(uiColor: .systemGray4), lineWidth: 1.1)
+                        )
+                        .padding(.horizontal, 16)
+                    if let msg = forgotPasswordMessage {
+                        Text(msg)
+                            .foregroundColor(msg.contains("sent") ? .green : .red)
+                            .font(.footnote)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 16)
-                        TextField("Email", text: $forgotPasswordEmail)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .padding(14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color(uiColor: .systemGray6))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color(uiColor: .systemGray4), lineWidth: 1.1)
-                            )
-                            .padding(.horizontal, 16)
-                        if let msg = forgotPasswordMessage {
-                            Text(msg)
-                                .foregroundColor(msg.contains("sent") ? .green : .red)
-                                .font(.footnote)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 16)
-                        }
-                        Button(action: {
-                            forgotPasswordLoading = true
-                            forgotPasswordMessage = nil
-                            authViewModel.sendPasswordReset(email: forgotPasswordEmail) { success, err in
-                                forgotPasswordLoading = false
-                                if success {
-                                    forgotPasswordMessage = "Reset link sent! Check your email."
-                                } else {
-                                    forgotPasswordMessage = err ?? "Failed to send reset link."
-                                }
-                            }
-                        }) {
-                            if forgotPasswordLoading {
-                                ProgressView()
-                            } else {
-                                Text("Send Reset Link")
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.accentColor)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(12)
-                            }
-                        }
-                        .disabled(forgotPasswordEmail.isEmpty || forgotPasswordLoading)
-                        .padding(.horizontal, 16)
-                        Spacer()
                     }
-                    // Remove .presentationDetents for iOS 15 compatibility
+                    Button(action: {
+                        forgotPasswordLoading = true
+                        forgotPasswordMessage = nil
+                        authViewModel.sendPasswordReset(email: forgotPasswordEmail) { success, err in
+                            forgotPasswordLoading = false
+                            if success {
+                                forgotPasswordMessage = "Reset link sent! Check your email."
+                            } else {
+                                forgotPasswordMessage = err ?? "Failed to send reset link."
+                            }
+                        }
+                    }) {
+                        if forgotPasswordLoading {
+                            ProgressView()
+                        } else {
+                            Text("Send Reset Link")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .disabled(forgotPasswordEmail.isEmpty || forgotPasswordLoading)
+                    .padding(.horizontal, 16)
+                    Spacer()
                 }
             }
-            .onTapGesture {
-                hideKeyboard()
-            }
-            .onAppear {
-                debouncedEmail = email
-                debouncedPassword = password
-                cardAppear = true
-            }
         }
-    }
-
-    // MARK: - Debounce Helper
-    func debounceInput(_ value: String, for field: String) {
-        debounceWorkItem?.cancel()
-        let workItem = DispatchWorkItem {
-            if field == "email" {
-                debouncedEmail = value
-            } else if field == "password" {
-                debouncedPassword = value
-            }
-        }
-        debounceWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: workItem)
+        .onTapGesture { hideKeyboard() }
     }
 }
 
