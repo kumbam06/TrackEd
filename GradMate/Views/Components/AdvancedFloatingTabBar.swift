@@ -82,7 +82,9 @@ struct AdvancedFloatingTabBar: View {
                 .clipShape(
                     RoundedCorner(radius: 28, corners: [UIRectCorner.topLeft, UIRectCorner.topRight])
                 )
-                .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: -2)
+                // Enhanced shadow for floating effect
+                .shadow(color: Color.black.opacity(0.18), radius: 24, x: 0, y: -8)
+                .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
         )
         .ignoresSafeArea(edges: .bottom)
     }

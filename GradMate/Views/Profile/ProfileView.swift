@@ -7,6 +7,8 @@
 
 import SwiftUI
 import SDWebImageSwiftUI
+import CoreImage.CIFilterBuiltins
+import Photos
 
 struct ProfileView: View {
     @EnvironmentObject private var profileManager: ProfileManager
@@ -42,17 +44,10 @@ struct ProfileView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
                 .padding(.bottom, 44)
-            }
-            .bottomFadeMask(fadeHeight: 80)
-            .safeAreaInset(edge: .bottom) {
-                Spacer().frame(height: 80)
+                .padding(.bottom, 100) // Padding for tab bar
             }
             .navigationTitle("")
             .navigationBarHidden(true)
-            .sheet(isPresented: $showingEditProfile) { 
-                EditProfileView()
-                    .environmentObject(profileManager)
-            }
             .sheet(isPresented: $showingResumeExport) { 
                 ResumeExportView()
                     .environmentObject(profileManager)
@@ -99,82 +94,376 @@ struct ProfileView: View {
     
     // MARK: - Profile Header Section
     private var profileHeaderSection: some View {
-        VStack(spacing: 24) {
-            // Profile Photo and Edit Button
-            ZStack(alignment: .bottomTrailing) {
-                if let photoData = profileManager.currentProfile?.photoData,
-                   let uiImage = UIImage(data: photoData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 120, height: 120)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color("appPrimaryAccent").opacity(0.2), lineWidth: 3)
-                        )
-                        .shadow(color: Color("appPrimaryAccent").opacity(0.15), radius: 12, x: 0, y: 6)
-                } else {
-                    ZStack {
-                        Circle()
-                            .fill(Color("appPrimaryAccent").opacity(0.1))
-                            .frame(width: 120, height: 120)
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(Color("appPrimaryAccent"))
-                    }
-                    .overlay(
-                        Circle()
-                            .stroke(Color("appPrimaryAccent").opacity(0.2), lineWidth: 3)
-                    )
-                    .shadow(color: Color("appPrimaryAccent").opacity(0.15), radius: 12, x: 0, y: 6)
+        ProfileIDCardView(profile: profileManager.currentProfile, showEditProfile: $showingEditProfile, showEditButton: true)
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+    }
+    
+    // MARK: - Flippable ID Card
+    struct ProfileIDCardView: View {
+        let profile: Profile?
+        @Binding var showEditProfile: Bool
+        var showEditButton: Bool = true
+        @State private var isFlipped = false
+        @State private var showShareSheet = false
+        @State private var idCardImages: [UIImage] = []
+        var body: some View {
+            ZStack {
+                IDCardFrontView(profile: profile, showEditProfile: $showEditProfile, showEditButton: showEditButton)
+                    .opacity(isFlipped ? 0 : 1)
+                ZStack {
+                    IDCardBackView(profile: profile)
+                        .opacity(isFlipped ? 1 : 0)
+                        .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0)) // Fix mirrored text
                 }
-                
-                Button(action: { showingEditProfile = true }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color("appPrimaryAccent"))
-                            .frame(width: 36, height: 36)
-                        Image(systemName: "pencil")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                if isFlipped {
+                    VStack {
+                        Spacer()
+                        Button(action: { captureIDCards() }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.title2)
+                                Text("Share")
+                                    .font(.body)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 6)
+                            .background(Color(.systemBackground).opacity(0.95))
+                            .clipShape(Capsule())
+                            .shadow(radius: 4)
+                        }
+                        .padding(.bottom, 8)
                     }
-                    .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 8, x: 0, y: 4)
                 }
-                .offset(x: 8, y: 8)
             }
-            
-            // Profile Info
-            VStack(spacing: 8) {
-                Text(profileManager.currentProfile?.name ?? "STUDENT")
-                    .font(.largeTitle)
-                    .fontWeight(.black)
-                    .foregroundColor(Color("appTextPrimary"))
-                    .kerning(2)
-                
-                Text(profileManager.currentProfile?.role ?? "STUDENT")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color("appPrimaryAccent"))
-                    .kerning(1.5)
-                
-                if let bio = profileManager.currentProfile?.bio, !bio.isEmpty {
-                    Text(bio)
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(Color("appTextSecondary"))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
-                        .background(Color("appStrokeGray"))
-                        .cornerRadius(16)
+            .frame(width: 340, height: 400)
+            .clipped()
+            .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
+            .animation(.spring(), value: isFlipped)
+            .onTapGesture { isFlipped.toggle() }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(isFlipped ? "Show profile front" : "Show profile back")
+            .sheet(isPresented: $showShareSheet) {
+                if !idCardImages.isEmpty {
+                    ShareSheet(items: idCardImages)
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 24)
-        .background(Color("appCardBG"))
-        .cornerRadius(24)
+        private func captureIDCards() {
+            let rendererFront = ImageRenderer(content:
+                ProfileView.ProfileIDCardView(profile: profile, showEditProfile: .constant(false), showEditButton: false)
+                    .frame(width: 340, height: 400)
+                    .padding(.horizontal, 20)
+            )
+            rendererFront.scale = 3 // High quality
+            let rendererBack = ImageRenderer(content:
+                ProfileView.IDCardBackView(profile: profile)
+                    .frame(width: 340, height: 400)
+                    .padding(.horizontal, 20)
+            )
+            rendererBack.scale = 3 // High quality
+            var images: [UIImage] = []
+            if let front = rendererFront.uiImage {
+                images.append(front)
+            }
+            if let back = rendererBack.uiImage {
+                images.append(back)
+            }
+            idCardImages = images
+            showShareSheet = true
+        }
+    }
+
+    struct IDCardFrontView: View {
+        let profile: Profile?
+        @Environment(\.colorScheme) private var colorScheme
+        @Binding var showEditProfile: Bool
+        var showEditButton: Bool = true
+        var body: some View {
+            ZStack {
+                // Shadow layer (not clipped)
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.clear)
+                    .shadow(color: Color.black.opacity(0.18), radius: 24, y: 12)
+                // Card background (matches app background, no border)
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(.systemBackground).opacity(colorScheme == .dark ? 0.92 : 0.98))
+                    .overlay(
+                        Text("GradMate")
+                            .font(.system(size: 120, weight: .bold))
+                            .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.07) : Color.black.opacity(0.06))
+                            .rotationEffect(.degrees(-90))
+                            .padding(.vertical, 24),
+                        alignment: .center
+                    )
+                VStack(spacing: 0) {
+                    // Company name at the very top
+                    HStack {
+                        Text((profile?.currentCompany?.isEmpty == false ? profile?.currentCompany : "Company Name") ?? "Company Name")
+                            .font(.caption)
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .padding(.top, 16)
+                            .padding(.leading, 20)
+                        Spacer()
+                    }
+                    Spacer(minLength: 24)
+                    HStack(alignment: .center, spacing: 0) {
+                        // Left: Info, name starts from card center
+                        VStack(alignment: .leading, spacing: 18) {
+                            Spacer()
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(profile?.name?.components(separatedBy: " ").first ?? "First")
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(Color.accentColor)
+                                Text(profile?.name?.components(separatedBy: " ").dropFirst().joined(separator: " ") ?? "Last")
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(Color.accentColor)
+                                    .padding(.bottom, 2)
+                                Rectangle()
+                                    .fill(colorScheme == .dark ? Color.white : Color.black)
+                                    .frame(width: 40, height: 3)
+                                    .cornerRadius(2)
+                            }
+                            Text(profile?.role?.uppercased() ?? "GRAPHIC DESIGNER")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                            if let summary = profile?.bio, !summary.isEmpty {
+                                Text(summary)
+                                    .font(.footnote)
+                                    .italic()
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .padding(.top, 8)
+                            }
+                            Spacer()
+                        }
+                        .padding(.leading, 20)
+                        .padding(.trailing, 8)
+                        .frame(maxHeight: .infinity)
+                        // Right: Profile image, square, moved up
+                        ZStack(alignment: .topTrailing) {
+                            VStack(spacing: 8) {
+                                if let photoData = profile?.photoData, let uiImage = UIImage(data: photoData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 100, height: 160)
+                                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colorScheme == .dark ? Color.white : Color.black, lineWidth: 2))
+                                        .shadow(radius: 6)
+                                } else {
+                                    Image("AppLogo")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 100, height: 160)
+                                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colorScheme == .dark ? Color.white : Color.black, lineWidth: 2))
+                                        .shadow(radius: 6)
+                                }
+                                // Username below image
+                                if let username = profile?.username, !username.isEmpty {
+                                    Text("@" + username)
+                                        .font(.caption)
+                                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                                        .padding(.top, 2)
+                                }
+                            }
+                            if showEditButton {
+                                Button(action: { showEditProfile = true }) {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .resizable()
+                                        .frame(width: 36, height: 36)
+                                        .foregroundColor(Color.accentColor)
+                                        .background(Color(.systemBackground).opacity(0.9))
+                                        .clipShape(Circle())
+                                        .shadow(radius: 4)
+                                        .padding(6)
+                                }
+                                .offset(x: 18, y: -18)
+                            }
+                        }
+                        .offset(y: -40)
+                        .padding(.trailing, 24)
+                    }
+                    Spacer()
+                }
+            }
+            .frame(width: 340, height: 400)
+            .padding(.horizontal, 20)
+            .background(Color.clear)
+        }
+    }
+
+    struct IDCardBackView: View {
+        let profile: Profile?
+        @Environment(\.colorScheme) private var colorScheme
+        @Environment(\.openURL) private var openURL
+        @State private var showCopied = false
+        var body: some View {
+            ZStack {
+                // Shadow layer (not clipped)
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.clear)
+                    .shadow(color: Color.black.opacity(0.18), radius: 24, y: 12)
+                // Card background (matches app background, no border)
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(.systemBackground).opacity(colorScheme == .dark ? 0.92 : 0.98))
+                    .overlay(
+                        Text("GradMate")
+                            .font(.system(size: 120, weight: .bold))
+                            .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.07) : Color.black.opacity(0.06))
+                            .rotationEffect(.degrees(-90))
+                            .padding(.vertical, 24),
+                        alignment: .center
+                    )
+                HStack(alignment: .center, spacing: 0) {
+                    // Left: Icon + value for each present field, left-aligned
+                    Spacer()
+                    VStack(alignment: .leading, spacing: 18) {
+                        Spacer()
+                        if let email = profile?.email, !email.isEmpty {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "envelope.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(Color.accentColor)
+                                Text(email)
+                                    .font(.body)
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Button(action: {
+                                    UIPasteboard.general.string = email
+                                    showCopied = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
+                                }) {
+                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                        .foregroundColor(Color.accentColor)
+                                }
+                            }
+                        }
+                        if let phone = profile?.phone, !phone.isEmpty {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "phone.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(Color.accentColor)
+                                Text(phone)
+                                    .font(.body)
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Button(action: {
+                                    UIPasteboard.general.string = phone
+                                    showCopied = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
+                                }) {
+                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                        .foregroundColor(Color.accentColor)
+                                }
+                            }
+                        }
+                        if let address = profile?.address, !address.isEmpty {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(Color.accentColor)
+                                Text(address)
+                                    .font(.body)
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Button(action: {
+                                    UIPasteboard.general.string = address
+                                    showCopied = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
+                                }) {
+                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                        .foregroundColor(Color.accentColor)
+                                }
+                            }
+                        }
+                        if let linkedin = profile?.linkedin, !linkedin.isEmpty {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image("linkedin-icon")
+                                    .resizable()
+                                    .frame(width: 22, height: 22)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 1)
+                                Button(action: {
+                                    let url = URL(string: linkedin.hasPrefix("http") ? linkedin : "https://\(linkedin)")!
+                                    openURL(url)
+                                }) {
+                                    Text(linkedin)
+                                        .font(.body)
+                                        .foregroundColor(Color.accentColor)
+                                        .underline()
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                Button(action: {
+                                    UIPasteboard.general.string = linkedin
+                                    showCopied = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
+                                }) {
+                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                        .foregroundColor(Color.accentColor)
+                                }
+                            }
+                        }
+                        if let website = profile?.website, !website.isEmpty {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "globe")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(Color.accentColor)
+                                Button(action: {
+                                    let url = URL(string: website.hasPrefix("http") ? website : "https://\(website)")!
+                                    openURL(url)
+                                }) {
+                                    Text(website)
+                                        .font(.body)
+                                        .foregroundColor(Color.accentColor)
+                                        .underline()
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                Button(action: {
+                                    UIPasteboard.general.string = website
+                                    showCopied = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
+                                }) {
+                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                        .foregroundColor(Color.accentColor)
+                                }
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding(.leading, 32)
+                    .padding(.trailing, 8)
+                    Spacer()
+                }
+            }
+            .frame(width: 340, height: 400)
+            .padding(.horizontal, 20)
+            .background(Color.clear)
+        }
+    }
+
+    struct LabeledDetail: View {
+        let label: String
+        let value: String
+        var dark: Bool = false
+        var alignLeft: Bool = false
+        var body: some View {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundColor(.accentColor)
+                Text(value)
+                    .font(.body)
+                    .foregroundColor(dark ? .black : .white)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(alignLeft ? .leading : .center)
+            }
+        }
     }
     
     // MARK: - Career Features Section
@@ -186,95 +475,20 @@ struct ProfileView: View {
                     .fontWeight(.bold)
                     .foregroundColor(Color("appTextPrimary"))
                     .kerning(1.5)
-                
                 Spacer()
-                
                 Rectangle()
                     .fill(Color("appTextPrimary"))
                     .frame(height: 2)
                     .frame(width: 80)
             }
             .padding(.leading, 4)
-            
             VStack(spacing: 16) {
-                skillsSection
+                // Removed skillsSection
                 careerFeaturesSectionContent
             }
             .background(Color("appCardBG"))
             .cornerRadius(16)
         }
-    }
-    
-    // MARK: - Skills Section
-    private var skillsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("SKILLS & EXPERTISE")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(Color("appTextPrimary"))
-                    .kerning(1.5)
-                
-                Spacer()
-                
-                Button(action: { showingAddSkill = true }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color("appPrimaryAccent").opacity(0.2))
-                            .frame(width: 32, height: 32)
-                        Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color("appPrimaryAccent"))
-                    }
-                }
-            }
-            .padding(.leading, 4)
-            
-            if skillManager.skills.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "star.slash")
-                        .font(.system(size: 32))
-                        .foregroundColor(Color("appTextSecondary"))
-                    Text("NO SKILLS ADDED")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(Color("appTextSecondary"))
-                    Text("Add your first skill to showcase your expertise")
-                        .font(.caption)
-                        .foregroundColor(Color("appTextSecondary"))
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.vertical, 24)
-                .frame(maxWidth: .infinity)
-                .background(Color("appStrokeGray"))
-                .cornerRadius(12)
-            } else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 2), spacing: 8) {
-                    ForEach(Array(skillManager.skills.prefix(4)), id: \.id) { skill in
-                        ProfileSkillCard(skill: skill, color: Color("appPrimaryAccent"))
-                    }
-                }
-                
-                if skillManager.skills.count > 4 {
-                    Button(action: { showingAddSkill = true }) {
-                        HStack {
-                            Text("View All \(skillManager.skills.count) Skills")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(Color("appPrimaryAccent"))
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .foregroundColor(Color("appPrimaryAccent"))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(Color("appStrokeGray"))
-                        .cornerRadius(8)
-                    }
-                }
-            }
-        }
-        .padding(16)
     }
     
     // MARK: - Career Features Section Content

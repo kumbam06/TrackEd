@@ -16,6 +16,10 @@ class ChatListViewModel: ObservableObject, Equatable {
     init(chatService: ChatServiceProtocol, userId: String) {
         self.chatService = chatService
         self.userId = userId
+        // Show cached chats immediately if available
+        if let cached = ChatListViewModel.chatCache[userId], !cached.isEmpty {
+            self.chats = cached
+        }
         loadChats()
     }
     

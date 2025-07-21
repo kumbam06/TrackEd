@@ -29,6 +29,7 @@ struct EditProfileView: View {
     @State private var username = ""
     @State private var dob: Date = Date()
     @State private var address: String = ""
+    @State private var currentCompany = ""
     @State private var debouncedUsername = ""
     @State private var debouncedFirstName = ""
     @State private var debouncedLastName = ""
@@ -39,6 +40,7 @@ struct EditProfileView: View {
     @State private var debouncedLinkedin = ""
     @State private var debouncedWebsite = ""
     @State private var debouncedAddress = ""
+    @State private var debouncedCurrentCompany = ""
     @State private var debounceWorkItem: DispatchWorkItem? = nil
     private let debounceDelay = 0.25
     
@@ -99,54 +101,66 @@ struct EditProfileView: View {
                 .fontWeight(.heavy)
                 .foregroundColor(Color("appTextPrimary"))
                 .kerning(1)
-            
             HStack {
                 Spacer()
-                
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    if let profileImage = profileImage {
-                        Image(uiImage: profileImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 120, height: 120)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
-                            )
-                            .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 8, x: 0, y: 4)
-                    } else if let photoData = profileManager.currentProfile?.photoData,
-                              let uiImage = UIImage(data: photoData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 120, height: 120)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
-                            )
-                            .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 8, x: 0, y: 4)
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(Color("appStrokeGray").opacity(0.3))
-                                .frame(width: 120, height: 120)
+                ZStack(alignment: .topTrailing) {
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        if let profileImage = profileImage {
+                            Image(uiImage: profileImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 160, height: 160)
+                                .clipShape(Circle())
                                 .overlay(
                                     Circle()
-                                        .stroke(Color("appPrimaryAccent").opacity(0.2), lineWidth: 1)
+                                        .strokeBorder(LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
                                 )
-                            
-                            Image(systemName: "person.circle.fill")
+                                .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 8, x: 0, y: 4)
+                        } else if let photoData = profileManager.currentProfile?.photoData,
+                                  let uiImage = UIImage(data: photoData) {
+                            Image(uiImage: uiImage)
                                 .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 80, height: 80)
-                                .foregroundColor(Color("appPrimaryAccent"))
-                                .shadow(color: Color("appPrimaryAccent"), radius: 6, x: 0, y: 0)
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 160, height: 160)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 3)
+                                )
+                                .shadow(color: Color("appPrimaryAccent").opacity(0.3), radius: 8, x: 0, y: 4)
+                        } else {
+                            ZStack {
+                                Circle()
+                                    .fill(Color("appStrokeGray").opacity(0.3))
+                                    .frame(width: 160, height: 160)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color("appPrimaryAccent").opacity(0.2), lineWidth: 1)
+                                    )
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 100, height: 100)
+                                    .foregroundColor(Color("appPrimaryAccent"))
+                                    .shadow(color: Color("appPrimaryAccent"), radius: 6, x: 0, y: 0)
+                            }
                         }
                     }
+                    Button(action: {
+                        // Trigger PhotosPicker
+                        selectedPhoto = nil // This will allow re-picking the same image
+                    }) {
+                        Image(systemName: "pencil.circle.fill")
+                            .resizable()
+                            .frame(width: 36, height: 36)
+                            .foregroundColor(Color("appPrimaryAccent"))
+                            .background(Color("appCardBG").opacity(0.9))
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                            .padding(6)
+                    }
+                    .offset(x: 12, y: -12)
                 }
-                
                 Spacer()
             }
         }
@@ -174,6 +188,8 @@ struct EditProfileView: View {
                 }
                 CustomTextField(title: "Role/Title", text: $role, placeholder: "e.g., iOS Developer, Student")
                     .onChange(of: role) { newValue, _ in debounceInput(newValue, for: "role") }
+                CustomTextField(title: "Current Company/Institution", text: $currentCompany, placeholder: "e.g., Acme Corp, University of X")
+                    .onChange(of: currentCompany) { newValue, _ in debounceInput(newValue, for: "currentCompany") }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Bio")
                         .font(.subheadline)
@@ -258,6 +274,7 @@ struct EditProfileView: View {
         website = profile.website ?? ""
         username = profile.username ?? ""
         address = profile.address ?? ""
+        currentCompany = profile.currentCompany ?? ""
         
         if let dobData = profile.dob {
             dob = dobData
@@ -276,7 +293,8 @@ struct EditProfileView: View {
             website: website,
             username: username,
             dob: dob,
-            address: address
+            address: address,
+            currentCompany: currentCompany
         )
         
         // Update profile photo if selected
@@ -302,6 +320,7 @@ struct EditProfileView: View {
                 case "linkedin": debouncedLinkedin = value
                 case "website": debouncedWebsite = value
                 case "address": debouncedAddress = value
+                case "currentCompany": debouncedCurrentCompany = value
                 default: break
                 }
             }

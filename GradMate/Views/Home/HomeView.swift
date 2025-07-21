@@ -88,10 +88,7 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
                 .padding(.bottom, 44)
-            }
-            .bottomFadeMask(fadeHeight: 80)
-            .safeAreaInset(edge: .bottom) {
-                Spacer().frame(height: 80)
+                .padding(.bottom, 100) // Padding for tab bar
             }
             .onAppear {
                 loadTodayTasks()
