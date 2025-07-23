@@ -299,11 +299,7 @@ struct ChatListView: View {
         )
     }
     
-    func timeAgo(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
+
 
     private func fetchRequests() {
         guard let myId = authViewModel.user?.uid else { return }
