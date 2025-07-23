@@ -73,83 +73,77 @@ struct PlannerView: View {
     }
     
     var body: some View {
-        ZStack {
-            Color("appScreenBG").ignoresSafeArea()
-            VStack(spacing: 0) {
-                // Search and Filter Bar
-                VStack(spacing: 16) {
-                    // Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(Color("appTextSecondary"))
-                        
-                        TextField("Search tasks...", text: $searchText)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .foregroundColor(Color("appTextPrimary"))
-                        
-                        if !searchText.isEmpty {
-                            Button(action: { searchText = "" }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(Color("appTextSecondary"))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(Color("appStrokeGray"))
-                    .cornerRadius(12)
+        VStack(spacing: 0) {
+            // Search and Filter Bar
+            VStack(spacing: 16) {
+                // Search Bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(Color("appTextSecondary"))
                     
-                    // Filter Pills
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(TaskFilter.allCases, id: \.self) { filter in
-                                FilterPill(
-                                    title: filter.displayName,
-                                    isSelected: selectedFilter == filter,
-                                    count: getCount(for: filter)
-                                ) {
-                                    selectedFilter = filter
-                                }
-                            }
+                    TextField("Search tasks...", text: $searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .foregroundColor(Color("appTextPrimary"))
+                    
+                    if !searchText.isEmpty {
+                        Button(action: { searchText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(Color("appTextSecondary"))
                         }
-                        .padding(.horizontal, 20)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 8)
-                .background(Color("appCardBG"))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color("appStrokeGray"))
+                .cornerRadius(12)
                 
-                // Tasks List
-                if filteredTasks.isEmpty {
-                    emptyStateView
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 20) {
-                            ForEach(groupedTasks, id: \.0) { section, tasks in
-                                TaskSectionView(
-                                    title: section,
-                                    tasks: tasks,
-                                    onToggleTask: { task in
-                                        taskManager.toggleTaskCompletion(task)
-                                    },
-                                    onDeleteTask: { task in
-                                        taskManager.deleteTask(task)
-                                    }
-                                )
+                // Filter Pills
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(TaskFilter.allCases, id: \.self) { filter in
+                            FilterPill(
+                                title: filter.displayName,
+                                isSelected: selectedFilter == filter,
+                                count: getCount(for: filter)
+                            ) {
+                                selectedFilter = filter
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
-                        .padding(.bottom, 44)
                     }
-                    .bottomFadeMask(fadeHeight: 80)
-                    .safeAreaInset(edge: .bottom) {
-                        Spacer().frame(height: 80)
+                    .padding(.horizontal, 20)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+            .background(Color("appCardBG"))
+            
+            // Tasks List
+            if filteredTasks.isEmpty {
+                emptyStateView
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 20) {
+                        ForEach(groupedTasks, id: \.0) { section, tasks in
+                            TaskSectionView(
+                                title: section,
+                                tasks: tasks,
+                                onToggleTask: { task in
+                                    taskManager.toggleTaskCompletion(task)
+                                },
+                                onDeleteTask: { task in
+                                    taskManager.deleteTask(task)
+                                }
+                            )
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 100) // Padding for tab bar
                 }
             }
         }
+        .background(Color("appScreenBG"))
         .navigationTitle("Planner")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
