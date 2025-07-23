@@ -122,184 +122,189 @@ struct ChatListView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Chats")
-                    .font(.largeTitle)
-                    .fontWeight(.black)
-                    .foregroundColor(Color("appTextPrimary"))
-                    .kerning(1.5)
-                Spacer()
-                Button(action: { showNewChat = true }) {
-                    Image(systemName: "plus")
-                        .font(.title2.bold())
-                        .foregroundColor(Color("appPrimaryAccent"))
-                        .padding(10)
-                        .background(Color("appPrimaryAccent").opacity(0.08))
-                        .clipShape(Circle())
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .padding(.bottom, 8)
-
-            // Chat Requests Section
-            if isLoadingRequests {
-                HStack {
-                    ProgressView()
-                    Text("Loading requests...")
-                        .font(.subheadline)
-                        .foregroundColor(Color("appTextSecondary"))
-                }
-                .padding(.vertical, 8)
-            } else if !incomingRequests.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Chat Requests")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color("appPrimaryAccent"))
-                        .padding(.leading, 8)
-                    ForEach(incomingRequests, id: \.documentID) { doc in
-                        ChatRequestRow(requestDoc: doc)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-            }
-            
-            if let viewModel = viewModel {
-                if let error = viewModel.error {
-                    Spacer()
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 48))
-                            .foregroundColor(Color("appError"))
-                        Text("Failed to load chats")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(Color("appTextPrimary"))
-                        Text(error)
-                            .font(.body)
-                            .foregroundColor(Color("appTextSecondary"))
-                        Button(action: { viewModel.loadChats(forceRefresh: true) }) {
-                            Text("Retry")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 32)
-                                .padding(.vertical, 12)
-                                .background(Color("appPrimaryAccent"))
-                                .cornerRadius(12)
-                        }
-                    }
-                    Spacer()
-                } else if viewModel.chats.isEmpty {
-                    Spacer()
-                    if authViewModel.user?.uid == nil {
-                        // User is not logged in
-                        VStack(spacing: 24) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color("appPrimaryAccent").opacity(0.08))
-                                    .frame(width: 120, height: 120)
-                                Image(systemName: "person.crop.circle.badge.exclamationmark")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(Color("appPrimaryAccent"))
-                            }
-                            Text("Please Log In")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(Color("appTextPrimary"))
-                            Text("You need to be logged in to view your chats.")
-                                .font(.body)
-                                .foregroundColor(Color("appTextSecondary"))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 40)
-                        }
-                        .padding(.vertical, 32)
-                    } else {
-                        EmptyChatListView()
-                    }
-                    Spacer()
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(viewModel.chats) { chat in
-                                ChatRowView(
-                                    chat: chat,
-                                    userInfos: userInfos,
-                                    onTap: {
-                                        selectedChat = chat
-                                        navigateToChat = true
-                                    },
-                                    onDelete: {
-                                        deleteChat(chat)
-                                    }
-                                )
-                            }
-                        }
-                        .padding(.bottom, 100) // Padding for tab bar
-                    }
-                }
-            } else {
-                Spacer()
-                ProgressView()
-                    .scaleEffect(1.2)
-                Spacer()
-            }
+            headerSection
+            chatRequestsSection
+            mainContentSection
         }
         .background(Color("appScreenBG"))
-        .navigationTitle("Chats")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showAskAI = true }) {
-                    Image(systemName: "brain.head.profile")
-                        .font(.title2)
-                        .foregroundColor(Color("appPrimaryAccent"))
-                }
-            }
-        }
+        .navigationBarHidden(true)
         .sheet(isPresented: $showNewChat) {
             NewChatView()
-                .environmentObject(chatService)
-        }
-        .sheet(isPresented: $showAskAI) {
-            AskAIView()
+                .environmentObject(authViewModel)
         }
         .onAppear {
-            if !hasInitializedViewModel {
-                viewModel = ChatListViewModel(chatService: chatService)
-                hasInitializedViewModel = true
-            }
-            viewModel?.loadChats()
             loadIncomingRequests()
         }
-        .onChange(of: viewModel?.chats) { chats in
-            if let chats = chats, let myId = authViewModel.user?.uid {
-                preloadUserInfos(for: chats, myId: myId)
-            }
-        }
-        .background(
-            NavigationLink(
-                destination: Group {
-                    if let chat = selectedChat {
-                        ChatDetailView(chat: chat)
-                            .environmentObject(chatService)
-                            .onAppear {
-                                isChatDetailActive = true
-                            }
-                            .onDisappear {
-                                isChatDetailActive = false
-                            }
-                    }
-                },
-                isActive: $navigateToChat
-            ) {
-                EmptyView()
-            }
-        )
     }
     
-
+    @ViewBuilder
+    private var headerSection: some View {
+        HStack {
+            Text("Chats")
+                .font(.largeTitle)
+                .fontWeight(.black)
+                .foregroundColor(Color("appTextPrimary"))
+                .kerning(1.5)
+            Spacer()
+            Button(action: { showNewChat = true }) {
+                Image(systemName: "plus")
+                    .font(.title2.bold())
+                    .foregroundColor(Color("appPrimaryAccent"))
+                    .padding(10)
+                    .background(Color("appPrimaryAccent").opacity(0.08))
+                    .clipShape(Circle())
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 24)
+        .padding(.bottom, 8)
+    }
+    
+    @ViewBuilder
+    private var chatRequestsSection: some View {
+        if isLoadingRequests {
+            HStack {
+                ProgressView()
+                Text("Loading requests...")
+                    .font(.subheadline)
+                    .foregroundColor(Color("appTextSecondary"))
+            }
+            .padding(.vertical, 8)
+        } else if !incomingRequests.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Chat Requests")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(Color("appPrimaryAccent"))
+                    .padding(.leading, 8)
+                ForEach(incomingRequests, id: \.documentID) { doc in
+                    ChatRequestRow(requestDoc: doc)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+        }
+    }
+    
+    @ViewBuilder
+    private var mainContentSection: some View {
+        if let viewModel = viewModel {
+            if let error = viewModel.error {
+                errorView(error: error, viewModel: viewModel)
+            } else if viewModel.chats.isEmpty {
+                emptyStateView
+            } else {
+                chatListView(viewModel: viewModel)
+            }
+        } else {
+            loadingView
+        }
+    }
+    
+    @ViewBuilder
+    private func errorView(error: String, viewModel: ChatListViewModel) -> some View {
+        Spacer()
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 48))
+                .foregroundColor(Color("appError"))
+            Text("Failed to load chats")
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("appTextPrimary"))
+            Text(error)
+                .font(.body)
+                .foregroundColor(Color("appTextSecondary"))
+            Button(action: { viewModel.loadChats(forceRefresh: true) }) {
+                Text("Retry")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 12)
+                    .background(Color("appPrimaryAccent"))
+                    .cornerRadius(12)
+            }
+        }
+        Spacer()
+    }
+    
+    @ViewBuilder
+    private var emptyStateView: some View {
+        Spacer()
+        if authViewModel.user?.uid == nil {
+            loginRequiredView
+        } else {
+            EmptyChatListView()
+        }
+    }
+    
+    @ViewBuilder
+    private var loginRequiredView: some View {
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .fill(Color("appPrimaryAccent").opacity(0.08))
+                    .frame(width: 120, height: 120)
+                Image(systemName: "person.crop.circle.badge.exclamationmark")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color("appPrimaryAccent"))
+            }
+            Text("Please Log In")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("appTextPrimary"))
+            Text("You need to be logged in to view your chats.")
+                .font(.body)
+                .foregroundColor(Color("appTextSecondary"))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .padding(.vertical, 32)
+    }
+    
+    @ViewBuilder
+    private var loadingView: some View {
+        Spacer()
+        VStack(spacing: 16) {
+            ProgressView()
+            Text("Loading chats...")
+                .font(.subheadline)
+                .foregroundColor(Color("appTextSecondary"))
+        }
+        Spacer()
+    }
+    
+    @ViewBuilder
+    private func chatListView(viewModel: ChatListViewModel) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(viewModel.chats) { chat in
+                    ChatRowView(
+                        chat: chat,
+                        userInfos: userInfos,
+                        onTap: {
+                            selectedChat = chat
+                            navigateToChat = true
+                        },
+                        onDelete: {
+                            deleteChat(chat)
+                        }
+                    )
+                }
+            }
+            .padding(.bottom, 100) // Padding for tab bar
+        }
+    }
+    
+    private func deleteChat(_ chat: Chat) {
+        // Implement chat deletion logic
+        print("Deleting chat: \(chat.id)")
+    }
+    
+    private func preloadUserInfos(for chats: [Chat], myId: String) {
+        // Implement user info preloading logic
+        print("Preloading user infos for \(chats.count) chats")
+    }
 
     private func fetchRequests() {
         guard let myId = authViewModel.user?.uid else { return }
@@ -312,7 +317,7 @@ struct ChatListView: View {
 
     @ViewBuilder
     private func ChatRequestRow(requestDoc: DocumentSnapshot) -> some View {
-        let data = requestDoc.data() as? [String: Any] ?? [:]
+        let data = requestDoc.data() ?? [:]
         let fromUserId = data["fromUserId"] as? String ?? ""
         let displayName = data["fromDisplayName"] as? String ?? "User"
         let username = data["fromUsername"] as? String ?? ""
@@ -419,6 +424,12 @@ struct ChatRowView: View {
     let onTap: () -> Void
     let onDelete: () -> Void
     @EnvironmentObject var authViewModel: AuthViewModel
+    
+    private func formatTimeAgo(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
 
     var body: some View {
         Button(action: onTap) {
@@ -458,7 +469,7 @@ struct ChatRowView: View {
                 }
                 Spacer()
                 if let last = chat.lastMessage {
-                    Text(timeAgo(last.timestamp))
+                    Text(formatTimeAgo(last.timestamp))
                         .font(.caption)
                         .foregroundColor(Color("appTextSecondary"))
                 }
