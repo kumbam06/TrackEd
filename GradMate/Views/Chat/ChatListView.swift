@@ -177,9 +177,11 @@ struct ChatListView: View {
                     .fontWeight(.bold)
                     .foregroundColor(Color("appPrimaryAccent"))
                     .padding(.leading, 8)
-                ForEach(incomingRequests, id: \.documentID) { doc in
-                    ChatRequestRow(requestDoc: doc)
-                }
+                                    ForEach(incomingRequests, id: \.documentID) { doc in
+                        ChatRequestRowView(requestDoc: doc)
+                            .environmentObject(authViewModel)
+                            .environmentObject(chatService)
+                    }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
@@ -307,14 +309,21 @@ struct ChatListView: View {
         }
     }
 
-    @ViewBuilder
-    private func ChatRequestRow(requestDoc: DocumentSnapshot) -> some View {
+}
+
+struct ChatRequestRowView: View {
+    let requestDoc: DocumentSnapshot
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var chatService: FirestoreChatService
+    @State private var isProcessing = false
+    
+    var body: some View {
         let data = requestDoc.data() ?? [:]
         let fromUserId = data["fromUserId"] as? String ?? ""
         let displayName = data["fromDisplayName"] as? String ?? "User"
         let username = data["fromUsername"] as? String ?? ""
         let photoURL = data["fromPhotoURL"] as? String
-        @State var isProcessing = false
+        
         HStack(spacing: 12) {
             if let url = photoURL, let imageURL = URL(string: url) {
                 WebImage(url: imageURL)
@@ -343,7 +352,6 @@ struct ChatListView: View {
                     isProcessing = true
                     chatService.acceptChatRequest(from: fromUserId, to: authViewModel.user?.uid ?? "") { success in
                         isProcessing = false
-                        fetchRequests()
                         // Optionally, show a toast or feedback
                     }
                 }) {
@@ -360,7 +368,6 @@ struct ChatListView: View {
                     isProcessing = true
                     chatService.declineChatRequest(from: fromUserId, to: authViewModel.user?.uid ?? "") { success in
                         isProcessing = false
-                        fetchRequests()
                     }
                 }) {
                     Text("Decline")
