@@ -554,7 +554,8 @@ struct ResumeExportView: View {
 
             // Work Experience Section
             if !careerDataService.workExperiences.isEmpty {
-                (theme.sectionHeaderCaps ? "WORK EXPERIENCE" : "Work Experience").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                let workExpTitle = theme.sectionHeaderCaps ? "WORK EXPERIENCE" : "Work Experience"
+                workExpTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
                     .font: sectionFont,
                     .foregroundColor: sectionTitleColor
                 ])
@@ -598,7 +599,8 @@ struct ResumeExportView: View {
 
             // Projects Section
             if !careerDataService.projects.isEmpty {
-                (theme.sectionHeaderCaps ? "PROJECTS" : "Projects").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                let projectsTitle = theme.sectionHeaderCaps ? "PROJECTS" : "Projects"
+                projectsTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
                     .font: sectionFont,
                     .foregroundColor: sectionTitleColor
                 ])
@@ -643,7 +645,8 @@ struct ResumeExportView: View {
 
             // Internships Section
             if !careerDataService.internships.isEmpty {
-                (theme.sectionHeaderCaps ? "INTERNSHIPS" : "Internships").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                let internshipsTitle = theme.sectionHeaderCaps ? "INTERNSHIPS" : "Internships"
+                internshipsTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
                     .font: sectionFont,
                     .foregroundColor: sectionTitleColor
                 ])
@@ -687,7 +690,8 @@ struct ResumeExportView: View {
 
             // Certifications Section
             if !careerDataService.certifications.isEmpty {
-                (theme.sectionHeaderCaps ? "CERTIFICATIONS" : "Certifications").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                let certificationsTitle = theme.sectionHeaderCaps ? "CERTIFICATIONS" : "Certifications"
+                certificationsTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
                     .font: sectionFont,
                     .foregroundColor: sectionTitleColor
                 ])
@@ -712,7 +716,8 @@ struct ResumeExportView: View {
             }
 
             // Skills Section
-            (theme.sectionHeaderCaps ? "SKILLS" : "Skills").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+            let skillsTitle = theme.sectionHeaderCaps ? "SKILLS" : "Skills"
+            skillsTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
                 .font: sectionFont,
                 .foregroundColor: sectionTitleColor
             ])
@@ -734,13 +739,15 @@ struct ResumeExportView: View {
                 yPosition += 15
             }
             // Languages Section
-            if !profileManager.languages.isEmpty {
-                (theme.sectionHeaderCaps ? "LANGUAGES" : "Languages").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+            let languages = loadLanguages()
+            if !languages.isEmpty {
+                let languagesTitle = theme.sectionHeaderCaps ? "LANGUAGES" : "Languages"
+                languagesTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
                     .font: sectionFont,
                     .foregroundColor: sectionTitleColor
                 ])
                 yPosition += 20
-                for lang in profileManager.languages {
+                for lang in languages {
                     lang.name.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
                         .font: bodyFont,
                         .foregroundColor: primaryColor
@@ -754,6 +761,14 @@ struct ResumeExportView: View {
             }
         }
         return data
+    }
+    
+    private func loadLanguages() -> [Language] {
+        if let data = UserDefaults.standard.data(forKey: "userLanguages"),
+           let decoded = try? JSONDecoder().decode([Language].self, from: data) {
+            return decoded
+        }
+        return []
     }
     
     private func wrapText(_ text: String, maxWidth: CGFloat, attributes: [NSAttributedString.Key: Any]) -> [String] {
