@@ -296,15 +296,7 @@ struct ChatListView: View {
         }
     }
     
-    private func deleteChat(_ chat: Chat) {
-        // Implement chat deletion logic
-        print("Deleting chat: \(chat.id)")
-    }
-    
-    private func preloadUserInfos(for chats: [Chat], myId: String) {
-        // Implement user info preloading logic
-        print("Preloading user infos for \(chats.count) chats")
-    }
+
 
     private func fetchRequests() {
         guard let myId = authViewModel.user?.uid else { return }
