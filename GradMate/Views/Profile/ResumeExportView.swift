@@ -183,7 +183,8 @@ struct ResumeExportView: View {
                     // Work Experience Section
                     if !careerDataService.workExperiences.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(selectedTheme.sectionHeaderCaps ? "WORK EXPERIENCE" : "Work Experience")
+                            let workExpTitle = selectedTheme.sectionHeaderCaps ? "WORK EXPERIENCE" : "Work Experience"
+                            Text(workExpTitle)
                                 .font(selectedTheme.sectionTitleFont)
                                 .foregroundColor(selectedTheme.sectionTitleColor)
                             ForEach(careerDataService.workExperiences, id: \.id) { experience in
@@ -213,7 +214,8 @@ struct ResumeExportView: View {
                     // Projects Section
                     if !careerDataService.projects.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(selectedTheme.sectionHeaderCaps ? "PROJECTS" : "Projects")
+                            let projectsTitle = selectedTheme.sectionHeaderCaps ? "PROJECTS" : "Projects"
+                            Text(projectsTitle)
                                 .font(selectedTheme.sectionTitleFont)
                                 .foregroundColor(selectedTheme.sectionTitleColor)
                             ForEach(careerDataService.projects, id: \.id) { project in
@@ -245,7 +247,8 @@ struct ResumeExportView: View {
                     // Internships Section
                     if !careerDataService.internships.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(selectedTheme.sectionHeaderCaps ? "INTERNSHIPS" : "Internships")
+                            let internshipsTitle = selectedTheme.sectionHeaderCaps ? "INTERNSHIPS" : "Internships"
+                            Text(internshipsTitle)
                                 .font(selectedTheme.sectionTitleFont)
                                 .foregroundColor(selectedTheme.sectionTitleColor)
                             ForEach(careerDataService.internships, id: \.id) { internship in
@@ -275,7 +278,8 @@ struct ResumeExportView: View {
                     // Certifications Section
                     if !careerDataService.certifications.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(selectedTheme.sectionHeaderCaps ? "CERTIFICATIONS" : "Certifications")
+                            let certificationsTitle = selectedTheme.sectionHeaderCaps ? "CERTIFICATIONS" : "Certifications"
+                            Text(certificationsTitle)
                                 .font(selectedTheme.sectionTitleFont)
                                 .foregroundColor(selectedTheme.sectionTitleColor)
                             ForEach(careerDataService.certifications, id: \.id) { certification in
@@ -293,13 +297,15 @@ struct ResumeExportView: View {
                     }
                     // Skills Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(selectedTheme.sectionHeaderCaps ? "SKILLS" : "Skills")
+                        let skillsTitle = selectedTheme.sectionHeaderCaps ? "SKILLS" : "Skills"
+                        Text(skillsTitle)
                             .font(selectedTheme.sectionTitleFont)
                             .foregroundColor(selectedTheme.sectionTitleColor)
                         let categories = skillManager.getCategories()
                         ForEach(categories, id: \.self) { category in
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(selectedTheme.sectionHeaderCaps ? category.uppercased() : category)
+                                let categoryTitle = selectedTheme.sectionHeaderCaps ? category.uppercased() : category
+                                Text(categoryTitle)
                                     .font(selectedTheme.bodyFont.weight(.medium))
                                     .foregroundColor(selectedTheme.accentColor)
                                     .kerning(0.5)
@@ -311,12 +317,14 @@ struct ResumeExportView: View {
                         }
                     }
                     // Languages Section
-                    if !profileManager.languages.isEmpty {
+                    let languages = loadLanguages()
+                    if !languages.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(selectedTheme.sectionHeaderCaps ? "LANGUAGES" : "Languages")
+                            let languagesTitle = selectedTheme.sectionHeaderCaps ? "LANGUAGES" : "Languages"
+                            Text(languagesTitle)
                                 .font(selectedTheme.sectionTitleFont)
                                 .foregroundColor(selectedTheme.sectionTitleColor)
-                            ForEach(profileManager.languages) { lang in
+                            ForEach(languages) { lang in
                                 HStack {
                                     Text(lang.name)
                                         .font(selectedTheme.bodyFont.weight(.medium))
