@@ -62,11 +62,12 @@ class ProfileManager: ObservableObject {
         profile.website = "johndoe.dev"
         profile.dob = nil
         profile.address = ""
+        profile.currentCompany = ""
         currentProfile = profile
         save()
     }
     
-    func updateProfile(name: String, role: String, email: String, phone: String, bio: String, linkedin: String, website: String, username: String, dob: Date?, address: String) {
+    func updateProfile(name: String, role: String, email: String, phone: String, bio: String, linkedin: String, website: String, username: String, dob: Date?, address: String, currentCompany: String) {
         guard let profile = currentProfile else { return }
         profile.name = name
         profile.role = role
@@ -78,6 +79,7 @@ class ProfileManager: ObservableObject {
         profile.username = username
         profile.dob = dob
         profile.address = address
+        profile.currentCompany = currentCompany
         save()
         // Firestore sync
         if let userId = Auth.auth().currentUser?.uid {
@@ -101,7 +103,8 @@ class ProfileManager: ObservableObject {
                     "linkedin": linkedin,
                     "website": website,
                     "username": username,
-                    "address": address
+                    "address": address,
+                    "currentCompany": currentCompany
                 ]
                 if let dob = dob {
                     userData["dob"] = Timestamp(date: dob)
@@ -184,6 +187,7 @@ class ProfileManager: ObservableObject {
             profile.website = data["website"] as? String ?? ""
             profile.username = data["username"] as? String ?? ""
             profile.address = data["address"] as? String ?? ""
+            profile.currentCompany = data["currentCompany"] as? String ?? ""
             if let dobTimestamp = data["dob"] as? Timestamp {
                 profile.dob = dobTimestamp.dateValue()
             } else {
