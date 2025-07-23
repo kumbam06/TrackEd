@@ -228,7 +228,7 @@ struct ProfileView: View {
                     HStack {
                         Text((profile?.currentCompany?.isEmpty == false ? profile?.currentCompany : "Company Name") ?? "Company Name")
                             .font(.caption)
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .foregroundColor(Color("appTextPrimary"))
                             .padding(.top, 16)
                             .padding(.leading, 20)
                         Spacer()
@@ -253,12 +253,12 @@ struct ProfileView: View {
                             }
                             Text(profile?.role?.uppercased() ?? "GRAPHIC DESIGNER")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .foregroundColor(Color("appTextPrimary"))
                             if let summary = profile?.bio, !summary.isEmpty {
                                 Text(summary)
                                     .font(.footnote)
                                     .italic()
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .foregroundColor(Color("appTextSecondary"))
                                     .padding(.top, 8)
                             }
                             Spacer()
@@ -291,7 +291,7 @@ struct ProfileView: View {
                             if let username = profile?.username, !username.isEmpty {
                                 Text("@" + username)
                                     .font(.caption)
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .foregroundColor(Color("appTextSecondary"))
                                     .padding(.top, 2)
                             }
                         }
@@ -340,7 +340,7 @@ struct ProfileView: View {
                                     .foregroundColor(Color.accentColor)
                                 Text(email)
                                     .font(.body)
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .foregroundColor(Color("appTextPrimary"))
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -352,7 +352,7 @@ struct ProfileView: View {
                                     .foregroundColor(Color.accentColor)
                                 Text(phone)
                                     .font(.body)
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .foregroundColor(Color("appTextPrimary"))
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -364,7 +364,7 @@ struct ProfileView: View {
                                     .foregroundColor(Color.accentColor)
                                 Text(address)
                                     .font(.body)
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .foregroundColor(Color("appTextPrimary"))
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
