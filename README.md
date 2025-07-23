@@ -15,11 +15,12 @@ A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Fir
 ## 🚀 Features
 
 ### 📱 Core Functionality
-- **Home Dashboard**: Overview of daily tasks, skills, and quick actions
-- **Smart Planner**: Hour-based task planning with natural language input
-- **Chat System**: Firestore-backed chat interface for student discussions
-- **AI Assistant**: Placeholder for future AI integration (ChatGPT-ready)
-- **Profile Management**: Editable profile with photo, contact info, and social links
+- **Home Dashboard**: Overview of daily tasks, skills, and quick actions with customizable sections
+- **Smart Planner**: Hour-based task planning with natural language input and category management
+- **Chat System**: Firestore-backed chat interface with real-time messaging and push notifications
+- **AI Assistant**: AI-powered study planning, code analysis, and career advice
+- **Profile Management**: Digital ID card with front/back views, shareable profile
+- **Focus Mode**: Pomodoro-style focus sessions with breaks and progress tracking
 - **Modern Onboarding & Auth**: Chat-style signup, redesigned login, Google Sign-In integration
 
 ### 🎯 Key Features
@@ -30,15 +31,21 @@ A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Fir
 - **Dark Mode Support**: Full light/dark mode compatibility
 - **Modular Architecture**: Clean separation of concerns
 - **Google Sign-In**: Seamless authentication with Google accounts
-- **Real-time Chat**: Firestore-powered chat system for student collaboration
+- **Real-time Chat**: Firestore-powered chat system with push notifications
+- **Focus Sessions**: Pomodoro timer with short/long breaks and progress tracking
+- **Career Management**: Projects, internships, certifications, and work experience tracking
+- **Customizable Home Screen**: User-configurable dashboard sections and quick actions
+- **Progress Analytics**: Track productivity trends, career progress, and achievements
 
 ### 🛠 Technical Stack
 - **SwiftUI**: Modern declarative UI framework
 - **Core Data**: Robust data persistence (not SwiftData)
-- **Firebase**: Authentication, Firestore database, and Storage
+- **Firebase**: Authentication, Firestore database, Storage, and Cloud Messaging
 - **Google Sign-In**: OAuth authentication
 - **PDFKit**: Resume generation and export
 - **PhotosUI**: Profile photo selection
+- **AVFoundation**: Focus session sounds and notifications
+- **Combine**: Reactive programming for state management
 - **Modular Architecture**: Models, Views, ViewModels, Services
 
 ## 📁 Project Structure
@@ -112,6 +119,12 @@ GradMate/
 - **User Profiles**: Stored with Google account information
 - **Chat System**: Real-time messaging with Firestore
 - **Data Persistence**: Core Data + Firestore hybrid approach
+- **Push Notifications**: Firebase Cloud Messaging integration
+
+### Cloud Functions
+- **Notification Triggers**: Automated push notifications for chat messages
+- **Background Tasks**: Serverless functions for data processing
+- **User Events**: Event-driven architecture for real-time updates
 
 ### Security Rules
 ```javascript
@@ -157,12 +170,17 @@ service cloud.firestore {
 ## 📊 Core Data & Firestore Model
 
 ### Entities
-- **Profile**: User profile information
-- **PlannerTask**: Task management with priorities
+- **Profile**: User profile information and digital ID card data
+- **PlannerTask**: Task management with priorities and categories
 - **SkillEntity**: Skills for resume building
-- **Chat**: Chat conversations
-- **Message**: Individual chat messages
-- **NoteEntity**: Notes
+- **Chat**: Chat conversations and messages
+- **FocusSession**: Focus mode tracking and statistics
+- **Project**: Project portfolio management
+- **Internship**: Internship experiences
+- **Certification**: Professional certifications
+- **WorkExperience**: Work history and roles
+- **TaskCategory**: Custom task categorization
+- **HomeScreenPreferences**: User dashboard preferences
 
 ## 🚀 Getting Started
 
@@ -225,6 +243,16 @@ Modify `NaturalLanguageParser` in `TaskManager.swift` to add new time/date patte
 - Persistent chat history
 
 ## 🎯 Recent Updates
+
+### v2.1.0 - Firebase Push Notifications & Focus Mode
+- ✅ **Push Notifications**: Implemented Firebase Cloud Messaging (FCM)
+- ✅ **Focus Sessions**: Added Pomodoro-style focus mode with breaks
+- ✅ **Digital ID Card**: New profile card with front/back views and sharing
+- ✅ **Career Management**: Added projects, internships, and certifications tracking
+- ✅ **Home Customization**: User-configurable dashboard sections
+- ✅ **Task Categories**: Custom task categorization and filtering
+- ✅ **Progress Analytics**: Enhanced tracking and visualization
+- ✅ **UI Improvements**: Refined animations and transitions
 
 ### v2.0.0 - Firebase Integration & Authentication
 - ✅ **Google Sign-In**: Complete OAuth integration with Google accounts

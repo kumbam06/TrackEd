@@ -24,12 +24,15 @@ struct ProfileView: View {
     @State private var showingResumeExport = false
     @State private var showingAddSkill = false
     @State private var showingDeleteAlert = false
+    @State private var deleteConfirmationText = ""
     @State private var showingHomeCustomization = false
     @State private var showingProjects = false
     @State private var showingInternships = false
     @State private var showingCertifications = false
     @State private var showingWorkExperience = false
     @State private var showingCoverLetter = false
+    @State private var showingLanguages = false
+    @State private var showingResumeUpload = false
     
     var body: some View {
         ZStack {
@@ -37,21 +40,32 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 40) {
                     profileHeaderSection
-                    careerFeaturesSection
-                    settingsSection
-                    actionsSection
+                    careerAndSkillsSection
+                    productivityAndCustomizationSection
+                    accountSection
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
                 .padding(.bottom, 44)
                 .padding(.bottom, 100) // Padding for tab bar
             }
-            .navigationTitle("")
-            .navigationBarHidden(true)
+            .navigationTitle("My Profile")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingEditProfile = true }) {
+                        Text("Edit Profile")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                }
+            }
             .sheet(isPresented: $showingResumeExport) { 
                 ResumeExportView()
                     .environmentObject(profileManager)
                     .environmentObject(skillManager)
+            }
+            .sheet(isPresented: $showingEditProfile) {
+                EditProfileView()
+                    .environmentObject(profileManager)
             }
             .sheet(isPresented: $showingAddSkill) { 
                 AddSkillView()
@@ -81,14 +95,26 @@ struct ProfileView: View {
                 CoverLetterListView()
                     .environmentObject(coverLetterDataService)
             }
-            .alert("Delete Account", isPresented: $showingDeleteAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete", role: .destructive) {
-                    // Implement delete account logic
-                }
-            } message: {
-                Text("Are you sure you want to delete your account? This action cannot be undone.")
+            .sheet(isPresented: $showingLanguages) {
+                LanguageListView().environmentObject(profileManager)
             }
+            .sheet(isPresented: $showingResumeUpload) {
+                ResumeUploadView()
+                    .environmentObject(profileManager)
+                    .environmentObject(skillManager)
+            }
+            .alert("Delete Account", isPresented: $showingDeleteAlert, actions: {
+                TextField("Type DELETE to confirm", text: $deleteConfirmationText)
+                Button("Cancel", role: .cancel) {
+                    deleteConfirmationText = ""
+                }
+                Button("Delete", role: .destructive) {
+                    // Implement delete account logic here
+                    deleteConfirmationText = ""
+                }.disabled(deleteConfirmationText != "DELETE")
+            }, message: {
+                Text("This action is permanent and cannot be undone. To confirm, type DELETE below.")
+            })
         }
     }
     
@@ -114,7 +140,7 @@ struct ProfileView: View {
                 ZStack {
                     IDCardBackView(profile: profile)
                         .opacity(isFlipped ? 1 : 0)
-                        .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0)) // Fix mirrored text
+                        .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
                 }
                 if isFlipped {
                     VStack {
@@ -134,6 +160,7 @@ struct ProfileView: View {
                         }
                         .padding(.bottom, 8)
                     }
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
                 }
             }
             .frame(width: 340, height: 400)
@@ -240,45 +267,32 @@ struct ProfileView: View {
                         .padding(.trailing, 8)
                         .frame(maxHeight: .infinity)
                         // Right: Profile image, square, moved up
-                        ZStack(alignment: .topTrailing) {
-                            VStack(spacing: 8) {
-                                if let photoData = profile?.photoData, let uiImage = UIImage(data: photoData) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 100, height: 160)
-                                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colorScheme == .dark ? Color.white : Color.black, lineWidth: 2))
-                                        .shadow(radius: 6)
-                                } else {
-                                    Image("AppLogo")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 100, height: 160)
-                                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colorScheme == .dark ? Color.white : Color.black, lineWidth: 2))
-                                        .shadow(radius: 6)
-                                }
-                                // Username below image
-                                if let username = profile?.username, !username.isEmpty {
-                                    Text("@" + username)
-                                        .font(.caption)
-                                        .foregroundColor(colorScheme == .dark ? .white : .black)
-                                        .padding(.top, 2)
-                                }
+                        VStack(spacing: 8) {
+                            if let photoData = profile?.photoData, let uiImage = UIImage(data: photoData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 100, height: 160)
+                                    .clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colorScheme == .dark ? Color.white : Color.gray.opacity(0.25), lineWidth: 2))
+                                    .shadow(radius: 6)
+                            } else {
+                                Image("AppLogo")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 100, height: 160)
+                                    .clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(colorScheme == .dark ? Color.white : Color.gray.opacity(0.25), lineWidth: 2))
+                                    .shadow(radius: 6)
                             }
-                            if showEditButton {
-                                Button(action: { showEditProfile = true }) {
-                                    Image(systemName: "pencil.circle.fill")
-                                        .resizable()
-                                        .frame(width: 36, height: 36)
-                                        .foregroundColor(Color.accentColor)
-                                        .background(Color(.systemBackground).opacity(0.9))
-                                        .clipShape(Circle())
-                                        .shadow(radius: 4)
-                                        .padding(6)
-                                }
-                                .offset(x: 18, y: -18)
+                            // Username below image
+                            if let username = profile?.username, !username.isEmpty {
+                                Text("@" + username)
+                                    .font(.caption)
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .padding(.top, 2)
                             }
                         }
                         .offset(y: -40)
@@ -297,7 +311,6 @@ struct ProfileView: View {
         let profile: Profile?
         @Environment(\.colorScheme) private var colorScheme
         @Environment(\.openURL) private var openURL
-        @State private var showCopied = false
         var body: some View {
             ZStack {
                 // Shadow layer (not clipped)
@@ -330,14 +343,6 @@ struct ProfileView: View {
                                     .foregroundColor(colorScheme == .dark ? .white : .black)
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
-                                Button(action: {
-                                    UIPasteboard.general.string = email
-                                    showCopied = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
-                                }) {
-                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                        .foregroundColor(Color.accentColor)
-                                }
                             }
                         }
                         if let phone = profile?.phone, !phone.isEmpty {
@@ -350,14 +355,6 @@ struct ProfileView: View {
                                     .foregroundColor(colorScheme == .dark ? .white : .black)
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
-                                Button(action: {
-                                    UIPasteboard.general.string = phone
-                                    showCopied = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
-                                }) {
-                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                        .foregroundColor(Color.accentColor)
-                                }
                             }
                         }
                         if let address = profile?.address, !address.isEmpty {
@@ -370,14 +367,6 @@ struct ProfileView: View {
                                     .foregroundColor(colorScheme == .dark ? .white : .black)
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
-                                Button(action: {
-                                    UIPasteboard.general.string = address
-                                    showCopied = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
-                                }) {
-                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                        .foregroundColor(Color.accentColor)
-                                }
                             }
                         }
                         if let linkedin = profile?.linkedin, !linkedin.isEmpty {
@@ -398,14 +387,6 @@ struct ProfileView: View {
                                         .lineLimit(nil)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
-                                Button(action: {
-                                    UIPasteboard.general.string = linkedin
-                                    showCopied = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
-                                }) {
-                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                        .foregroundColor(Color.accentColor)
-                                }
                             }
                         }
                         if let website = profile?.website, !website.isEmpty {
@@ -423,14 +404,6 @@ struct ProfileView: View {
                                         .underline()
                                         .lineLimit(nil)
                                         .fixedSize(horizontal: false, vertical: true)
-                                }
-                                Button(action: {
-                                    UIPasteboard.general.string = website
-                                    showCopied = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopied = false }
-                                }) {
-                                    Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
-                                        .foregroundColor(Color.accentColor)
                                 }
                             }
                         }
@@ -466,11 +439,11 @@ struct ProfileView: View {
         }
     }
     
-    // MARK: - Career Features Section
-    private var careerFeaturesSection: some View {
+    // MARK: - Career & Skills Section
+    private var careerAndSkillsSection: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
-                Text("CAREER FEATURES")
+                Text("CAREER & SKILLS")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(Color("appTextPrimary"))
@@ -479,181 +452,130 @@ struct ProfileView: View {
                 Rectangle()
                     .fill(Color("appTextPrimary"))
                     .frame(height: 2)
-                    .frame(width: 80)
+                    .frame(width: 110)
             }
             .padding(.leading, 4)
-            VStack(spacing: 16) {
-                // Removed skillsSection
-                careerFeaturesSectionContent
+            VStack(spacing: 0) {
+                ProfileActionRow(
+                    icon: "plus.circle.fill",
+                    title: "ADD SKILL",
+                    subtitle: "Add new skills and expertise",
+                    color: Color("appPrimaryAccent")
+                ) { showingAddSkill = true }
+                Divider().padding(.leading, 56)
+                ProfileActionRow(
+                    icon: "folder.fill",
+                    title: "PROJECTS",
+                    subtitle: "\(careerDataService.projects.count) projects",
+                    color: Color("appPrimaryAccent")
+                ) { showingProjects = true }
+                Divider().padding(.leading, 56)
+                ProfileActionRow(
+                    icon: "briefcase.fill",
+                    title: "INTERNSHIPS",
+                    subtitle: "\(careerDataService.internships.count) internships",
+                    color: Color("appWarning")
+                ) { showingInternships = true }
+                Divider().padding(.leading, 56)
+                ProfileActionRow(
+                    icon: "trophy.fill",
+                    title: "CERTIFICATIONS",
+                    subtitle: "\(careerDataService.certificationModels.count) certifications",
+                    color: Color("appWarning")
+                ) { showingCertifications = true }
+                Divider().padding(.leading, 56)
+                ProfileActionRow(
+                    icon: "briefcase.fill",
+                    title: "WORK EXPERIENCE",
+                    subtitle: "\(careerDataService.workExperiences.count) experiences",
+                    color: Color("appSuccess")
+                ) { showingWorkExperience = true }
+                Divider().padding(.leading, 56)
+                ProfileActionRow(
+                    icon: "arrow.up.doc.fill",
+                    title: "UPLOAD RESUME",
+                    subtitle: "Import and auto-fill profile",
+                    color: Color("appPrimaryAccent")
+                ) { showingResumeUpload = true }
+                Divider().padding(.leading, 56)
+                ProfileActionRow(
+                    icon: "globe",
+                    title: "LANGUAGES",
+                    subtitle: "Add spoken languages",
+                    color: Color("appPrimaryAccent")
+                ) { showingLanguages = true }
+                Divider().padding(.leading, 56)
+                ProfileActionRow(
+                    icon: "doc.text.fill",
+                    title: "COVER LETTERS",
+                    subtitle: "\(coverLetterDataService.coverLetters.count) letters",
+                    color: Color("appPrimaryAccent")
+                ) { showingCoverLetter = true }
             }
             .background(Color("appCardBG"))
             .cornerRadius(16)
         }
     }
-    
-    // MARK: - Career Features Section Content
-    private var careerFeaturesSectionContent: some View {
-        VStack(spacing: 0) {
-            ProfileActionRow(
-                icon: "plus.circle.fill",
-                title: "ADD SKILL",
-                subtitle: "Add new skills and expertise",
-                color: Color("appPrimaryAccent")
-            ) {
-                showingAddSkill = true
-            }
-            
-            Divider()
-                .padding(.leading, 56)
-            
-            ProfileActionRow(
-                icon: "folder.fill",
-                title: "PROJECTS",
-                subtitle: "\(careerDataService.projects.count) projects",
-                color: Color("appPrimaryAccent")
-            ) {
-                showingProjects = true
-            }
-            
-            Divider()
-                .padding(.leading, 56)
-            
-            ProfileActionRow(
-                icon: "briefcase.fill",
-                title: "INTERNSHIPS",
-                subtitle: "\(careerDataService.internships.count) internships",
-                color: Color("appWarning")
-            ) {
-                showingInternships = true
-            }
-            
-            Divider()
-                .padding(.leading, 56)
-            
-            ProfileActionRow(
-                icon: "trophy.fill",
-                title: "CERTIFICATIONS",
-                subtitle: "\(careerDataService.certificationModels.count) certifications",
-                color: Color("appWarning")
-            ) {
-                showingCertifications = true
-            }
-            
-            Divider()
-                .padding(.leading, 56)
-            
-            ProfileActionRow(
-                icon: "briefcase.fill",
-                title: "WORK EXPERIENCE",
-                subtitle: "\(careerDataService.workExperiences.count) experiences",
-                color: Color("appSuccess")
-            ) {
-                showingWorkExperience = true
-            }
-            
-            Divider()
-                .padding(.leading, 56)
-            
-            ProfileActionRow(
-                icon: "doc.text.fill",
-                title: "COVER LETTERS",
-                subtitle: "\(coverLetterDataService.coverLetters.count) letters",
-                color: Color("appPrimaryAccent")
-            ) {
-                showingCoverLetter = true
-            }
-        }
-    }
-    
-    // MARK: - Settings Section
-    private var settingsSection: some View {
+
+    // MARK: - Productivity & Customization Section
+    private var productivityAndCustomizationSection: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
-                Text("SETTINGS")
+                Text("PRODUCTIVITY & CUSTOMIZATION")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(Color("appTextPrimary"))
                     .kerning(1.5)
-                
                 Spacer()
-                
                 Rectangle()
                     .fill(Color("appTextPrimary"))
                     .frame(height: 2)
-                    .frame(width: 50)
+                    .frame(width: 170)
             }
             .padding(.leading, 4)
-            
             VStack(spacing: 0) {
-                ProfileActionRow(
-                    icon: "person.crop.circle",
-                    title: "ACCOUNT SETTINGS",
-                    subtitle: "Manage your profile",
-                    color: Color("appPrimaryAccent")
-                ) {
-                    showingEditProfile = true
-                }
-                
-                Divider()
-                    .padding(.leading, 56)
-                
                 ProfileActionRow(
                     icon: "slider.horizontal.3",
                     title: "CUSTOMIZE HOME",
                     subtitle: "Personalize your dashboard",
                     color: Color("appWarning")
-                ) {
-                    showingHomeCustomization = true
-                }
-                
-                Divider()
-                    .padding(.leading, 56)
-                
-                ProfileActionRow(
-                    icon: "bell.fill",
-                    title: "NOTIFICATIONS",
-                    subtitle: "Configure alerts",
-                    color: Color("appWarning")
-                ) {
-                    // Handle notifications
-                }
-                
-                Divider()
-                    .padding(.leading, 56)
-                
+                ) { showingHomeCustomization = true }
+                Divider().padding(.leading, 56)
                 ProfileActionRow(
                     icon: "doc.text.fill",
                     title: "EXPORT RESUME",
                     subtitle: "Generate PDF resume",
                     color: Color("appSuccess")
-                ) {
-                    showingResumeExport = true
-                }
+                ) { showingResumeExport = true }
+                Divider().padding(.leading, 56)
+                ProfileActionRow(
+                    icon: "bell.fill",
+                    title: "NOTIFICATIONS",
+                    subtitle: "Configure alerts",
+                    color: Color("appWarning")
+                ) { /* Handle notifications */ }
             }
             .background(Color("appCardBG"))
             .cornerRadius(16)
         }
     }
-    
-    // MARK: - Actions Section
-    private var actionsSection: some View {
+
+    // MARK: - Account Section
+    private var accountSection: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
-                Text("ACTIONS")
+                Text("ACCOUNT")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(Color("appTextPrimary"))
                     .kerning(1.5)
-                
                 Spacer()
-                
                 Rectangle()
                     .fill(Color("appTextPrimary"))
                     .frame(height: 2)
-                    .frame(width: 40)
+                    .frame(width: 70)
             }
             .padding(.leading, 4)
-            
             VStack(spacing: 0) {
                 ProfileActionRow(
                     icon: "arrow.right.square.fill",
@@ -661,14 +583,9 @@ struct ProfileView: View {
                     subtitle: "Sign out of your account",
                     color: Color("appWarning")
                 ) {
-                    Task {
-                        await authViewModel.signOut()
-                    }
+                    Task { await authViewModel.signOut() }
                 }
-                
-                Divider()
-                    .padding(.leading, 56)
-                
+                Divider().padding(.leading, 56)
                 ProfileActionRow(
                     icon: "trash.fill",
                     title: "DELETE ACCOUNT",

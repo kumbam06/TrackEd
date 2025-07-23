@@ -8,6 +8,57 @@
 import SwiftUI
 import PDFKit
 
+// MARK: - Resume Theme System
+struct ResumeTheme: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let primaryColor: Color
+    let accentColor: Color
+    let headerFont: Font
+    let bodyFont: Font
+    let sectionSpacing: CGFloat
+    let dividerColor: Color
+    let backgroundColor: Color
+    let subtitleFont: Font
+    let sectionTitleFont: Font
+    let sectionTitleColor: Color
+    let sectionHeaderCaps: Bool
+}
+
+extension ResumeTheme {
+    static let modernMinimalist = ResumeTheme(
+        id: "modern-minimalist",
+        name: "Modern Minimalist",
+        primaryColor: .black,
+        accentColor: .blue,
+        headerFont: .system(size: 28, weight: .bold),
+        bodyFont: .system(size: 13, weight: .regular),
+        sectionSpacing: 18,
+        dividerColor: Color.gray.opacity(0.18),
+        backgroundColor: Color.white,
+        subtitleFont: .system(size: 16, weight: .medium),
+        sectionTitleFont: .system(size: 15, weight: .semibold),
+        sectionTitleColor: .blue,
+        sectionHeaderCaps: true
+    )
+    static let professionalClassic = ResumeTheme(
+        id: "professional-classic",
+        name: "Professional Classic",
+        primaryColor: .black,
+        accentColor: .gray,
+        headerFont: .system(size: 26, weight: .bold, design: .serif),
+        bodyFont: .system(size: 12, weight: .regular, design: .serif),
+        sectionSpacing: 16,
+        dividerColor: Color.gray.opacity(0.3),
+        backgroundColor: Color.white,
+        subtitleFont: .system(size: 15, weight: .medium, design: .serif),
+        sectionTitleFont: .system(size: 14, weight: .bold, design: .serif),
+        sectionTitleColor: .black,
+        sectionHeaderCaps: false
+    )
+    static let allThemes: [ResumeTheme] = [modernMinimalist, professionalClassic]
+}
+
 struct ResumeExportView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var profileManager: ProfileManager
@@ -16,6 +67,7 @@ struct ResumeExportView: View {
     
     @State private var isGenerating = false
     @State private var pdfData: Data?
+    @State private var selectedTheme: ResumeTheme = .modernMinimalist
     
     var body: some View {
         NavigationView {
@@ -24,10 +76,9 @@ struct ResumeExportView: View {
                 
                 VStack(spacing: 24) {
                     resumeHeader5D
+                    themePicker
                     resumePreview5D
-                    
                     Spacer()
-                    
                     exportButton5D
                 }
                 .padding(.horizontal, 20)
@@ -77,177 +128,204 @@ struct ResumeExportView: View {
     }
     
     private var resumePreview5D: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: selectedTheme.sectionSpacing) {
             Text("RESUME PREVIEW")
-                .font(.headline)
-                .fontWeight(.heavy)
-                .foregroundColor(.white)
+                .font(selectedTheme.sectionTitleFont)
+                .fontWeight(.bold)
+                .foregroundColor(selectedTheme.sectionTitleColor)
                 .kerning(1)
-            
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: selectedTheme.sectionSpacing) {
                     // Profile Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text(profileManager.currentProfile?.name ?? "John Doe")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        
+                            .font(selectedTheme.headerFont)
+                            .foregroundColor(selectedTheme.primaryColor)
                         Text(profileManager.currentProfile?.role ?? "iOS Developer")
-                            .font(.subheadline)
-                            .foregroundColor(.accentColor)
-                            .fontWeight(.medium)
-                        
-                        if let email = profileManager.currentProfile?.email {
-                            Text(email)
+                            .font(selectedTheme.subtitleFont)
+                            .foregroundColor(selectedTheme.accentColor)
+                        if let bio = profileManager.currentProfile?.bio, !bio.isEmpty {
+                            Text(bio)
+                                .font(selectedTheme.bodyFont)
+                                .foregroundColor(selectedTheme.primaryColor.opacity(0.8))
+                        }
+                        HStack(spacing: 12) {
+                            if let email = profileManager.currentProfile?.email, !email.isEmpty {
+                                Label(email, systemImage: "envelope.fill")
+                                    .font(.caption)
+                                    .foregroundColor(selectedTheme.primaryColor.opacity(0.7))
+                            }
+                            if let phone = profileManager.currentProfile?.phone, !phone.isEmpty {
+                                Label(phone, systemImage: "phone.fill")
+                                    .font(.caption)
+                                    .foregroundColor(selectedTheme.primaryColor.opacity(0.7))
+                            }
+                        }
+                        HStack(spacing: 12) {
+                            if let linkedin = profileManager.currentProfile?.linkedin, !linkedin.isEmpty {
+                                Label(linkedin, systemImage: "link")
+                                    .font(.caption)
+                                    .foregroundColor(selectedTheme.accentColor)
+                            }
+                            if let website = profileManager.currentProfile?.website, !website.isEmpty {
+                                Label(website, systemImage: "globe")
+                                    .font(.caption)
+                                    .foregroundColor(selectedTheme.accentColor)
+                            }
+                        }
+                        if let address = profileManager.currentProfile?.address, !address.isEmpty {
+                            Label(address, systemImage: "location.fill")
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(selectedTheme.primaryColor.opacity(0.7))
                         }
                     }
-                    
-                    Divider()
-                        .background(Color(.secondarySystemBackground).opacity(0.3))
-                    
+                    Divider().background(selectedTheme.dividerColor)
                     // Work Experience Section
                     if !careerDataService.workExperiences.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("WORK EXPERIENCE")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                            
-                            ForEach(Array(careerDataService.workExperiences.prefix(3)), id: \.id) { experience in
+                            Text(selectedTheme.sectionHeaderCaps ? "WORK EXPERIENCE" : "Work Experience")
+                                .font(selectedTheme.sectionTitleFont)
+                                .foregroundColor(selectedTheme.sectionTitleColor)
+                            ForEach(careerDataService.workExperiences, id: \.id) { experience in
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
                                         Text(experience.title ?? "")
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.white)
+                                            .font(selectedTheme.bodyFont.weight(.semibold))
+                                            .foregroundColor(selectedTheme.primaryColor)
                                         Spacer()
                                         Text(formatDateRange(start: experience.startDate, end: experience.endDate, isCurrent: experience.isCurrent))
                                             .font(.caption)
-                                            .foregroundColor(.white.opacity(0.7))
+                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.6))
                                     }
                                     Text(experience.company ?? "")
                                         .font(.caption)
-                                        .foregroundColor(.accentColor)
+                                        .foregroundColor(selectedTheme.accentColor)
+                                    if let description = experience.workDescription, !description.isEmpty {
+                                        Text(description)
+                                            .font(selectedTheme.bodyFont)
+                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.8))
+                                    }
                                 }
                             }
                         }
-                        
-                        Divider()
-                            .background(Color(.secondarySystemBackground).opacity(0.3))
+                        Divider().background(selectedTheme.dividerColor)
                     }
-                    
                     // Projects Section
                     if !careerDataService.projects.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("PROJECTS")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                            
-                            ForEach(Array(careerDataService.projects.prefix(3)), id: \.id) { project in
+                            Text(selectedTheme.sectionHeaderCaps ? "PROJECTS" : "Projects")
+                                .font(selectedTheme.sectionTitleFont)
+                                .foregroundColor(selectedTheme.sectionTitleColor)
+                            ForEach(careerDataService.projects, id: \.id) { project in
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
                                         Text(project.title ?? "")
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.white)
+                                            .font(selectedTheme.bodyFont.weight(.semibold))
+                                            .foregroundColor(selectedTheme.primaryColor)
                                         Spacer()
                                         Text(formatDateRange(start: project.startDate, end: project.endDate, isCurrent: project.isCurrent))
                                             .font(.caption)
-                                            .foregroundColor(.white.opacity(0.7))
+                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.6))
                                     }
                                     if let technologies = project.technologies, !technologies.isEmpty {
                                         Text(technologies.joined(separator: ", "))
                                             .font(.caption)
-                                            .foregroundColor(.accentColor)
+                                            .foregroundColor(selectedTheme.accentColor)
+                                    }
+                                    if let description = project.projectDescription, !description.isEmpty {
+                                        Text(description)
+                                            .font(selectedTheme.bodyFont)
+                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.8))
                                     }
                                 }
                             }
                         }
-                        
-                        Divider()
-                            .background(Color(.secondarySystemBackground).opacity(0.3))
+                        Divider().background(selectedTheme.dividerColor)
                     }
-                    
                     // Internships Section
                     if !careerDataService.internships.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("INTERNSHIPS")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                            
-                            ForEach(Array(careerDataService.internships.prefix(2)), id: \.id) { internship in
+                            Text(selectedTheme.sectionHeaderCaps ? "INTERNSHIPS" : "Internships")
+                                .font(selectedTheme.sectionTitleFont)
+                                .foregroundColor(selectedTheme.sectionTitleColor)
+                            ForEach(careerDataService.internships, id: \.id) { internship in
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
                                         Text(internship.title ?? "")
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.white)
+                                            .font(selectedTheme.bodyFont.weight(.semibold))
+                                            .foregroundColor(selectedTheme.primaryColor)
                                         Spacer()
                                         Text(formatDateRange(start: internship.startDate, end: internship.endDate, isCurrent: internship.isCurrent))
                                             .font(.caption)
-                                            .foregroundColor(.white.opacity(0.7))
+                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.6))
                                     }
                                     Text(internship.company ?? "")
                                         .font(.caption)
-                                        .foregroundColor(.accentColor)
+                                        .foregroundColor(selectedTheme.accentColor)
+                                    if let description = internship.internshipDescription, !description.isEmpty {
+                                        Text(description)
+                                            .font(selectedTheme.bodyFont)
+                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.8))
+                                    }
                                 }
                             }
                         }
-                        
-                        Divider()
-                            .background(Color(.secondarySystemBackground).opacity(0.3))
+                        Divider().background(selectedTheme.dividerColor)
                     }
-                    
                     // Certifications Section
                     if !careerDataService.certifications.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("CERTIFICATIONS")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                            
-                            ForEach(Array(careerDataService.certifications.prefix(3)), id: \.id) { certification in
+                            Text(selectedTheme.sectionHeaderCaps ? "CERTIFICATIONS" : "Certifications")
+                                .font(selectedTheme.sectionTitleFont)
+                                .foregroundColor(selectedTheme.sectionTitleColor)
+                            ForEach(careerDataService.certifications, id: \.id) { certification in
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(certification.name ?? "")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.white)
+                                        .font(selectedTheme.bodyFont.weight(.semibold))
+                                        .foregroundColor(selectedTheme.primaryColor)
                                     Text(certification.issuingOrganization ?? "")
                                         .font(.caption)
-                                        .foregroundColor(.accentColor)
+                                        .foregroundColor(selectedTheme.accentColor)
                                 }
                             }
                         }
-                        
-                        Divider()
-                            .background(Color(.secondarySystemBackground).opacity(0.3))
+                        Divider().background(selectedTheme.dividerColor)
                     }
-                    
                     // Skills Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("SKILLS")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                        
+                        Text(selectedTheme.sectionHeaderCaps ? "SKILLS" : "Skills")
+                            .font(selectedTheme.sectionTitleFont)
+                            .foregroundColor(selectedTheme.sectionTitleColor)
                         let categories = skillManager.getCategories()
                         ForEach(categories, id: \.self) { category in
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(category.uppercased())
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.accentColor)
+                                Text(selectedTheme.sectionHeaderCaps ? category.uppercased() : category)
+                                    .font(selectedTheme.bodyFont.weight(.medium))
+                                    .foregroundColor(selectedTheme.accentColor)
                                     .kerning(0.5)
-                                
                                 let skillsInCategory = skillManager.getSkillsByCategory(category)
                                 Text(skillsInCategory.map { $0.name ?? "" }.joined(separator: ", "))
                                     .font(.caption)
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(selectedTheme.primaryColor.opacity(0.7))
+                            }
+                        }
+                    }
+                    // Languages Section
+                    if !profileManager.languages.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(selectedTheme.sectionHeaderCaps ? "LANGUAGES" : "Languages")
+                                .font(selectedTheme.sectionTitleFont)
+                                .foregroundColor(selectedTheme.sectionTitleColor)
+                            ForEach(profileManager.languages) { lang in
+                                HStack {
+                                    Text(lang.name)
+                                        .font(selectedTheme.bodyFont.weight(.medium))
+                                        .foregroundColor(selectedTheme.primaryColor)
+                                    Spacer()
+                                    Text(lang.proficiency.rawValue)
+                                        .font(.caption)
+                                        .foregroundColor(selectedTheme.accentColor)
+                                }
                             }
                         }
                     }
@@ -258,13 +336,37 @@ struct ResumeExportView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.secondarySystemBackground).opacity(0.3))
+                .fill(selectedTheme.backgroundColor.opacity(0.3))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.accentColor.opacity(0.2), lineWidth: 1)
+                        .stroke(selectedTheme.accentColor.opacity(0.2), lineWidth: 1)
                 )
         )
-        .shadow(color: Color.accentColor.opacity(0.1), radius: 8, x: 0, y: 4)
+        .shadow(color: selectedTheme.accentColor.opacity(0.1), radius: 8, x: 0, y: 4)
+    }
+    
+    private var themePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("RESUME THEME")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.accentColor)
+            HStack(spacing: 12) {
+                ForEach(ResumeTheme.allThemes) { theme in
+                    Button(action: { selectedTheme = theme }) {
+                        Text(theme.name)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(selectedTheme == theme ? .white : .accentColor)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(selectedTheme == theme ? .accentColor : Color(.systemGray5))
+                            .clipShape(Capsule())
+                            .shadow(radius: selectedTheme == theme ? 3 : 0)
+                    }
+                }
+            }
+        }
+        .padding(.bottom, 8)
     }
     
     private var exportButton5D: some View {
@@ -360,207 +462,297 @@ struct ResumeExportView: View {
         ]
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = pdfMetaData as [String: Any]
-        
         let pageRect = CGRect(x: 0, y: 0, width: 595.2, height: 841.8) // A4 size
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
-        
         let data = renderer.pdfData { context in
             context.beginPage()
-            
-            _ = context.cgContext
-            let attributes = [
-                NSAttributedString.Key.font: UIFont.systemFont(ofSize: 11),
-                NSAttributedString.Key.foregroundColor: UIColor.black
-            ]
-            
-            let titleAttributes = [
-                NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 24),
-                NSAttributedString.Key.foregroundColor: UIColor.black
-            ]
-            
-            let subtitleAttributes = [
-                NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16),
-                NSAttributedString.Key.foregroundColor: UIColor.systemBlue
-            ]
-            
-            let sectionAttributes = [
-                NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 16),
-                NSAttributedString.Key.foregroundColor: UIColor.black
-            ]
-            
-            let subsectionAttributes = [
-                NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 13),
-                NSAttributedString.Key.foregroundColor: UIColor.black
-            ]
-            
-            let companyAttributes = [
-                NSAttributedString.Key.font: UIFont.systemFont(ofSize: 12),
-                NSAttributedString.Key.foregroundColor: UIColor.systemBlue
-            ]
-            
-            let dateAttributes = [
-                NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10),
-                NSAttributedString.Key.foregroundColor: UIColor.gray
-            ]
-            
-            var yPosition: CGFloat = 50
             let leftMargin: CGFloat = 50
             let rightMargin: CGFloat = 545.2
-            
+            var yPosition: CGFloat = 50
+
+            // Theme-driven fonts/colors
+            let theme = selectedTheme
+            let nameFont = UIFont.systemFont(ofSize: 28, weight: .bold)
+            let roleFont = UIFont.systemFont(ofSize: 16, weight: .medium)
+            let sectionFont = UIFont.systemFont(ofSize: 15, weight: .semibold)
+            let bodyFont = UIFont.systemFont(ofSize: 13, weight: .regular)
+            let captionFont = UIFont.systemFont(ofSize: 11, weight: .regular)
+            let accentColor = UIColor(theme.accentColor)
+            let primaryColor = UIColor(theme.primaryColor)
+            let sectionTitleColor = UIColor(theme.sectionTitleColor)
+
             // Name
             let name = profileManager.currentProfile?.name ?? "John Doe"
-            name.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: titleAttributes)
+            name.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                .font: nameFont,
+                .foregroundColor: primaryColor
+            ])
             yPosition += 35
-            
+
             // Role
             let role = profileManager.currentProfile?.role ?? "iOS Developer"
-            role.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: subtitleAttributes)
+            role.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                .font: roleFont,
+                .foregroundColor: accentColor
+            ])
             yPosition += 25
-            
-            // Email
-            if let email = profileManager.currentProfile?.email {
-                email.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: attributes)
-                yPosition += 20
+
+            // Bio
+            if let bio = profileManager.currentProfile?.bio, !bio.isEmpty {
+                let lines = wrapText(bio, maxWidth: rightMargin - leftMargin, attributes: [
+                    .font: bodyFont,
+                    .foregroundColor: primaryColor.withAlphaComponent(0.8)
+                ])
+                for line in lines {
+                    line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                        .font: bodyFont,
+                        .foregroundColor: primaryColor.withAlphaComponent(0.8)
+                    ])
+                    yPosition += 14
+                }
+                yPosition += 6
             }
-            
-            yPosition += 20
-            
+
+            // Contact Info
+            var contactY = yPosition
+            if let email = profileManager.currentProfile?.email, !email.isEmpty {
+                ("Email: " + email).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
+                    .font: captionFont,
+                    .foregroundColor: primaryColor.withAlphaComponent(0.7)
+                ])
+                contactY += 13
+            }
+            if let phone = profileManager.currentProfile?.phone, !phone.isEmpty {
+                ("Phone: " + phone).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
+                    .font: captionFont,
+                    .foregroundColor: primaryColor.withAlphaComponent(0.7)
+                ])
+                contactY += 13
+            }
+            if let linkedin = profileManager.currentProfile?.linkedin, !linkedin.isEmpty {
+                ("LinkedIn: " + linkedin).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
+                    .font: captionFont,
+                    .foregroundColor: accentColor
+                ])
+                contactY += 13
+            }
+            if let website = profileManager.currentProfile?.website, !website.isEmpty {
+                ("Website: " + website).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
+                    .font: captionFont,
+                    .foregroundColor: accentColor
+                ])
+                contactY += 13
+            }
+            if let address = profileManager.currentProfile?.address, !address.isEmpty {
+                ("Address: " + address).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
+                    .font: captionFont,
+                    .foregroundColor: primaryColor.withAlphaComponent(0.7)
+                ])
+                contactY += 13
+            }
+            yPosition = max(yPosition, contactY) + 18
+
             // Work Experience Section
             if !careerDataService.workExperiences.isEmpty {
-                "WORK EXPERIENCE".draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: sectionAttributes)
+                (theme.sectionHeaderCaps ? "WORK EXPERIENCE" : "Work Experience").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                    .font: sectionFont,
+                    .foregroundColor: sectionTitleColor
+                ])
                 yPosition += 20
-                
-                for experience in careerDataService.workExperiences.prefix(3) {
-                    // Title and Date
+                for experience in careerDataService.workExperiences {
                     let title = experience.title ?? ""
                     let dateRange = formatDateRange(start: experience.startDate, end: experience.endDate, isCurrent: experience.isCurrent)
-                    
-                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: subsectionAttributes)
-                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: dateAttributes)
+                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                        .font: bodyFont,
+                        .foregroundColor: primaryColor
+                    ])
+                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: [
+                        .font: captionFont,
+                        .foregroundColor: primaryColor.withAlphaComponent(0.6)
+                    ])
                     yPosition += 15
-                    
-                    // Company
                     if let company = experience.company {
-                        company.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: companyAttributes)
-                        yPosition += 15
+                        company.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                            .font: captionFont,
+                            .foregroundColor: accentColor
+                        ])
+                        yPosition += 13
                     }
-                    
-                    // Description
                     if let description = experience.workDescription, !description.isEmpty {
-                        let lines = wrapText(description, maxWidth: rightMargin - leftMargin, attributes: attributes)
-                        for line in lines.prefix(3) {
-                            line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: attributes)
+                        let lines = wrapText(description, maxWidth: rightMargin - leftMargin, attributes: [
+                            .font: bodyFont,
+                            .foregroundColor: primaryColor.withAlphaComponent(0.8)
+                        ])
+                        for line in lines {
+                            line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                                .font: bodyFont,
+                                .foregroundColor: primaryColor.withAlphaComponent(0.8)
+                            ])
                             yPosition += 12
                         }
                     }
-                    
                     yPosition += 8
                 }
-                
                 yPosition += 10
             }
-            
+
             // Projects Section
             if !careerDataService.projects.isEmpty {
-                "PROJECTS".draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: sectionAttributes)
+                (theme.sectionHeaderCaps ? "PROJECTS" : "Projects").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                    .font: sectionFont,
+                    .foregroundColor: sectionTitleColor
+                ])
                 yPosition += 20
-                
-                for project in careerDataService.projects.prefix(3) {
-                    // Title and Date
+                for project in careerDataService.projects {
                     let title = project.title ?? ""
                     let dateRange = formatDateRange(start: project.startDate, end: project.endDate, isCurrent: project.isCurrent)
-                    
-                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: subsectionAttributes)
-                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: dateAttributes)
+                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                        .font: bodyFont,
+                        .foregroundColor: primaryColor
+                    ])
+                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: [
+                        .font: captionFont,
+                        .foregroundColor: primaryColor.withAlphaComponent(0.6)
+                    ])
                     yPosition += 15
-                    
-                    // Technologies
                     if let technologies = project.technologies, !technologies.isEmpty {
                         let techText = technologies.joined(separator: ", ")
-                        techText.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: companyAttributes)
-                        yPosition += 15
+                        techText.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                            .font: captionFont,
+                            .foregroundColor: accentColor
+                        ])
+                        yPosition += 13
                     }
-                    
-                    // Description
                     if let description = project.projectDescription, !description.isEmpty {
-                        let lines = wrapText(description, maxWidth: rightMargin - leftMargin, attributes: attributes)
-                        for line in lines.prefix(2) {
-                            line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: attributes)
+                        let lines = wrapText(description, maxWidth: rightMargin - leftMargin, attributes: [
+                            .font: bodyFont,
+                            .foregroundColor: primaryColor.withAlphaComponent(0.8)
+                        ])
+                        for line in lines {
+                            line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                                .font: bodyFont,
+                                .foregroundColor: primaryColor.withAlphaComponent(0.8)
+                            ])
                             yPosition += 12
                         }
                     }
-                    
                     yPosition += 8
                 }
-                
                 yPosition += 10
             }
-            
+
             // Internships Section
             if !careerDataService.internships.isEmpty {
-                "INTERNSHIPS".draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: sectionAttributes)
+                (theme.sectionHeaderCaps ? "INTERNSHIPS" : "Internships").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                    .font: sectionFont,
+                    .foregroundColor: sectionTitleColor
+                ])
                 yPosition += 20
-                
-                for internship in careerDataService.internships.prefix(2) {
-                    // Title and Date
+                for internship in careerDataService.internships {
                     let title = internship.title ?? ""
                     let dateRange = formatDateRange(start: internship.startDate, end: internship.endDate, isCurrent: internship.isCurrent)
-                    
-                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: subsectionAttributes)
-                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: dateAttributes)
+                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                        .font: bodyFont,
+                        .foregroundColor: primaryColor
+                    ])
+                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: [
+                        .font: captionFont,
+                        .foregroundColor: primaryColor.withAlphaComponent(0.6)
+                    ])
                     yPosition += 15
-                    
-                    // Company
                     if let company = internship.company {
-                        company.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: companyAttributes)
-                        yPosition += 15
+                        company.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                            .font: captionFont,
+                            .foregroundColor: accentColor
+                        ])
+                        yPosition += 13
                     }
-                    
+                    if let description = internship.internshipDescription, !description.isEmpty {
+                        let lines = wrapText(description, maxWidth: rightMargin - leftMargin, attributes: [
+                            .font: bodyFont,
+                            .foregroundColor: primaryColor.withAlphaComponent(0.8)
+                        ])
+                        for line in lines {
+                            line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                                .font: bodyFont,
+                                .foregroundColor: primaryColor.withAlphaComponent(0.8)
+                            ])
+                            yPosition += 12
+                        }
+                    }
                     yPosition += 8
                 }
-                
                 yPosition += 10
             }
-            
+
             // Certifications Section
             if !careerDataService.certifications.isEmpty {
-                "CERTIFICATIONS".draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: sectionAttributes)
+                (theme.sectionHeaderCaps ? "CERTIFICATIONS" : "Certifications").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                    .font: sectionFont,
+                    .foregroundColor: sectionTitleColor
+                ])
                 yPosition += 20
-                
-                for certification in careerDataService.certifications.prefix(3) {
-                    // Title
+                for certification in careerDataService.certifications {
                     let title = certification.name ?? ""
-                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: subsectionAttributes)
+                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                        .font: bodyFont,
+                        .foregroundColor: primaryColor
+                    ])
                     yPosition += 15
-                    
-                    // Organization
                     if let organization = certification.issuingOrganization {
-                        organization.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: companyAttributes)
-                        yPosition += 15
+                        organization.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                            .font: captionFont,
+                            .foregroundColor: accentColor
+                        ])
+                        yPosition += 13
                     }
-                    
                     yPosition += 8
                 }
-                
                 yPosition += 10
             }
-            
+
             // Skills Section
-            "SKILLS".draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: sectionAttributes)
+            (theme.sectionHeaderCaps ? "SKILLS" : "Skills").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                .font: sectionFont,
+                .foregroundColor: sectionTitleColor
+            ])
             yPosition += 20
-            
             let categories = skillManager.getCategories()
             for category in categories {
-                category.uppercased().draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: subsectionAttributes)
+                let catTitle = theme.sectionHeaderCaps ? category.uppercased() : category
+                catTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                    .font: bodyFont,
+                    .foregroundColor: accentColor
+                ])
                 yPosition += 15
-                
                 let skillsInCategory = skillManager.getSkillsByCategory(category)
                 let skillsText = skillsInCategory.map { $0.name ?? "" }.joined(separator: ", ")
-                skillsText.draw(at: CGPoint(x: leftMargin + 10, y: yPosition), withAttributes: attributes)
+                skillsText.draw(at: CGPoint(x: leftMargin + 10, y: yPosition), withAttributes: [
+                    .font: captionFont,
+                    .foregroundColor: primaryColor.withAlphaComponent(0.7)
+                ])
                 yPosition += 15
             }
+            // Languages Section
+            if !profileManager.languages.isEmpty {
+                (theme.sectionHeaderCaps ? "LANGUAGES" : "Languages").draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                    .font: sectionFont,
+                    .foregroundColor: sectionTitleColor
+                ])
+                yPosition += 20
+                for lang in profileManager.languages {
+                    lang.name.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
+                        .font: bodyFont,
+                        .foregroundColor: primaryColor
+                    ])
+                    lang.proficiency.rawValue.draw(at: CGPoint(x: rightMargin - 120, y: yPosition), withAttributes: [
+                        .font: captionFont,
+                        .foregroundColor: accentColor
+                    ])
+                    yPosition += 15
+                }
+            }
         }
-        
         return data
     }
     
