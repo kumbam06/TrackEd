@@ -92,8 +92,7 @@ struct GradMateApp: App {
                 }
             }
             .onAppear {
-                // Setup auth listener after Firebase is configured
-                authViewModel.setupAuthListener()
+                // Auth listener is now set up in AuthViewModel.init()
                 
                 // Configure Firestore with better offline support and timeout settings
                 let settings = FirestoreSettings()

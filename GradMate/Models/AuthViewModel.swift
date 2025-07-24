@@ -20,11 +20,8 @@ class AuthViewModel: ObservableObject {
     init() {
         print("[DEBUG] AuthViewModel.init() - Firebase Auth initialized")
         setupNetworkMonitoring()
-        // handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-        //     print("[DEBUG] AuthViewModel - Auth state changed, user: \(user?.uid ?? "nil")")
-        //     self?.user = user
-        //     self?.isCheckingAuth = false
-        // }
+        // Setup auth listener immediately
+        setupAuthListener()
     }
     
     private func setupNetworkMonitoring() {
@@ -45,10 +42,13 @@ class AuthViewModel: ObservableObject {
     }
     
     func setupAuthListener() {
+        print("[DEBUG] Setting up auth listener")
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             print("[DEBUG] AuthViewModel - Auth state changed, user: \(user?.uid ?? "nil")")
-            self?.user = user
-            self?.isCheckingAuth = false
+            DispatchQueue.main.async {
+                self?.user = user
+                self?.isCheckingAuth = false
+            }
         }
     }
     
@@ -171,17 +171,52 @@ class AuthViewModel: ObservableObject {
     }
     
     func login(email: String, password: String, completion: @escaping (Bool) -> Void) {
+        print("[DEBUG] Starting login process for email: \(email)")
+        
         isLoading = true
         errorMessage = nil
+        
+        // Check network connectivity
+        guard isNetworkAvailable() else {
+            print("[DEBUG] No network connection available for login")
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.errorMessage = "No internet connection. Please check your network and try again."
+                completion(false)
+            }
+            return
+        }
+        
+        // Check if Firebase is properly configured
+        guard FirebaseApp.app() != nil else {
+            print("[DEBUG] Firebase not configured for login")
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.errorMessage = "App configuration error. Please restart the app."
+                completion(false)
+            }
+            return
+        }
+        
+        print("[DEBUG] Attempting Firebase sign in")
         Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
             DispatchQueue.main.async {
-                self?.isLoading = false
+                guard let self = self else { return }
+                
+                self.isLoading = false
+                
                 if let error = error {
-                    self?.errorMessage = error.localizedDescription
+                    print("[DEBUG] Login error: \(error.localizedDescription)")
+                    self.errorMessage = error.localizedDescription
                     completion(false)
-                } else {
-                    self?.user = result?.user
+                } else if let user = result?.user {
+                    print("[DEBUG] Login successful for user: \(user.uid)")
+                    self.user = user
                     completion(true)
+                } else {
+                    print("[DEBUG] Login failed - no user returned")
+                    self.errorMessage = "Login failed. Please try again."
+                    completion(false)
                 }
             }
         }
