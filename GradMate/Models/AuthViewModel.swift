@@ -40,58 +40,79 @@ class AuthViewModel: ObservableObject {
     func signUp(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, completion: @escaping (Bool) -> Void) {
         isLoading = true
         errorMessage = nil
+        
+        print("[DEBUG] Starting signup process for email: \(email), username: \(username)")
+        
         // Check username uniqueness
         let db = Firestore.firestore()
         db.collection("users").whereField("username", isEqualTo: username).getDocuments { [weak self] snapshot, error in
             if let error = error {
+                print("[DEBUG] Error checking username: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self?.isLoading = false
-                    self?.errorMessage = error.localizedDescription
+                    self?.errorMessage = "Network error. Please try again."
                     completion(false)
                 }
                 return
             }
+            
             if let docs = snapshot?.documents, !docs.isEmpty {
-                DispatchQueue.main.async {
-                    self?.isLoading = false
-                    self?.errorMessage = "Username already taken."
-                    completion(false)
-                }
+                print("[DEBUG] Username '\(username)' already taken, generating unique username")
+                // Generate a unique username by adding a random number
+                let uniqueUsername = "\(username)\(Int.random(in: 1000...9999))"
+                print("[DEBUG] Generated unique username: \(uniqueUsername)")
+                
+                // Recursively call signUp with the new username
+                self?.signUp(email: email, password: password, username: uniqueUsername, fullName: fullName, role: role, dob: dob, completion: completion)
                 return
             }
+            
+            print("[DEBUG] Username '\(username)' is unique, proceeding with account creation")
+            
             // Username is unique, proceed to create user
             Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
                 DispatchQueue.main.async {
                     if let error = error {
+                        print("[DEBUG] Firebase Auth error: \(error.localizedDescription)")
                         self?.isLoading = false
                         self?.errorMessage = error.localizedDescription
                         completion(false)
                     } else if let user = result?.user {
+                        print("[DEBUG] Firebase user created successfully: \(user.uid)")
+                        
                         // Save profile data to Firestore
                         var userData: [String: Any] = [
                             "username": username,
                             "email": email,
                             "name": fullName,
-                            "role": role
+                            "role": role,
+                            "createdAt": FieldValue.serverTimestamp(),
+                            "lastSignIn": FieldValue.serverTimestamp()
                         ]
                         if let dob = dob {
                             userData["dob"] = Timestamp(date: dob)
                         }
+                        
+                        print("[DEBUG] Saving user data to Firestore: \(userData)")
+                        
                         db.collection("users").document(user.uid).setData(userData) { firestoreError in
                             DispatchQueue.main.async {
-                                self?.isLoading = false
                                 if let firestoreError = firestoreError {
-                                    self?.errorMessage = firestoreError.localizedDescription
+                                    print("[DEBUG] Firestore error: \(firestoreError.localizedDescription)")
+                                    self?.errorMessage = "Failed to save profile data. Please try again."
                                     completion(false)
                                 } else {
+                                    print("[DEBUG] User profile saved successfully")
                                     self?.user = user
                                     completion(true)
                                 }
+                                self?.isLoading = false
                             }
                         }
                     } else {
+                        print("[DEBUG] Unknown error in user creation")
                         self?.isLoading = false
-                        self?.errorMessage = "Unknown error."
+                        self?.errorMessage = "Unknown error occurred. Please try again."
                         completion(false)
                     }
                 }

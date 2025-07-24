@@ -145,7 +145,13 @@ struct AuthView: View {
                                 error = "Please fill all fields correctly."
                                 return
                             }
-                            authViewModel.signUp(email: email, password: password, username: "", fullName: name, role: "Student", dob: nil) { success in
+                            
+                            // Generate a unique username from email
+                            let emailComponents = email.components(separatedBy: "@")
+                            let baseUsername = emailComponents.first ?? "user"
+                            let username = baseUsername.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: "_", with: "")
+                            
+                            authViewModel.signUp(email: email, password: password, username: username, fullName: name, role: "Student", dob: nil) { success in
                                 isLoading = false
                                 if !success {
                                     error = authViewModel.errorMessage ?? "Signup failed. Please try again."
