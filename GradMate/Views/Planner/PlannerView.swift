@@ -84,7 +84,7 @@ struct PlannerView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Calendar Section
-            VStack(spacing: 16) {
+            VStack(spacing: showCalendar ? 8 : 16) {
                 HStack {
                     Text("CALENDAR")
                         .font(.caption)
@@ -115,11 +115,11 @@ struct PlannerView: View {
                     .padding(.horizontal, 20)
                 }
             }
-            .padding(.vertical, 16)
+            .padding(.vertical, showCalendar ? 12 : 16)
             .background(Color("appCardBG"))
             
             // Search and Filter Bar
-            VStack(spacing: 16) {
+            VStack(spacing: showCalendar ? 12 : 16) {
                 // Search Bar
                 HStack {
                     Image(systemName: "magnifyingglass")
@@ -158,13 +158,13 @@ struct PlannerView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
+            .padding(.top, showCalendar ? 12 : 16)
             .padding(.bottom, 8)
             .background(Color("appCardBG"))
             
             // Selected Date Tasks (if calendar is shown)
             if showCalendar && !tasksForSelectedDate.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("TASKS FOR \(formatSelectedDate())")
                             .font(.caption)
@@ -174,7 +174,7 @@ struct PlannerView: View {
                         Spacer()
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(.top, 12)
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
@@ -189,7 +189,7 @@ struct PlannerView: View {
                         .padding(.horizontal, 20)
                     }
                 }
-                .padding(.bottom, 16)
+                .padding(.bottom, 12)
                 .background(Color("appCardBG"))
             }
             
@@ -198,7 +198,7 @@ struct PlannerView: View {
                 emptyStateView
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 20) {
+                    LazyVStack(spacing: showCalendar ? 16 : 20) {
                         ForEach(groupedTasks, id: \.0) { section, tasks in
                             TaskSectionView(
                                 title: section,
@@ -213,7 +213,7 @@ struct PlannerView: View {
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(.top, showCalendar ? 12 : 16)
                     .padding(.bottom, 100) // Padding for tab bar
                 }
             }
@@ -557,7 +557,7 @@ struct CalendarView: View {
     }()
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             // Month Navigation
             HStack {
                 Button(action: previousMonth) {
@@ -581,13 +581,13 @@ struct CalendarView: View {
                         .foregroundColor(Color("appPrimaryAccent"))
                 }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 4)
             
             // Weekday Headers
             HStack(spacing: 0) {
                 ForEach(0..<7, id: \.self) { index in
                     Text(weekdaySymbol(for: index))
-                        .font(.caption)
+                        .font(.caption2)
                         .fontWeight(.medium)
                         .foregroundColor(Color("appTextSecondary"))
                         .frame(maxWidth: .infinity)
@@ -595,7 +595,7 @@ struct CalendarView: View {
             }
             
             // Calendar Grid
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 4) {
                 ForEach(daysInMonth(), id: \.self) { date in
                     if let date = date {
                         CalendarDayView(
@@ -607,12 +607,12 @@ struct CalendarView: View {
                         )
                     } else {
                         Color.clear
-                            .frame(height: 40)
+                            .frame(height: 32)
                     }
                 }
             }
         }
-        .padding(16)
+        .padding(12)
         .background(Color("appStrokeGray"))
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 4)
@@ -684,20 +684,20 @@ struct CalendarDayView: View {
             ZStack {
                 Circle()
                     .fill(backgroundColor)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 28, height: 28)
                 
-                VStack(spacing: 2) {
+                VStack(spacing: 1) {
                     Text(dayFormatter.string(from: date))
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(textColor)
                     
                     if hasTasks {
                         Circle()
                             .fill(taskIndicatorColor)
-                            .frame(width: 4, height: 4)
+                            .frame(width: 3, height: 3)
                     } else {
                         Color.clear
-                            .frame(width: 4, height: 4)
+                            .frame(width: 3, height: 3)
                     }
                 }
             }
@@ -751,7 +751,7 @@ struct SelectedDateTaskCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Button(action: onToggle) {
                     Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
@@ -760,7 +760,7 @@ struct SelectedDateTaskCard: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(task.title ?? "Untitled Task")
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -771,7 +771,7 @@ struct SelectedDateTaskCard: View {
                     
                     if let dueDate = task.dueDate {
                         Text(formatTime(dueDate))
-                            .font(.caption)
+                            .font(.caption2)
                             .foregroundColor(Color("appTextSecondary"))
                     }
                 }
@@ -790,7 +790,7 @@ struct SelectedDateTaskCard: View {
                 HStack {
                     Circle()
                         .fill(priorityColor)
-                        .frame(width: 8, height: 8)
+                        .frame(width: 6, height: 6)
                     
                     Text(priorityText)
                         .font(.caption2)
@@ -801,8 +801,8 @@ struct SelectedDateTaskCard: View {
                 }
             }
         }
-        .padding(12)
-        .frame(width: 200)
+        .padding(10)
+        .frame(width: 180)
         .background(Color("appStrokeGray"))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
