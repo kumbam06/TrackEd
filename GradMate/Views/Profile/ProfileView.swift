@@ -455,56 +455,56 @@ struct ProfileView: View {
                     .frame(width: 110)
             }
             .padding(.leading, 4)
-            VStack(spacing: 0) {
+            VStack(spacing: 8) {
                 ProfileActionRow(
                     icon: "plus.circle.fill",
                     title: "ADD SKILL",
                     subtitle: "Add new skills and expertise",
                     color: Color("appPrimaryAccent")
                 ) { showingAddSkill = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "folder.fill",
                     title: "PROJECTS",
                     subtitle: "\(careerDataService.projects.count) projects",
                     color: Color("appPrimaryAccent")
                 ) { showingProjects = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "briefcase.fill",
                     title: "INTERNSHIPS",
                     subtitle: "\(careerDataService.internships.count) internships",
                     color: Color("appWarning")
                 ) { showingInternships = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "trophy.fill",
                     title: "CERTIFICATIONS",
                     subtitle: "\(careerDataService.certificationModels.count) certifications",
                     color: Color("appWarning")
                 ) { showingCertifications = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "briefcase.fill",
                     title: "WORK EXPERIENCE",
                     subtitle: "\(careerDataService.workExperiences.count) experiences",
                     color: Color("appSuccess")
                 ) { showingWorkExperience = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "arrow.up.doc.fill",
                     title: "UPLOAD RESUME",
                     subtitle: "Import and auto-fill profile",
                     color: Color("appPrimaryAccent")
                 ) { showingResumeUpload = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "globe",
                     title: "LANGUAGES",
                     subtitle: "Add spoken languages",
                     color: Color("appPrimaryAccent")
                 ) { showingLanguages = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "doc.text.fill",
                     title: "COVER LETTERS",
@@ -512,8 +512,6 @@ struct ProfileView: View {
                     color: Color("appPrimaryAccent")
                 ) { showingCoverLetter = true }
             }
-            .background(Color("appCardBG"))
-            .cornerRadius(16)
         }
     }
 
@@ -533,21 +531,21 @@ struct ProfileView: View {
                     .frame(width: 170)
             }
             .padding(.leading, 4)
-            VStack(spacing: 0) {
+            VStack(spacing: 8) {
                 ProfileActionRow(
                     icon: "slider.horizontal.3",
                     title: "CUSTOMIZE HOME",
                     subtitle: "Personalize your dashboard",
                     color: Color("appWarning")
                 ) { showingHomeCustomization = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "doc.text.fill",
                     title: "EXPORT RESUME",
                     subtitle: "Generate PDF resume",
                     color: Color("appSuccess")
                 ) { showingResumeExport = true }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "bell.fill",
                     title: "NOTIFICATIONS",
@@ -555,8 +553,6 @@ struct ProfileView: View {
                     color: Color("appWarning")
                 ) { /* Handle notifications */ }
             }
-            .background(Color("appCardBG"))
-            .cornerRadius(16)
         }
     }
 
@@ -576,7 +572,7 @@ struct ProfileView: View {
                     .frame(width: 70)
             }
             .padding(.leading, 4)
-            VStack(spacing: 0) {
+            VStack(spacing: 8) {
                 ProfileActionRow(
                     icon: "arrow.right.square.fill",
                     title: "SIGN OUT",
@@ -585,7 +581,7 @@ struct ProfileView: View {
                 ) {
                     Task { await authViewModel.signOut() }
                 }
-                Divider().padding(.leading, 56)
+                
                 ProfileActionRow(
                     icon: "trash.fill",
                     title: "DELETE ACCOUNT",
@@ -595,8 +591,6 @@ struct ProfileView: View {
                     showingDeleteAlert = true
                 }
             }
-            .background(Color("appCardBG"))
-            .cornerRadius(16)
         }
     }
 }
@@ -641,6 +635,9 @@ struct ProfileActionRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(Color("appCardBG"))
+            .cornerRadius(16)
         }
         .buttonStyle(PlainButtonStyle())
     }
