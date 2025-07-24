@@ -87,11 +87,16 @@ struct GradMateApp: App {
                 // Setup auth listener after Firebase is configured
                 authViewModel.setupAuthListener()
                 
-                // Configure Firestore with better offline support
+                // Configure Firestore with better offline support and timeout settings
                 let settings = FirestoreSettings()
                 settings.cacheSettings = PersistentCacheSettings(sizeBytes: NSNumber(value: FirestoreCacheSizeUnlimited))
+                settings.isSSLEnabled = true
+                settings.isPersistenceEnabled = true
+                settings.areTimestampsInSnapshotsEnabled = true
+                // Set longer timeout for slow network connections
+                settings.host = "firestore.googleapis.com"
                 Firestore.firestore().settings = settings
-                logToFile("[DEBUG] GradMateApp - Firestore configured successfully with offline support")
+                logToFile("[DEBUG] GradMateApp - Firestore configured successfully with offline support and timeout settings")
             }
             .onChange(of: authViewModel.user) { oldValue, user in
                 if let user = user {

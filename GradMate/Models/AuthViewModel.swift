@@ -44,6 +44,28 @@ class AuthViewModel: ObservableObject {
         return networkMonitor.currentPath.status == .satisfied
     }
     
+    private func testNetworkConnectivity(completion: @escaping (Bool, String?) -> Void) {
+        guard isNetworkAvailable() else {
+            completion(false, "No network connection available")
+            return
+        }
+        
+        // Test basic internet connectivity
+        let url = URL(string: "https://www.google.com")!
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    completion(false, "Internet connectivity test failed: \(error.localizedDescription)")
+                } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    completion(true, nil)
+                } else {
+                    completion(false, "Internet connectivity test failed: Invalid response")
+                }
+            }
+        }
+        task.resume()
+    }
+    
     func setupAuthListener() {
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             print("[DEBUG] AuthViewModel - Auth state changed, user: \(user?.uid ?? "nil")")
@@ -60,10 +82,14 @@ class AuthViewModel: ObservableObject {
     }
     
     func signUp(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, completion: @escaping (Bool) -> Void) {
+        signUpWithRetry(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: 0, completion: completion)
+    }
+    
+    private func signUpWithRetry(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, retryCount: Int, completion: @escaping (Bool) -> Void) {
         isLoading = true
         errorMessage = nil
         
-        print("[DEBUG] Starting signup process for email: \(email), username: \(username)")
+        print("[DEBUG] Starting signup process for email: \(email), username: \(username), retry: \(retryCount)")
         
         // Check network connectivity first
         guard isNetworkAvailable() else {
@@ -76,6 +102,28 @@ class AuthViewModel: ObservableObject {
             return
         }
         
+        // Test internet connectivity
+        testNetworkConnectivity { [weak self] isConnected, errorMessage in
+            guard let self = self else { return }
+            
+            if !isConnected {
+                print("[DEBUG] Internet connectivity test failed: \(errorMessage ?? "Unknown error")")
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = errorMessage ?? "Network connectivity issue. Please check your internet connection."
+                    completion(false)
+                }
+                return
+            }
+            
+            print("[DEBUG] Internet connectivity test passed")
+            
+            // Continue with Firebase operations
+            self.performSignup(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: retryCount, completion: completion)
+        }
+    }
+    
+    private func performSignup(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, retryCount: Int, completion: @escaping (Bool) -> Void) {
         // Check if Firebase is properly configured
         guard FirebaseApp.app() != nil else {
             print("[DEBUG] Firebase not configured")
@@ -87,22 +135,54 @@ class AuthViewModel: ObservableObject {
             return
         }
         
-        // Check username uniqueness
+        // Check username uniqueness with timeout
         let db = Firestore.firestore()
-        db.collection("users").whereField("username", isEqualTo: username).getDocuments { [weak self] snapshot, error in
+        let usernameQuery = db.collection("users").whereField("username", isEqualTo: username)
+        
+        // Add timeout for the query
+        let timeoutTask = DispatchWorkItem {
+            print("[DEBUG] Username check timeout")
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if retryCount < 2 {
+                    print("[DEBUG] Retrying username check...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.signUpWithRetry(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: retryCount + 1, completion: completion)
+                    }
+                } else {
+                    self.errorMessage = "Connection timeout. Please check your internet and try again."
+                    completion(false)
+                }
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0, execute: timeoutTask)
+        
+        usernameQuery.getDocuments { [weak self] snapshot, error in
+            timeoutTask.cancel() // Cancel timeout if query completes
+            
             if let error = error {
                 print("[DEBUG] Error checking username: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self?.isLoading = false
                     // Provide more specific error messages
                     if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
-                        self?.errorMessage = "Network connection issue. Please check your internet connection and try again."
+                        if retryCount < 2 {
+                            print("[DEBUG] Retrying due to network error...")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                self?.signUpWithRetry(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: retryCount + 1, completion: completion)
+                            }
+                        } else {
+                            self?.errorMessage = "Network connection issue. Please check your internet connection and try again."
+                            completion(false)
+                        }
                     } else if error.localizedDescription.contains("permission") {
                         self?.errorMessage = "Database access denied. Please contact support."
+                        completion(false)
                     } else {
                         self?.errorMessage = "Unable to verify username. Please try again."
+                        completion(false)
                     }
-                    completion(false)
                 }
                 return
             }
@@ -114,7 +194,7 @@ class AuthViewModel: ObservableObject {
                 print("[DEBUG] Generated unique username: \(uniqueUsername)")
                 
                 // Recursively call signUp with the new username
-                self?.signUp(email: email, password: password, username: uniqueUsername, fullName: fullName, role: role, dob: dob, completion: completion)
+                self?.signUpWithRetry(email: email, password: password, username: uniqueUsername, fullName: fullName, role: role, dob: dob, retryCount: retryCount, completion: completion)
                 return
             }
             
@@ -128,13 +208,24 @@ class AuthViewModel: ObservableObject {
                         self?.isLoading = false
                         // Provide more specific error messages
                         if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
-                            self?.errorMessage = "Network connection issue. Please check your internet connection and try again."
+                            if retryCount < 2 {
+                                print("[DEBUG] Retrying due to network error...")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    self?.signUpWithRetry(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: retryCount + 1, completion: completion)
+                                }
+                            } else {
+                                self?.errorMessage = "Network connection issue. Please check your internet connection and try again."
+                                completion(false)
+                            }
                         } else if error.localizedDescription.contains("email already in use") {
                             self?.errorMessage = "An account with this email already exists. Please try logging in instead."
+                            completion(false)
                         } else if error.localizedDescription.contains("weak password") {
                             self?.errorMessage = "Password is too weak. Please use a stronger password."
+                            completion(false)
                         } else if error.localizedDescription.contains("invalid email") {
                             self?.errorMessage = "Please enter a valid email address."
+                            completion(false)
                         } else {
                             self?.errorMessage = error.localizedDescription
                         }
