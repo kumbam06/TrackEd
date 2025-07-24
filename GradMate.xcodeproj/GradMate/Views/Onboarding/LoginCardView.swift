@@ -157,7 +157,7 @@ struct LoginCardView: View {
             .font(.footnote)
             .padding(.bottom, 18)
             // NavigationLink for signup
-            NavigationLink(destination: SignupChatFlowView()
+            NavigationLink(destination: SignupFormView()
                 .environmentObject(authViewModel), isActive: $navigateToSignup) {
                 EmptyView()
             }

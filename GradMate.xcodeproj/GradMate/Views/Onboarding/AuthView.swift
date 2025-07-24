@@ -49,7 +49,7 @@ struct AuthView: View {
             }
             .font(.footnote)
             .padding(.bottom, 18)
-            NavigationLink(destination: SignupChatFlowView()
+            NavigationLink(destination: SignupFormView()
                 .environmentObject(authViewModel), isActive: $navigateToSignup) {
                 EmptyView()
             }
@@ -315,7 +315,7 @@ struct AuthView: View {
             }
             .font(.footnote)
             .padding(.bottom, 18)
-            NavigationLink(destination: SignupChatFlowView()
+            NavigationLink(destination: SignupFormView()
                 .environmentObject(authViewModel), isActive: $navigateToSignup) {
                 EmptyView()
             }
@@ -526,7 +526,7 @@ extension AuthView {
         }
         .font(.footnote)
         .padding(.bottom, 18)
-        NavigationLink(destination: SignupChatFlowView()
+        NavigationLink(destination: SignupFormView()
             .environmentObject(authViewModel), isActive: $navigateToSignup) {
             EmptyView()
         }

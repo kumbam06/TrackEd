@@ -29,7 +29,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(gradient: Gradient(colors: [Color.accentColor.opacity(0.12), Color(.systemBackground)]), startPoint: .top, endPoint: .bottom)
+            LinearGradient(gradient: Gradient(colors: [Color("appPrimaryAccent").opacity(0.12), Color("appScreenBG")]), startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
             VStack {
                 Spacer(minLength: 32)
@@ -39,25 +39,25 @@ struct OnboardingView: View {
                             Spacer(minLength: 16)
                             ZStack {
                                 Circle()
-                                    .fill(LinearGradient(gradient: Gradient(colors: [Color.accentColor.opacity(0.18), Color(.secondarySystemBackground)]), startPoint: .top, endPoint: .bottom))
+                                    .fill(LinearGradient(gradient: Gradient(colors: [Color("appPrimaryAccent").opacity(0.18), Color("appCardBG")]), startPoint: .top, endPoint: .bottom))
                                     .frame(width: 160, height: 160)
-                                    .shadow(color: Color.primary.opacity(0.10), radius: 12, x: 0, y: 6)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
                                 Image(systemName: page.image)
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 90, height: 90)
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(Color("appPrimaryAccent"))
                                     .accessibilityLabel(Text(page.title))
                             }
                             Text(page.title)
                                 .font(.system(size: 32, weight: .bold, design: .rounded))
                                 .multilineTextAlignment(.center)
-                                .foregroundColor(.primary)
+                                .foregroundColor(Color("appTextPrimary"))
                                 .padding(.horizontal, 12)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             Text(page.description)
                                 .font(.title2)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color("appTextSecondary"))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 16)
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -74,7 +74,7 @@ struct OnboardingView: View {
                 HStack(spacing: 8) {
                     ForEach(0..<onboardingPages.count, id: \.self) { i in
                         Capsule()
-                            .fill(i == currentPage ? Color.accentColor : Color(.systemGray4))
+                            .fill(i == currentPage ? Color("appPrimaryAccent") : Color("appTextSecondary").opacity(0.3))
                             .frame(width: i == currentPage ? 24 : 8, height: 8)
                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPage)
                     }
@@ -87,10 +87,11 @@ struct OnboardingView: View {
                         }) {
                             Image(systemName: "chevron.left")
                                 .font(.headline)
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(Color("appPrimaryAccent"))
                                 .padding(12)
-                                .background(Color(.systemGray6))
+                                .background(Color("appCardBG"))
                                 .clipShape(Circle())
+                                .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
                         }
                         .accessibilityLabel(Text("Back"))
                     } else {
@@ -108,10 +109,10 @@ struct OnboardingView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.accentColor)
+                            .background(Color("appPrimaryAccent"))
                             .foregroundColor(.white)
                             .cornerRadius(16)
-                            .shadow(color: Color.accentColor.opacity(0.18), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color("appPrimaryAccent").opacity(0.18), radius: 8, x: 0, y: 4)
                     }
                     .accessibilityLabel(Text(currentPage == onboardingPages.count - 1 ? "Get Started" : "Continue"))
                 }
@@ -123,7 +124,7 @@ struct OnboardingView: View {
                 }) {
                     Text("Skip")
                         .font(.subheadline)
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(Color("appPrimaryAccent"))
                         .padding(.vertical, 8)
                         .opacity(0.7)
                 }

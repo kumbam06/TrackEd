@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SignupChatFlowView: View {
+struct SignupFormView: View {
     var onSignupComplete: (() -> Void)?
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var name = ""
@@ -32,30 +32,47 @@ struct SignupChatFlowView: View {
                 // Signup Card
                 VStack(spacing: 20) {
                     TextField("Name", text: $name)
-                        .textFieldStyle(.roundedBorder)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 14)
+                        .background(Color("appStrokeGray"))
+                        .cornerRadius(14)
+                        .foregroundColor(Color("appTextPrimary"))
                         .autocapitalization(.words)
                         .focused($isInputFocused)
                         .padding(.horizontal, 8)
                     TextField("Email", text: $email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
-                        .textFieldStyle(.roundedBorder)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 14)
+                        .background(Color("appStrokeGray"))
+                        .cornerRadius(14)
+                        .foregroundColor(Color("appTextPrimary"))
                         .padding(.horizontal, 8)
                     SecureField("Password", text: $password)
-                        .textFieldStyle(.roundedBorder)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 14)
+                        .background(Color("appStrokeGray"))
+                        .cornerRadius(14)
+                        .foregroundColor(Color("appTextPrimary"))
                         .padding(.horizontal, 8)
                     SecureField("Confirm Password", text: $confirmPassword)
-                        .textFieldStyle(.roundedBorder)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 14)
+                        .background(Color("appStrokeGray"))
+                        .cornerRadius(14)
+                        .foregroundColor(Color("appTextPrimary"))
                         .padding(.horizontal, 8)
                     if let error = error {
                         Text(error)
-                            .foregroundColor(.red)
+                            .foregroundColor(Color("appError"))
                             .font(.caption)
                             .padding(.top, 2)
                     }
                     Button(action: signUp) {
                         if isLoading {
                             ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: Color.white))
                         } else {
                             Text("Create Account")
                                 .font(.headline)
@@ -72,8 +89,8 @@ struct SignupChatFlowView: View {
                 .padding(24)
                 .background(
                     RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.white.opacity(0.95))
-                        .shadow(color: Color(.black).opacity(0.10), radius: 16, y: 4)
+                        .fill(Color("appCardBG"))
+                        .shadow(color: Color.black.opacity(0.06), radius: 16, x: 0, y: 4)
                 )
                 .padding(.horizontal, 24)
                 .padding(.bottom, 18)
@@ -81,7 +98,7 @@ struct SignupChatFlowView: View {
                 // Footer
                 HStack(spacing: 4) {
                     Text("Already have an account?")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("appTextSecondary"))
                     Button(action: { onSignupComplete?() }) {
                         Text("Log In")
                             .fontWeight(.semibold)
@@ -100,13 +117,18 @@ struct SignupChatFlowView: View {
 
     private func signUp() {
         guard formIsValid() else { return }
+        
         isLoading = true
         error = nil
-        authViewModel.signUp(email: email, password: password, username: "", fullName: name, role: "Student", dob: nil) { success in
+        
+        // Generate a unique username from email
+        let emailComponents = email.components(separatedBy: "@")
+        let baseUsername = emailComponents.first ?? "user"
+        let username = baseUsername.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: "_", with: "")
+        
+        authViewModel.signUp(email: email, password: password, username: username, fullName: name, role: "Student", dob: nil) { success in
             isLoading = false
-            if success {
-                onSignupComplete?()
-            } else {
+            if !success {
                 error = authViewModel.errorMessage ?? "Signup failed. Please try again."
             }
         }

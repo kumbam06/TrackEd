@@ -10,7 +10,7 @@ struct GradMateLoader: View {
             // Background gray text
             Text(text)
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(Color(.systemGray4))
+                .foregroundColor(Color("appTextSecondary"))
                 .overlay(
                     // Animated fill
                     GeometryReader { geo in

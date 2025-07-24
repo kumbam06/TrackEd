@@ -59,7 +59,7 @@ struct AuthView: View {
                         TextField("Name", text: $name)
                             .padding(.vertical, 16)
                             .padding(.horizontal, 14)
-                            .background(Color("appScreenBG").opacity(0.7))
+                            .background(Color("appStrokeGray"))
                             .cornerRadius(14)
                             .foregroundColor(Color("appTextPrimary"))
                             .autocapitalization(.words)
@@ -70,7 +70,7 @@ struct AuthView: View {
                         .autocapitalization(.none)
                         .padding(.vertical, 16)
                         .padding(.horizontal, 14)
-                        .background(Color("appScreenBG").opacity(0.7))
+                        .background(Color("appStrokeGray"))
                         .cornerRadius(14)
                         .foregroundColor(Color("appTextPrimary"))
                     ZStack(alignment: .trailing) {
@@ -79,21 +79,21 @@ struct AuthView: View {
                                 TextField("Password", text: $password)
                                     .padding(.vertical, 16)
                                     .padding(.horizontal, 14)
-                                    .background(Color("appScreenBG").opacity(0.7))
+                                    .background(Color("appStrokeGray"))
                                     .cornerRadius(14)
                                     .foregroundColor(Color("appTextPrimary"))
                             } else {
                                 SecureField("Password", text: $password)
                                     .padding(.vertical, 16)
                                     .padding(.horizontal, 14)
-                                    .background(Color("appScreenBG").opacity(0.7))
+                                    .background(Color("appStrokeGray"))
                                     .cornerRadius(14)
                                     .foregroundColor(Color("appTextPrimary"))
                             }
                         }
                         Button(action: { showPassword.toggle() }) {
                             Image(systemName: showPassword ? "eye.slash" : "eye")
-                                .foregroundColor(.gray)
+                                .foregroundColor(Color("appTextSecondary"))
                                 .padding(.trailing, 14)
                         }
                     }
@@ -104,28 +104,28 @@ struct AuthView: View {
                                     TextField("Confirm Password", text: $confirmPassword)
                                         .padding(.vertical, 16)
                                         .padding(.horizontal, 14)
-                                        .background(Color("appScreenBG").opacity(0.7))
+                                        .background(Color("appStrokeGray"))
                                         .cornerRadius(14)
                                         .foregroundColor(Color("appTextPrimary"))
                                 } else {
                                     SecureField("Confirm Password", text: $confirmPassword)
                                         .padding(.vertical, 16)
                                         .padding(.horizontal, 14)
-                                        .background(Color("appScreenBG").opacity(0.7))
+                                        .background(Color("appStrokeGray"))
                                         .cornerRadius(14)
                                         .foregroundColor(Color("appTextPrimary"))
                                 }
                             }
                             Button(action: { showConfirmPassword.toggle() }) {
                                 Image(systemName: showConfirmPassword ? "eye.slash" : "eye")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(Color("appTextSecondary"))
                                     .padding(.trailing, 14)
                             }
                         }
                     }
                     if let error = error {
                         Text(error)
-                            .foregroundColor(.red)
+                            .foregroundColor(Color("appError"))
                             .font(.caption)
                             .padding(.top, 2)
                     }
@@ -206,20 +206,20 @@ struct AuthView: View {
                             // Always show 'Sign in with Google' because Google auth is always a login action
                             Text("Sign in with Google")
                                 .fontWeight(.semibold)
-                                .foregroundColor(.black)
+                                .foregroundColor(Color("appTextPrimary"))
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.white)
+                        .background(Color("appCardBG"))
                         .cornerRadius(12)
-                        .shadow(color: Color(.black).opacity(0.08), radius: 2, y: 1)
+                        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
                     }
                 }
                 .padding(24)
                 .background(
                     RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.white.opacity(0.95))
-                        .shadow(color: Color(.black).opacity(0.10), radius: 16, y: 4)
+                        .fill(Color("appCardBG"))
+                        .shadow(color: Color.black.opacity(0.06), radius: 16, x: 0, y: 4)
                 )
                 .padding(.horizontal, 24)
                 .padding(.bottom, 18)
@@ -227,7 +227,7 @@ struct AuthView: View {
                 // Toggle Footer
                 HStack(spacing: 4) {
                     Text(isLoginMode ? "Don't have an account?" : "Already have an account?")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color("appTextSecondary"))
                     Button(action: {
                         withAnimation(.spring()) {
                             isLoginMode.toggle()
@@ -246,9 +246,11 @@ struct AuthView: View {
                 VStack(spacing: 24) {
                     Text("Reset Password")
                         .font(.title2).fontWeight(.bold)
+                        .foregroundColor(Color("appTextPrimary"))
                         .padding(.top, 24)
                     Text("Enter your email and we'll send you a password reset link.")
                         .font(.body)
+                        .foregroundColor(Color("appTextSecondary"))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 16)
                     TextField("Email", text: $forgotPasswordEmail)
@@ -257,16 +259,13 @@ struct AuthView: View {
                         .padding(14)
                         .background(
                             RoundedRectangle(cornerRadius: 14)
-                                .fill(Color(uiColor: .systemGray6))
+                                .fill(Color("appStrokeGray"))
                         )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color(uiColor: .systemGray4), lineWidth: 1.1)
-                        )
+                        .foregroundColor(Color("appTextPrimary"))
                         .padding(.horizontal, 16)
                     if let msg = forgotPasswordMessage {
                         Text(msg)
-                            .foregroundColor(msg.contains("sent") ? .green : .red)
+                            .foregroundColor(msg.contains("sent") ? Color("appSuccess") : Color("appError"))
                             .font(.footnote)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 16)
@@ -285,12 +284,13 @@ struct AuthView: View {
                     }) {
                         if forgotPasswordLoading {
                             ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: Color.white))
                         } else {
                             Text("Send Reset Link")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.accentColor)
+                                .background(Color("appPrimaryAccent"))
                                 .foregroundColor(.white)
                                 .cornerRadius(12)
                         }
@@ -299,6 +299,7 @@ struct AuthView: View {
                     .padding(.horizontal, 16)
                     Spacer()
                 }
+                .background(Color("appScreenBG").ignoresSafeArea())
             }
         }
         .onTapGesture { hideKeyboard() }
@@ -321,7 +322,7 @@ struct LoginFormView: View {
         VStack(spacing: 18) {
             HStack {
                 Image(systemName: "envelope")
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(Color("appPrimaryAccent"))
                 TextField("Email", text: $email)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
@@ -335,15 +336,12 @@ struct LoginFormView: View {
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(uiColor: .systemGray6))
+                    .fill(Color("appStrokeGray"))
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color(uiColor: .systemGray4), lineWidth: 1.1)
-            )
+            .foregroundColor(Color("appTextPrimary"))
             HStack {
                 Image(systemName: "lock")
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(Color("appPrimaryAccent"))
                 ZStack(alignment: .trailing) {
                     Group {
                         if showPassword {
@@ -365,15 +363,12 @@ struct LoginFormView: View {
                     .padding(14)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(uiColor: .systemGray6))
+                            .fill(Color("appStrokeGray"))
                     )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color(uiColor: .systemGray4), lineWidth: 1.1)
-                    )
+                    .foregroundColor(Color("appTextPrimary"))
                     Button(action: { showPassword.toggle() }) {
                         Image(systemName: showPassword ? "eye.slash" : "eye")
-                            .foregroundColor(.gray)
+                            .foregroundColor(Color("appTextSecondary"))
                             .padding(.trailing, 16)
                     }
                 }
@@ -383,7 +378,7 @@ struct LoginFormView: View {
                 Button(action: { /* handled in parent */ }) {
                     Text("Forgot password?")
                         .font(.footnote)
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(Color("appPrimaryAccent"))
                 }
                 .accessibilityLabel(Text("Forgot password?"))
             }
@@ -405,7 +400,7 @@ struct LoginFormView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.accentColor)
+                    .background(Color("appPrimaryAccent"))
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
@@ -413,7 +408,7 @@ struct LoginFormView: View {
             .padding(.top, 4)
             if let error = error ?? authViewModel.errorMessage {
                 Text(error)
-                    .foregroundColor(.red)
+                    .foregroundColor(Color("appError"))
                     .font(.caption)
                     .accessibilityLabel(Text("Error: \(error)"))
                     .transition(.move(edge: .top).combined(with: .opacity))

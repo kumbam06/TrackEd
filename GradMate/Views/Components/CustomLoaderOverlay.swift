@@ -11,8 +11,8 @@ struct CustomLoaderOverlay: View {
             .padding(32)
             .background(
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(Color(.systemBackground).opacity(0.95))
-                    .shadow(color: Color.accentColor.opacity(0.12), radius: 16, y: 4)
+                    .fill(Color("appCardBG"))
+                    .shadow(color: Color("appPrimaryAccent").opacity(0.12), radius: 16, x: 0, y: 4)
             )
         }
     }

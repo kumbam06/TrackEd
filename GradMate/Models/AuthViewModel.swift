@@ -5,6 +5,7 @@ import AuthenticationServices
 import FirebaseFirestore
 import GoogleSignIn
 import FirebaseCore
+import Network
 
 class AuthViewModel: ObservableObject {
     @Published var user: User?
@@ -13,14 +14,34 @@ class AuthViewModel: ObservableObject {
     @Published var isCheckingAuth = true
     
     private var handle: AuthStateDidChangeListenerHandle?
+    private let networkMonitor = NWPathMonitor()
+    private let networkQueue = DispatchQueue(label: "NetworkMonitor")
     
     init() {
         print("[DEBUG] AuthViewModel.init() - Firebase Auth initialized")
+        setupNetworkMonitoring()
         // handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
         //     print("[DEBUG] AuthViewModel - Auth state changed, user: \(user?.uid ?? "nil")")
         //     self?.user = user
         //     self?.isCheckingAuth = false
         // }
+    }
+    
+    private func setupNetworkMonitoring() {
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                if path.status == .satisfied {
+                    print("[DEBUG] Network connection available")
+                } else {
+                    print("[DEBUG] Network connection unavailable")
+                }
+            }
+        }
+        networkMonitor.start(queue: networkQueue)
+    }
+    
+    private func isNetworkAvailable() -> Bool {
+        return networkMonitor.currentPath.status == .satisfied
     }
     
     func setupAuthListener() {
@@ -35,6 +56,7 @@ class AuthViewModel: ObservableObject {
         if let handle = handle {
             Auth.auth().removeStateDidChangeListener(handle)
         }
+        networkMonitor.cancel()
     }
     
     func signUp(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, completion: @escaping (Bool) -> Void) {
@@ -43,6 +65,28 @@ class AuthViewModel: ObservableObject {
         
         print("[DEBUG] Starting signup process for email: \(email), username: \(username)")
         
+        // Check network connectivity first
+        guard isNetworkAvailable() else {
+            print("[DEBUG] No network connection available")
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.errorMessage = "No internet connection. Please check your network and try again."
+                completion(false)
+            }
+            return
+        }
+        
+        // Check if Firebase is properly configured
+        guard FirebaseApp.app() != nil else {
+            print("[DEBUG] Firebase not configured")
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.errorMessage = "App configuration error. Please restart the app."
+                completion(false)
+            }
+            return
+        }
+        
         // Check username uniqueness
         let db = Firestore.firestore()
         db.collection("users").whereField("username", isEqualTo: username).getDocuments { [weak self] snapshot, error in
@@ -50,7 +94,14 @@ class AuthViewModel: ObservableObject {
                 print("[DEBUG] Error checking username: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self?.isLoading = false
-                    self?.errorMessage = "Network error. Please try again."
+                    // Provide more specific error messages
+                    if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
+                        self?.errorMessage = "Network connection issue. Please check your internet connection and try again."
+                    } else if error.localizedDescription.contains("permission") {
+                        self?.errorMessage = "Database access denied. Please contact support."
+                    } else {
+                        self?.errorMessage = "Unable to verify username. Please try again."
+                    }
                     completion(false)
                 }
                 return
@@ -75,7 +126,18 @@ class AuthViewModel: ObservableObject {
                     if let error = error {
                         print("[DEBUG] Firebase Auth error: \(error.localizedDescription)")
                         self?.isLoading = false
-                        self?.errorMessage = error.localizedDescription
+                        // Provide more specific error messages
+                        if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
+                            self?.errorMessage = "Network connection issue. Please check your internet connection and try again."
+                        } else if error.localizedDescription.contains("email already in use") {
+                            self?.errorMessage = "An account with this email already exists. Please try logging in instead."
+                        } else if error.localizedDescription.contains("weak password") {
+                            self?.errorMessage = "Password is too weak. Please use a stronger password."
+                        } else if error.localizedDescription.contains("invalid email") {
+                            self?.errorMessage = "Please enter a valid email address."
+                        } else {
+                            self?.errorMessage = error.localizedDescription
+                        }
                         completion(false)
                     } else if let user = result?.user {
                         print("[DEBUG] Firebase user created successfully: \(user.uid)")
@@ -99,7 +161,7 @@ class AuthViewModel: ObservableObject {
                             DispatchQueue.main.async {
                                 if let firestoreError = firestoreError {
                                     print("[DEBUG] Firestore error: \(firestoreError.localizedDescription)")
-                                    self?.errorMessage = "Failed to save profile data. Please try again."
+                                    self?.errorMessage = "Account created but profile setup failed. Please try again."
                                     completion(false)
                                 } else {
                                     print("[DEBUG] User profile saved successfully")
