@@ -119,6 +119,25 @@ struct ChatListView: View {
             }
     }
     
+    private func initializeViewModel() {
+        guard let userId = authViewModel.user?.uid else {
+            print("[DEBUG] ChatListView - No user ID available, clearing viewModel")
+            viewModel = nil
+            return
+        }
+        
+        print("[DEBUG] ChatListView - Initializing viewModel for userId: \(userId)")
+        
+        // Only initialize if we don't have a viewModel or if the userId changed
+        if viewModel == nil || viewModel?.userId != userId {
+            print("[DEBUG] ChatListView - Creating new ChatListViewModel")
+            viewModel = ChatListViewModel(chatService: chatService, userId: userId)
+            hasInitializedViewModel = true
+        } else {
+            print("[DEBUG] ChatListView - ViewModel already exists for userId: \(userId)")
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             headerSection
@@ -133,6 +152,14 @@ struct ChatListView: View {
         }
         .onAppear {
             loadIncomingRequests()
+            initializeViewModel()
+        }
+        .onChange(of: authViewModel.user?.uid) { oldValue, newValue in
+            if let newUserId = newValue {
+                initializeViewModel()
+            } else {
+                viewModel = nil
+            }
         }
     }
     
@@ -190,6 +217,7 @@ struct ChatListView: View {
     @ViewBuilder
     private var mainContentSection: some View {
         if let viewModel = viewModel {
+            print("[DEBUG] ChatListView - ViewModel exists, chats count: \(viewModel.chats.count), isLoading: \(viewModel.isLoading), error: \(viewModel.error ?? "none")")
             if let error = viewModel.error {
                 errorView(error: error, viewModel: viewModel)
             } else if viewModel.chats.isEmpty {
@@ -198,6 +226,7 @@ struct ChatListView: View {
                 chatListView(viewModel: viewModel)
             }
         } else {
+            print("[DEBUG] ChatListView - No viewModel available, showing loading view")
             loadingView
         }
     }
