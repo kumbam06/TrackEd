@@ -144,8 +144,7 @@ struct TabButton: View {
     
     @State private var scale: CGFloat = 1.0
     @State private var rotation: Double = 0
-    @Namespace static var tabCircleNamespace
-    static var sharedNamespace: Namespace.ID? = nil
+    @Namespace private var tabCircleNamespace
     
     var body: some View {
         Button(action: {
@@ -157,7 +156,7 @@ struct TabButton: View {
                         Circle()
                             .fill(Color("appPrimaryAccent").opacity(0.18))
                             .frame(width: 36, height: 36)
-                            .matchedGeometryEffect(id: "tabCircle", in: TabButton.sharedNamespace ?? TabButton.tabCircleNamespace)
+                            .matchedGeometryEffect(id: "tabCircle\(tabIndex)", in: tabCircleNamespace)
                             .transition(.scale)
                     }
                     Image(systemName: tab.icon)
@@ -209,15 +208,5 @@ struct TabButton: View {
             AdvancedFloatingTabBar(selectedTab: .constant(0))
                 .padding(.bottom, 8)
         }
-    }
-} 
-
-private struct TabCircleNamespaceKey: EnvironmentKey {
-    static let defaultValue: Namespace.ID? = nil
-}
-extension EnvironmentValues {
-    var _tabCircleNamespace: Namespace.ID? {
-        get { self[TabCircleNamespaceKey.self] }
-        set { self[TabCircleNamespaceKey.self] = newValue }
     }
 } 

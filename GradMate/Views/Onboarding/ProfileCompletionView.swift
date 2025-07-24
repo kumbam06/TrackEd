@@ -1,5 +1,6 @@
 import SwiftUI
 import Photos
+import PhotosUI
 
 struct ProfileCompletionView: View {
     @EnvironmentObject private var profileManager: ProfileManager
