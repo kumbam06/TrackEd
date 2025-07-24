@@ -16,6 +16,7 @@ struct PlannerView: View {
     @State private var selectedDate: Date = Date()
     @State private var showCalendar = false
     @State private var scrollOffset: CGFloat = 0
+    @State private var isScrolled = false
     
     private var filteredTasks: [PlannerTask] {
         let tasks = taskManager.tasks
@@ -83,150 +84,158 @@ struct PlannerView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Calendar Section
-            VStack(spacing: showCalendar ? 8 : 16) {
-                HStack {
-                    Text("CALENDAR")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color("appTextPrimary"))
-                        .kerning(1.5)
-                    
-                    Spacer()
-                    
-                    Button(action: { showCalendar.toggle() }) {
-                        HStack(spacing: 4) {
-                            Text(showCalendar ? "Hide" : "Show")
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Calendar Section
+                    VStack(spacing: showCalendar ? 8 : 16) {
+                        HStack {
+                            Text("CALENDAR")
                                 .font(.caption)
-                                .fontWeight(.medium)
-                            Image(systemName: showCalendar ? "chevron.up" : "chevron.down")
-                                .font(.caption)
-                        }
-                        .foregroundColor(Color("appPrimaryAccent"))
-                    }
-                }
-                .padding(.horizontal, 20)
-                
-                if showCalendar {
-                    CalendarView(
-                        selectedDate: $selectedDate,
-                        tasks: taskManager.tasks
-                    )
-                    .padding(.horizontal, 20)
-                }
-            }
-            .padding(.vertical, showCalendar ? 12 : 16)
-            .background(Color("appCardBG"))
-            
-            // Search and Filter Bar
-            VStack(spacing: showCalendar ? 12 : 16) {
-                // Search Bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(Color("appTextSecondary"))
-                    
-                    TextField("Search tasks...", text: $searchText)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .foregroundColor(Color("appTextPrimary"))
-                    
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(Color("appTextSecondary"))
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color("appStrokeGray"))
-                .cornerRadius(12)
-                
-                // Filter Pills
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(TaskFilter.allCases, id: \.self) { filter in
-                            FilterPill(
-                                title: filter.displayName,
-                                isSelected: selectedFilter == filter,
-                                count: getCount(for: filter)
-                            ) {
-                                selectedFilter = filter
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, showCalendar ? 12 : 16)
-            .padding(.bottom, 8)
-            .background(Color("appCardBG"))
-            
-            // Selected Date Tasks (if calendar is shown)
-            if showCalendar && !tasksForSelectedDate.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("TASKS FOR \(formatSelectedDate())")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color("appTextPrimary"))
-                            .kerning(1.5)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(tasksForSelectedDate, id: \.id) { task in
-                                SelectedDateTaskCard(
-                                    task: task,
-                                    onToggle: { taskManager.toggleTaskCompletion(task) },
-                                    onDelete: { taskManager.deleteTask(task) }
-                                )
+                                .fontWeight(.bold)
+                                .foregroundColor(Color("appTextPrimary"))
+                                .kerning(1.5)
+                            
+                            Spacer()
+                            
+                            Button(action: { showCalendar.toggle() }) {
+                                HStack(spacing: 4) {
+                                    Text(showCalendar ? "Hide" : "Show")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                    Image(systemName: showCalendar ? "chevron.up" : "chevron.down")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(Color("appPrimaryAccent"))
                             }
                         }
                         .padding(.horizontal, 20)
-                    }
-                }
-                .padding(.bottom, 12)
-                .background(Color("appCardBG"))
-            }
-            
-            // Tasks List
-            if filteredTasks.isEmpty {
-                emptyStateView
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: showCalendar ? 16 : 20) {
-                        ForEach(groupedTasks, id: \.0) { section, tasks in
-                            TaskSectionView(
-                                title: section,
-                                tasks: tasks,
-                                onToggleTask: { task in
-                                    taskManager.toggleTaskCompletion(task)
-                                },
-                                onDeleteTask: { task in
-                                    taskManager.deleteTask(task)
-                                }
+                        
+                        if showCalendar {
+                            CalendarView(
+                                selectedDate: $selectedDate,
+                                tasks: taskManager.tasks
                             )
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                    .padding(.vertical, showCalendar ? 12 : 16)
+                    .background(Color("appCardBG"))
+                    .id("calendar")
+                    
+                    // Search and Filter Bar
+                    VStack(spacing: showCalendar ? 12 : 16) {
+                        // Search Bar
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(Color("appTextSecondary"))
+                            
+                            TextField("Search tasks...", text: $searchText)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .foregroundColor(Color("appTextPrimary"))
+                            
+                            if !searchText.isEmpty {
+                                Button(action: { searchText = "" }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(Color("appTextSecondary"))
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color("appStrokeGray"))
+                        .cornerRadius(12)
+                        
+                        // Filter Pills
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(TaskFilter.allCases, id: \.self) { filter in
+                                    FilterPill(
+                                        title: filter.displayName,
+                                        isSelected: selectedFilter == filter,
+                                        count: getCount(for: filter)
+                                    ) {
+                                        selectedFilter = filter
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 20)
                         }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, showCalendar ? 12 : 16)
-                    .padding(.bottom, 100) // Padding for tab bar
-                    .background(
-                        GeometryReader { geometry in
-                            Color.clear
-                                .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                    .padding(.bottom, 8)
+                    .background(Color("appCardBG"))
+                    .id("search")
+                    
+                    // Selected Date Tasks (if calendar is shown)
+                    if showCalendar && !tasksForSelectedDate.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("TASKS FOR \(formatSelectedDate())")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(Color("appTextPrimary"))
+                                    .kerning(1.5)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 12)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(tasksForSelectedDate, id: \.id) { task in
+                                        SelectedDateTaskCard(
+                                            task: task,
+                                            onToggle: { taskManager.toggleTaskCompletion(task) },
+                                            onDelete: { taskManager.deleteTask(task) }
+                                        )
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                            }
                         }
-                    )
+                        .padding(.bottom, 12)
+                        .background(Color("appCardBG"))
+                        .id("selectedTasks")
+                    }
+                    
+                    // Tasks List
+                    if filteredTasks.isEmpty {
+                        emptyStateView
+                            .id("empty")
+                    } else {
+                        LazyVStack(spacing: showCalendar ? 16 : 20) {
+                            ForEach(groupedTasks, id: \.0) { section, tasks in
+                                TaskSectionView(
+                                    title: section,
+                                    tasks: tasks,
+                                    onToggleTask: { task in
+                                        taskManager.toggleTaskCompletion(task)
+                                    },
+                                    onDeleteTask: { task in
+                                        taskManager.deleteTask(task)
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, showCalendar ? 12 : 16)
+                        .padding(.bottom, 100) // Padding for tab bar
+                        .id("tasks")
+                    }
                 }
-                .coordinateSpace(name: "scroll")
-                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                    scrollOffset = value
-                }
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear
+                            .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                    }
+                )
+            }
+            .coordinateSpace(name: "scroll")
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                scrollOffset = value
+                isScrolled = value < -100
             }
         }
         .background(Color("appScreenBG"))
@@ -256,8 +265,8 @@ struct PlannerView: View {
     }
     
     private var shouldShowLargeTitle: Bool {
-        // Show large title when at the top or when calendar is hidden
-        return scrollOffset >= -50 || !showCalendar
+        // Show large title when not scrolled or when calendar is hidden
+        return !isScrolled || !showCalendar
     }
     
     private func formatSelectedDate() -> String {
