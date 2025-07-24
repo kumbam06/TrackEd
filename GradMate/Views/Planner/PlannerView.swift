@@ -15,6 +15,7 @@ struct PlannerView: View {
     @State private var searchText = ""
     @State private var selectedDate: Date = Date()
     @State private var showCalendar = false
+    @State private var scrollOffset: CGFloat = 0
     
     private var filteredTasks: [PlannerTask] {
         let tasks = taskManager.tasks
@@ -215,12 +216,22 @@ struct PlannerView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, showCalendar ? 12 : 16)
                     .padding(.bottom, 100) // Padding for tab bar
+                    .background(
+                        GeometryReader { geometry in
+                            Color.clear
+                                .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                        }
+                    )
+                }
+                .coordinateSpace(name: "scroll")
+                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                    scrollOffset = value
                 }
             }
         }
         .background(Color("appScreenBG"))
         .navigationTitle("Planner")
-        .navigationBarTitleDisplayMode(showCalendar ? .inline : .large)
+        .navigationBarTitleDisplayMode(shouldShowLargeTitle ? .large : .inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: { showAddTask = true }) {
@@ -242,6 +253,11 @@ struct PlannerView: View {
             }
             .environmentObject(taskManager)
         }
+    }
+    
+    private var shouldShowLargeTitle: Bool {
+        // Show large title when at the top or when calendar is hidden
+        return scrollOffset >= -50 || !showCalendar
     }
     
     private func formatSelectedDate() -> String {
@@ -827,5 +843,13 @@ struct SelectedDateTaskCard: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Scroll Offset Preference Key
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 } 
