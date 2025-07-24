@@ -22,6 +22,7 @@ struct GradMateApp: App {
     @StateObject private var homeScreenPreferencesManager = HomeScreenPreferencesManager()
     @StateObject private var taskCategoryManager = TaskCategoryManager()
     @State private var didSeeOnboarding = UserDefaults.standard.bool(forKey: "didSeeOnboarding")
+    @State private var showProfileCompletion = false
     
     init() {
         logToFile("[DEBUG] GradMateApp.init() - Configuring Firebase")
@@ -68,6 +69,13 @@ struct GradMateApp: App {
                 } else if authViewModel.user == nil {
                     AuthView()
                         .environmentObject(authViewModel)
+                } else if showProfileCompletion {
+                    ProfileCompletionView()
+                        .environmentObject(authViewModel)
+                        .environmentObject(profileManager)
+                        .onDisappear {
+                            showProfileCompletion = false
+                        }
                 } else {
                     ContentView()
                         .environmentObject(authViewModel)
@@ -98,9 +106,15 @@ struct GradMateApp: App {
             }
             .onChange(of: authViewModel.user) { oldValue, user in
                 if let user = user {
-                    profileManager.loadProfileFromFirestore(uid: user.uid)
+                    profileManager.loadProfileFromFirestore(uid: user.uid) { profile in
+                        // Check if this is a new user (no profile or incomplete profile)
+                        if profile == nil || profile?.name?.isEmpty == true {
+                            showProfileCompletion = true
+                        }
+                    }
                 } else {
                     profileManager.clearLocalProfile()
+                    showProfileCompletion = false
                 }
             }
         }

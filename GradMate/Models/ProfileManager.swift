@@ -161,13 +161,26 @@ class ProfileManager: ObservableObject {
         }
     }
     
-    func loadProfileFromFirestore(uid: String, completion: (() -> Void)? = nil) {
+    func loadProfileFromFirestore(uid: String, completion: ((Profile?) -> Void)? = nil) {
         let db = Firestore.firestore()
         db.collection("users").document(uid).getDocument { [weak self] doc, error in
-            guard let self = self, let data = doc?.data() else {
-                completion?()
+            guard let self = self else {
+                completion?(nil)
                 return
             }
+            
+            if let error = error {
+                print("Error loading profile from Firestore: \(error)")
+                completion?(nil)
+                return
+            }
+            
+            guard let data = doc?.data() else {
+                // No profile found in Firestore
+                completion?(nil)
+                return
+            }
+            
             // Update or create local Core Data profile
             let request: NSFetchRequest<Profile> = Profile.fetchRequest()
             request.fetchLimit = 1
@@ -178,6 +191,7 @@ class ProfileManager: ObservableObject {
                 profile = Profile(context: self.context)
                 profile.id = UUID()
             }
+            
             profile.name = data["name"] as? String ?? ""
             profile.role = data["role"] as? String ?? ""
             profile.email = data["email"] as? String ?? ""
@@ -188,11 +202,13 @@ class ProfileManager: ObservableObject {
             profile.username = data["username"] as? String ?? ""
             profile.address = data["address"] as? String ?? ""
             profile.currentCompany = data["currentCompany"] as? String ?? ""
+            
             if let dobTimestamp = data["dob"] as? Timestamp {
                 profile.dob = dobTimestamp.dateValue()
             } else {
                 profile.dob = nil
             }
+            
             if let photoURL = data["photoURL"] as? String, let url = URL(string: photoURL) {
                 // Download the image data
                 URLSession.shared.dataTask(with: url) { data, response, error in
@@ -201,20 +217,20 @@ class ProfileManager: ObservableObject {
                             profile.photoData = data
                             self.currentProfile = profile
                             self.save()
-                            completion?()
+                            completion?(profile)
                         }
                     } else {
                         DispatchQueue.main.async {
                             self.currentProfile = profile
                             self.save()
-                            completion?()
+                            completion?(profile)
                         }
                     }
                 }.resume()
             } else {
                 self.currentProfile = profile
                 self.save()
-                completion?()
+                completion?(profile)
             }
         }
     }
@@ -244,7 +260,9 @@ class ProfileManager: ObservableObject {
         // Only fetch from Firestore if no local profile or forceRefresh is true
         if !hasLocalProfile || forceRefresh {
             if let uid = Auth.auth().currentUser?.uid {
-                loadProfileFromFirestore(uid: uid)
+                loadProfileFromFirestore(uid: uid) { _ in
+                    // Profile loaded, no additional action needed
+                }
             }
         }
     }
