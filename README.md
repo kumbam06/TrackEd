@@ -8,27 +8,25 @@
 ![Firebase](https://img.shields.io/badge/Firebase-Enabled-orange)
 ![Google Sign-In](https://img.shields.io/badge/Google%20Sign--In-Supported-green)
 
-# GradMate - Student Productivity App
-
 A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Firebase to help students manage tasks, notes, skills, and career development.
 
 ## 🚀 Features
 
 ### 📱 Core Functionality
 - **Home Dashboard**: Overview of daily tasks, skills, and quick actions with customizable sections
-- **Smart Planner**: Hour-based task planning with natural language input and category management
+- **Smart Planner**: Hour-based task planning with natural language input, calendar integration, and category management
 - **Chat System**: Firestore-backed chat interface with real-time messaging and push notifications
-- **AI Assistant**: AI-powered study planning, code analysis, and career advice
-- **Profile Management**: Digital ID card with front/back views, shareable profile
+- **Profile Management**: Digital ID card with front/back views, shareable profile, and comprehensive career tracking
 - **Focus Mode**: Pomodoro-style focus sessions with breaks and progress tracking
-- **Modern Onboarding & Auth**: Chat-style signup, redesigned login, Google Sign-In integration
+- **Modern Onboarding & Auth**: Multi-step profile completion, redesigned login, Google Sign-In integration
 
 ### 🎯 Key Features
 - **Natural Language Task Creation**: "Study SwiftUI at 8pm tomorrow"
+- **Calendar Integration**: Monthly calendar view with task indicators and date-based filtering
 - **Resume Builder**: Auto-generate PDF resumes from profile and skills
-- **Theme System**: 10 beautiful themes with persistent selection
+- **Theme System**: Beautiful themes with persistent selection
 - **Core Data & Firestore Integration**: Robust data persistence and sync
-- **Dark Mode Support**: Full light/dark mode compatibility
+- **Dark Mode Support**: Full light/dark mode compatibility with modern color scheme
 - **Modular Architecture**: Clean separation of concerns
 - **Google Sign-In**: Seamless authentication with Google accounts
 - **Real-time Chat**: Firestore-powered chat system with push notifications
@@ -36,6 +34,7 @@ A comprehensive, production-ready iOS app built with SwiftUI, Core Data, and Fir
 - **Career Management**: Projects, internships, certifications, and work experience tracking
 - **Customizable Home Screen**: User-configurable dashboard sections and quick actions
 - **Progress Analytics**: Track productivity trends, career progress, and achievements
+- **Profile Completion Flow**: Guided multi-step profile setup for new users
 
 ### 🛠 Technical Stack
 - **SwiftUI**: Modern declarative UI framework
@@ -75,12 +74,12 @@ GradMate/
 │   │   ├── CardView.swift            # Reusable card components
 │   │   ├── TaskView.swift            # Task display components
 │   │   ├── CustomLoaderOverlay.swift # Global loading overlay
-│   │   └── TrackEdLoader.swift       # Custom loading animation
+│   │   └── GradMateLoader.swift      # Custom loading animation
 │   ├── Views/
 │   │   ├── Home/
 │   │   │   └── HomeView.swift        # Dashboard view
 │   │   ├── Planner/
-│   │   │   ├── PlannerView.swift     # Main planner interface
+│   │   │   ├── PlannerView.swift     # Main planner interface with calendar
 │   │   │   ├── AddTaskView.swift     # Task creation
 │   │   │   └── NaturalLanguageInputView.swift
 │   │   ├── Chat/
@@ -89,10 +88,11 @@ GradMate/
 │   │   │   └── NewChatView.swift     # Create new chat
 │   │   ├── Onboarding/
 │   │   │   ├── AuthView.swift        # Login & Google Sign-In
-│   │   │   ├── SignupChatFlowView.swift # Chat-style signup
+│   │   │   ├── SignupFormView.swift  # Signup form
+│   │   │   ├── ProfileCompletionView.swift # Multi-step profile setup
 │   │   │   └── OnboardingView.swift  # App introduction
 │   │   ├── Profile/
-│   │   │   ├── ProfileView.swift     # Profile display
+│   │   │   ├── ProfileView.swift     # Profile display with ID card
 │   │   │   ├── EditProfileView.swift # Profile editing
 │   │   │   ├── ResumeExportView.swift # PDF generation
 │   │   │   ├── AddSkillView.swift    # Skill addition
@@ -112,6 +112,7 @@ GradMate/
 - **Google Sign-In**: OAuth authentication with Google accounts
 - **Email/Password**: Traditional email and password authentication
 - **User Profile Sync**: Automatic profile data saving to Firestore
+- **Profile Completion Flow**: Guided setup for new users
 
 ### Firestore Database
 - **User Profiles**: Stored with Google account information
@@ -145,25 +146,26 @@ service cloud.firestore {
 ### Color Palette (Semantic, Accessible, Light/Dark Mode)
 | Name              | Light Mode      | Dark Mode      | Usage                |
 |-------------------|-----------------|---------------|----------------------|
-| appPrimaryAccent  | #176FBF         | #176FBF        | Primary actions, logo|
-| appCardBG         | #FAFAFA         | #262626        | Card backgrounds     |
-| appTextPrimary    | #000000         | #FFFFFF        | Main text            |
-| appTextSecondary  | (gray)          | (gray)         | Secondary text       |
-| appError          | #FF3333         | #FF3333        | Error states         |
-| appSuccess        | #33CC33         | #33CC33        | Success states       |
-| appWarning        | #FF9900         | #FF9900        | Warning states       |
-| appInfo           | #33CCFF         | #33CCFF        | Info states          |
-| appScreenBG       | #F6F6F8         | #181A20        | Screen backgrounds   |
-| appStrokeGray     | #E0E0E0         | #333333        | Borders, strokes     |
+| appPrimaryAccent  | #3877F2         | #4B9AFF        | Primary actions, logo|
+| appCardBG         | #FFFFFF         | #1B1D22        | Card backgrounds     |
+| appTextPrimary    | #1C1E26         | #F7F8FA        | Main text            |
+| appTextSecondary  | #7C7E85         | #B4B6BC        | Secondary text       |
+| appError          | #D93B4A         | #FF6B7A        | Error states         |
+| appSuccess        | #38A169         | #4ADE80        | Success states       |
+| appWarning        | #F2A73D         | #FBBF24        | Warning states       |
+| appInfo           | #38B2AC         | #2DD4BF        | Info states          |
+| appScreenBG       | #FAFCFC         | #111318        | Screen backgrounds   |
+| appStrokeGray     | #F7F8FA         | #252A32        | Borders, strokes     |
 
 ### Components & UI Principles
 - **CardView**: Consistent card styling with rounded corners and shadows
-- **Modern Auth & Onboarding**: Redesigned login screen, chat-style signup with animated bubbles, Google Sign-In integration
+- **Modern Auth & Onboarding**: Redesigned login screen, multi-step profile completion, Google Sign-In integration
 - **Global Loading System**: Centralized loading state management
 - **Floating Action Buttons**: Modern, circular, and adaptive
 - **Accessibility**: High contrast, large touch targets, VoiceOver support
 - **Consistent Spacing**: Generous padding and spacing for clarity and comfort
 - **Light/Dark Mode**: All screens and components adapt to system appearance
+- **Calendar Integration**: Monthly calendar with task indicators and smooth animations
 
 ## 📊 Core Data & Firestore Model
 
@@ -223,12 +225,14 @@ Modify `NaturalLanguageParser` in `TaskManager.swift` to add new time/date patte
 ### Authentication
 - **Google Sign-In**: Tap the Google Sign-In button for seamless authentication
 - **Email/Password**: Traditional login with email and password
+- **Profile Completion**: New users are guided through a multi-step profile setup
 - **Profile Sync**: User data automatically syncs between Google account and app
 
 ### Task Management
 - Use natural language: "Study SwiftUI at 8pm tomorrow"
 - Set priorities: "Submit report urgent"
 - All-day tasks: "Team meeting all day Friday"
+- Calendar view: Monthly calendar with task indicators and date selection
 
 ### Resume Building
 1. Add skills with categories and proficiency levels
@@ -241,6 +245,14 @@ Modify `NaturalLanguageParser` in `TaskManager.swift` to add new time/date patte
 - Persistent chat history
 
 ## 🎯 Recent Updates
+
+### v2.2.0 - Profile Completion & Calendar Integration
+- ✅ **Profile Completion Flow**: Multi-step guided profile setup for new users
+- ✅ **Calendar Integration**: Monthly calendar view with task indicators and date-based filtering
+- ✅ **Dynamic Navigation**: Collapsible navigation titles based on calendar state
+- ✅ **Enhanced UI**: Improved shadows, animations, and visual hierarchy
+- ✅ **Bug Fixes**: Resolved compilation errors and improved stability
+- ✅ **Code Cleanup**: Removed deprecated features and improved architecture
 
 ### v2.1.0 - Firebase Push Notifications & Focus Mode
 - ✅ **Push Notifications**: Implemented Firebase Cloud Messaging (FCM)
@@ -266,14 +278,15 @@ Modify `NaturalLanguageParser` in `TaskManager.swift` to add new time/date patte
 - **Error Handling**: Comprehensive error management for authentication
 - **Data Sync**: Seamless Core Data and Firestore integration
 - **Performance**: Optimized loading states and data fetching
+- **Code Quality**: Fixed compilation errors and improved stability
 
 ## 🎯 Future Enhancements
 
 ### Planned Features
-- **AI Integration**: ChatGPT API integration
-- **Notifications**: Local and push notifications
+- **AI Integration**: ChatGPT API integration for study assistance
+- **Notifications**: Enhanced local and push notifications
 - **Cloud Sync**: iCloud Core Data sync
-- **Analytics**: Progress tracking and insights
+- **Analytics**: Advanced progress tracking and insights
 - **Collaboration**: Shared tasks and notes
 - **Calendar Integration**: System calendar sync
 
@@ -305,4 +318,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**GradMate** - Empowering students to track their educational journey and build their future careers with modern authentication and real-time collaboration. 
+**GradMate** - Empowering students to track their educational journey and build their future careers with modern authentication, real-time collaboration, and comprehensive productivity tools. 
