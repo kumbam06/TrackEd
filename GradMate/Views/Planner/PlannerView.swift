@@ -13,6 +13,8 @@ struct PlannerView: View {
     @State private var showAddTask = false
     @State private var selectedFilter: TaskFilter = .all
     @State private var searchText = ""
+    @State private var selectedDate: Date = Date()
+    @State private var showCalendar = false
     
     private var filteredTasks: [PlannerTask] {
         let tasks = taskManager.tasks
@@ -39,6 +41,13 @@ struct PlannerView: View {
             return filteredBySearch.filter { $0.completed }
         case .pending:
             return filteredBySearch.filter { !$0.completed }
+        }
+    }
+    
+    private var tasksForSelectedDate: [PlannerTask] {
+        return taskManager.tasks.filter { task in
+            guard let dueDate = task.dueDate else { return false }
+            return Calendar.current.isDate(dueDate, inSameDayAs: selectedDate)
         }
     }
     
@@ -74,6 +83,41 @@ struct PlannerView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Calendar Section
+            VStack(spacing: 16) {
+                HStack {
+                    Text("CALENDAR")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color("appTextPrimary"))
+                        .kerning(1.5)
+                    
+                    Spacer()
+                    
+                    Button(action: { showCalendar.toggle() }) {
+                        HStack(spacing: 4) {
+                            Text(showCalendar ? "Hide" : "Show")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            Image(systemName: showCalendar ? "chevron.up" : "chevron.down")
+                                .font(.caption)
+                        }
+                        .foregroundColor(Color("appPrimaryAccent"))
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                if showCalendar {
+                    CalendarView(
+                        selectedDate: $selectedDate,
+                        tasks: taskManager.tasks
+                    )
+                    .padding(.horizontal, 20)
+                }
+            }
+            .padding(.vertical, 16)
+            .background(Color("appCardBG"))
+            
             // Search and Filter Bar
             VStack(spacing: 16) {
                 // Search Bar
@@ -117,6 +161,37 @@ struct PlannerView: View {
             .padding(.top, 16)
             .padding(.bottom, 8)
             .background(Color("appCardBG"))
+            
+            // Selected Date Tasks (if calendar is shown)
+            if showCalendar && !tasksForSelectedDate.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("TASKS FOR \(formatSelectedDate())")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color("appTextPrimary"))
+                            .kerning(1.5)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(tasksForSelectedDate, id: \.id) { task in
+                                SelectedDateTaskCard(
+                                    task: task,
+                                    onToggle: { taskManager.toggleTaskCompletion(task) },
+                                    onDelete: { taskManager.deleteTask(task) }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                .padding(.bottom, 16)
+                .background(Color("appCardBG"))
+            }
             
             // Tasks List
             if filteredTasks.isEmpty {
@@ -167,6 +242,12 @@ struct PlannerView: View {
             }
             .environmentObject(taskManager)
         }
+    }
+    
+    private func formatSelectedDate() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: selectedDate).uppercased()
     }
     
     private var emptyStateView: some View {
@@ -446,5 +527,305 @@ struct FilterPill: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Calendar Components
+struct CalendarView: View {
+    @Binding var selectedDate: Date
+    let tasks: [PlannerTask]
+    
+    @State private var currentMonth = Date()
+    
+    private let calendar = Calendar.current
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter
+    }()
+    
+    private let dayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter
+    }()
+    
+    private let weekdayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        return formatter
+    }()
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Month Navigation
+            HStack {
+                Button(action: previousMonth) {
+                    Image(systemName: "chevron.left")
+                        .font(.title3)
+                        .foregroundColor(Color("appPrimaryAccent"))
+                }
+                
+                Spacer()
+                
+                Text(dateFormatter.string(from: currentMonth))
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("appTextPrimary"))
+                
+                Spacer()
+                
+                Button(action: nextMonth) {
+                    Image(systemName: "chevron.right")
+                        .font(.title3)
+                        .foregroundColor(Color("appPrimaryAccent"))
+                }
+            }
+            .padding(.horizontal, 8)
+            
+            // Weekday Headers
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { index in
+                    Text(weekdaySymbol(for: index))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(Color("appTextSecondary"))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Calendar Grid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+                ForEach(daysInMonth(), id: \.self) { date in
+                    if let date = date {
+                        CalendarDayView(
+                            date: date,
+                            isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
+                            isToday: calendar.isDateInToday(date),
+                            hasTasks: hasTasksForDate(date),
+                            onTap: { selectedDate = date }
+                        )
+                    } else {
+                        Color.clear
+                            .frame(height: 40)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color("appStrokeGray"))
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 4)
+    }
+    
+    private func weekdaySymbol(for index: Int) -> String {
+        let weekdays = ["S", "M", "T", "W", "T", "F", "S"]
+        return weekdays[index]
+    }
+    
+    private func daysInMonth() -> [Date?] {
+        let startOfMonth = calendar.dateInterval(of: .month, for: currentMonth)?.start ?? currentMonth
+        let firstWeekday = calendar.component(.weekday, from: startOfMonth)
+        let daysInMonth = calendar.range(of: .day, in: .month, for: currentMonth)?.count ?? 30
+        
+        var days: [Date?] = []
+        
+        // Add empty cells for days before the first day of the month
+        for _ in 1..<firstWeekday {
+            days.append(nil)
+        }
+        
+        // Add all days in the month
+        for day in 1...daysInMonth {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) {
+                days.append(date)
+            }
+        }
+        
+        return days
+    }
+    
+    private func hasTasksForDate(_ date: Date) -> Bool {
+        return tasks.contains { task in
+            guard let dueDate = task.dueDate else { return false }
+            return calendar.isDate(dueDate, inSameDayAs: date)
+        }
+    }
+    
+    private func previousMonth() {
+        if let newDate = calendar.date(byAdding: .month, value: -1, to: currentMonth) {
+            currentMonth = newDate
+        }
+    }
+    
+    private func nextMonth() {
+        if let newDate = calendar.date(byAdding: .month, value: 1, to: currentMonth) {
+            currentMonth = newDate
+        }
+    }
+}
+
+struct CalendarDayView: View {
+    let date: Date
+    let isSelected: Bool
+    let isToday: Bool
+    let hasTasks: Bool
+    let onTap: () -> Void
+    
+    private let calendar = Calendar.current
+    private let dayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter
+    }()
+    
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                Circle()
+                    .fill(backgroundColor)
+                    .frame(width: 36, height: 36)
+                
+                VStack(spacing: 2) {
+                    Text(dayFormatter.string(from: date))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(textColor)
+                    
+                    if hasTasks {
+                        Circle()
+                            .fill(taskIndicatorColor)
+                            .frame(width: 4, height: 4)
+                    } else {
+                        Color.clear
+                            .frame(width: 4, height: 4)
+                    }
+                }
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var backgroundColor: Color {
+        if isSelected {
+            return Color("appPrimaryAccent")
+        } else if isToday {
+            return Color("appPrimaryAccent").opacity(0.1)
+        } else {
+            return Color.clear
+        }
+    }
+    
+    private var textColor: Color {
+        if isSelected {
+            return .white
+        } else if isToday {
+            return Color("appPrimaryAccent")
+        } else {
+            return Color("appTextPrimary")
+        }
+    }
+    
+    private var taskIndicatorColor: Color {
+        if isSelected {
+            return .white
+        } else {
+            return Color("appPrimaryAccent")
+        }
+    }
+}
+
+struct SelectedDateTaskCard: View {
+    let task: PlannerTask
+    let onToggle: () -> Void
+    let onDelete: () -> Void
+    
+    @State private var showingDeleteAlert = false
+    
+    private var priorityColor: Color {
+        switch task.priority {
+        case 1: return Color("appSuccess")
+        case 2: return Color("appWarning")
+        case 3: return Color("appError")
+        default: return Color("appTextSecondary")
+        }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Button(action: onToggle) {
+                    Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundColor(task.completed ? Color("appSuccess") : Color("appTextSecondary"))
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.title ?? "Untitled Task")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(Color("appTextPrimary"))
+                        .strikethrough(task.completed)
+                        .opacity(task.completed ? 0.6 : 1.0)
+                        .lineLimit(2)
+                    
+                    if let dueDate = task.dueDate {
+                        Text(formatTime(dueDate))
+                            .font(.caption)
+                            .foregroundColor(Color("appTextSecondary"))
+                    }
+                }
+                
+                Spacer()
+                
+                Button(action: { showingDeleteAlert = true }) {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundColor(Color("appError"))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            
+            if task.priority > 1 {
+                HStack {
+                    Circle()
+                        .fill(priorityColor)
+                        .frame(width: 8, height: 8)
+                    
+                    Text(priorityText)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(priorityColor)
+                    
+                    Spacer()
+                }
+            }
+        }
+        .padding(12)
+        .frame(width: 200)
+        .background(Color("appStrokeGray"))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        .alert("Delete Task", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) { onDelete() }
+        } message: {
+            Text("Are you sure you want to delete this task?")
+        }
+    }
+    
+    private var priorityText: String {
+        switch task.priority {
+        case 1: return "Low"
+        case 2: return "Medium"
+        case 3: return "High"
+        default: return "None"
+        }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 } 
