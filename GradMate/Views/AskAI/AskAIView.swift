@@ -66,7 +66,7 @@ struct AskAIView: View {
                                     }
                                 }
                             }
-                            .onChange(of: aiManager.isTyping) { isTyping in
+                            .onChange(of: aiManager.isTyping) { oldValue, isTyping in
                                 if isTyping {
                                     withAnimation(.easeInOut(duration: 0.3)) {
                                         proxy.scrollTo("typing", anchor: .bottom)
@@ -237,7 +237,7 @@ struct AskAIView: View {
                     .onSubmit {
                         sendMessage()
                     }
-                    .onChange(of: messageText) { debounceInput($0) }
+                    .onChange(of: messageText) { oldValue, newValue in debounceInput(newValue) }
                 
                 Button(action: sendMessage) {
                     Image(systemName: "paperplane.fill")
@@ -481,12 +481,12 @@ class AIManager: ObservableObject {
         for action in actions {
             switch action.type {
             case .createTask:
-                if let taskData = action.data as? [String: Any],
+                if let taskData = action.data,
                    let title = taskData["title"] as? String {
                     taskManager.createTask(title: title, dueDate: nil)
                 }
             case .addSkill:
-                if let skillData = action.data as? [String: Any],
+                if let skillData = action.data,
                    let skillName = skillData["name"] as? String,
                    let proficiency = skillData["proficiency"] as? Int {
                     skillManager.addSkill(name: skillName, category: "General", proficiency: Int16(proficiency))

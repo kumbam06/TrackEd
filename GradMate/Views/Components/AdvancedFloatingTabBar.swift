@@ -180,7 +180,7 @@ struct TabButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 2)
         }
-        .onChange(of: selectedTab) { newValue in
+        .onChange(of: selectedTab) { oldValue, newValue in
             if newValue == tabIndex {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                     scale = 0.8

@@ -100,7 +100,7 @@ struct NewChatView: View {
                         TextField("Search username...", text: $searchText)
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(Color("appTextPrimary"))
-                            .onChange(of: searchText) { newValue in
+                            .onChange(of: searchText) { oldValue, newValue in
                                 fetchUserSuggestions(for: newValue)
                             }
                             .focused($isSearchFocused)

@@ -28,7 +28,7 @@ class AuthViewModel: ObservableObject {
     }
     
     private func setupNetworkMonitoring() {
-        networkMonitor.pathUpdateHandler = { [weak self] path in
+        networkMonitor.pathUpdateHandler = { path in
             DispatchQueue.main.async {
                 if path.status == .satisfied {
                     print("[DEBUG] Network connection available")

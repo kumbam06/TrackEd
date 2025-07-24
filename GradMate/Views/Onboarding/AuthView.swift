@@ -328,8 +328,7 @@ struct LoginFormView: View {
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                     .focused($isInputFocused)
-                    .accessibilityLabel(Text("Email"))
-                    .onChange(of: email) { newValue in
+                    .onChange(of: email) { oldValue, newValue in
                         debounceInput(newValue, "email")
                     }
             }
@@ -348,14 +347,14 @@ struct LoginFormView: View {
                             TextField("Password", text: $password)
                                 .focused($isInputFocused)
                                 .accessibilityLabel(Text("Password"))
-                                .onChange(of: password) { newValue in
+                                .onChange(of: password) { oldValue, newValue in
                                     debounceInput(newValue, "password")
                                 }
                         } else {
                             SecureField("Password", text: $password)
                                 .focused($isInputFocused)
                                 .accessibilityLabel(Text("Password"))
-                                .onChange(of: password) { newValue in
+                                .onChange(of: password) { oldValue, newValue in
                                     debounceInput(newValue, "password")
                                 }
                         }

@@ -235,7 +235,7 @@ struct ChatDetailView: View {
                         .cornerRadius(22)
                         .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
                         .lineLimit(1...4)
-                        .onChange(of: messageText) { debounceInput($0) }
+                        .onChange(of: messageText) { oldValue, newValue in debounceInput(newValue) }
                     Button(action: sendMessage) {
                         Image(systemName: "paperplane.fill")
                             .font(.title2)
@@ -273,7 +273,7 @@ struct ChatDetailView: View {
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
-        .onChange(of: viewModel.error) { newValue in
+        .onChange(of: viewModel.error) { oldValue, newValue in
             showErrorAlert = newValue != nil
         }
         .alert(isPresented: $showErrorAlert) {

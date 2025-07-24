@@ -1,5 +1,11 @@
 import SwiftUI
 
+struct CoverLetterExportData: Hashable {
+    let coverLetter: String
+    let companyName: String
+    let positionTitle: String
+}
+
 struct CoverLetterComposerView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var coverLetterDataService: CoverLetterDataService
@@ -155,16 +161,23 @@ struct CoverLetterComposerView: View {
             }
             .background(
                 NavigationLink(
-                    destination: CoverLetterExportView(
+                    value: CoverLetterExportData(
                         coverLetter: coverLetterContent,
                         companyName: companyName,
                         positionTitle: positionTitle
-                    ),
-                    isActive: $navigateToExport
+                    )
                 ) {
                     EmptyView()
                 }
+                .opacity(0)
             )
+            .navigationDestination(isPresented: $navigateToExport) {
+                CoverLetterExportView(
+                    coverLetter: coverLetterContent,
+                    companyName: companyName,
+                    positionTitle: positionTitle
+                )
+            }
         }
     }
     
