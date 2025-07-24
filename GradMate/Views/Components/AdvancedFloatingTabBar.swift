@@ -71,7 +71,6 @@ struct AdvancedFloatingTabBar: View {
                         hapticFeedback()
                     }
                 )
-                .environment(\._tabCircleNamespace, tabBarNamespace)
             }
         }
         .padding(.top, 8)

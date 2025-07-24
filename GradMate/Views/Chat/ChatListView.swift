@@ -155,7 +155,7 @@ struct ChatListView: View {
             initializeViewModel()
         }
         .onChange(of: authViewModel.user?.uid) { oldValue, newValue in
-            if let newUserId = newValue {
+            if newValue != nil {
                 initializeViewModel()
             } else {
                 viewModel = nil
@@ -217,7 +217,6 @@ struct ChatListView: View {
     @ViewBuilder
     private var mainContentSection: some View {
         if let viewModel = viewModel {
-            print("[DEBUG] ChatListView - ViewModel exists, chats count: \(viewModel.chats.count), isLoading: \(viewModel.isLoading), error: \(viewModel.error ?? "none")")
             if let error = viewModel.error {
                 errorView(error: error, viewModel: viewModel)
             } else if viewModel.chats.isEmpty {
@@ -226,7 +225,6 @@ struct ChatListView: View {
                 chatListView(viewModel: viewModel)
             }
         } else {
-            print("[DEBUG] ChatListView - No viewModel available, showing loading view")
             loadingView
         }
     }

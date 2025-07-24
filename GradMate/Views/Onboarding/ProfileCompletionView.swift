@@ -1,6 +1,8 @@
 import SwiftUI
 import Photos
 import PhotosUI
+import CoreData
+import FirebaseAuth
 
 struct ProfileCompletionView: View {
     @EnvironmentObject private var profileManager: ProfileManager
@@ -351,44 +353,66 @@ struct ProfileCompletionView: View {
         isLoading = true
         error = nil
         
-        let profile = Profile(
-            name: name,
-            email: authViewModel.user?.email ?? "",
-            username: authViewModel.user?.displayName ?? "",
-            role: role.isEmpty ? "Student" : role,
-            bio: bio,
-            phone: phone,
-            address: address,
-            linkedin: linkedin,
-            website: website,
-            currentCompany: currentCompany,
-            photoData: photoData
-        )
+        // Create or update profile using Core Data context
+        let context = PersistenceController.shared.container.viewContext
+        let request: NSFetchRequest<Profile> = Profile.fetchRequest()
+        request.fetchLimit = 1
         
-        profileManager.updateProfile(profile) { success in
+        let profile: Profile
+        if let existingProfile = try? context.fetch(request).first {
+            profile = existingProfile
+        } else {
+            profile = Profile(context: context)
+            profile.id = UUID()
+        }
+        
+        // Update profile properties
+        profile.name = name
+        profile.email = authViewModel.user?.email ?? ""
+        profile.username = authViewModel.user?.displayName ?? ""
+        profile.role = role.isEmpty ? "Student" : role
+        profile.bio = bio
+        profile.phone = phone
+        profile.address = address
+        profile.linkedin = linkedin
+        profile.website = website
+        profile.currentCompany = currentCompany
+        profile.photoData = photoData
+        
+        // Save to Core Data
+        do {
+            try context.save()
+            
+            // Update the profile manager's current profile
+            profileManager.currentProfile = profile
+            
+            // Save to Firestore using the correct method signature
+            profileManager.updateProfile(
+                name: name,
+                role: role.isEmpty ? "Student" : role,
+                email: authViewModel.user?.email ?? "",
+                phone: phone,
+                bio: bio,
+                linkedin: linkedin,
+                website: website,
+                username: authViewModel.user?.displayName ?? "",
+                dob: nil,
+                address: address,
+                currentCompany: currentCompany
+            )
+            
             DispatchQueue.main.async {
                 isLoading = false
-                if success {
-                    // Profile saved successfully, dismiss the view
-                    // The main app will detect the completed profile and show ContentView
-                    dismiss()
-                } else {
-                    error = "Failed to save profile. Please try again."
-                }
+                // Profile saved successfully, dismiss the view
+                // The main app will detect the completed profile and show ContentView
+                dismiss()
+            }
+        } catch {
+            DispatchQueue.main.async {
+                isLoading = false
+                self.error = "Failed to save profile: \(error.localizedDescription)"
             }
         }
-    }
-}
-
-// MARK: - Custom Text Field Style
-struct CustomTextFieldStyle: TextFieldStyle {
-    func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration
-            .padding(.vertical, 16)
-            .padding(.horizontal, 14)
-            .background(Color("appStrokeGray"))
-            .cornerRadius(12)
-            .foregroundColor(Color("appTextPrimary"))
     }
 }
 
