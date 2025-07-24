@@ -44,28 +44,6 @@ class AuthViewModel: ObservableObject {
         return networkMonitor.currentPath.status == .satisfied
     }
     
-    private func testNetworkConnectivity(completion: @escaping (Bool, String?) -> Void) {
-        guard isNetworkAvailable() else {
-            completion(false, "No network connection available")
-            return
-        }
-        
-        // Test basic internet connectivity
-        let url = URL(string: "https://www.google.com")!
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    completion(false, "Internet connectivity test failed: \(error.localizedDescription)")
-                } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    completion(true, nil)
-                } else {
-                    completion(false, "Internet connectivity test failed: Invalid response")
-                }
-            }
-        }
-        task.resume()
-    }
-    
     func setupAuthListener() {
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             print("[DEBUG] AuthViewModel - Auth state changed, user: \(user?.uid ?? "nil")")
@@ -82,16 +60,12 @@ class AuthViewModel: ObservableObject {
     }
     
     func signUp(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, completion: @escaping (Bool) -> Void) {
-        signUpWithRetry(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: 0, completion: completion)
-    }
-    
-    private func signUpWithRetry(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, retryCount: Int, completion: @escaping (Bool) -> Void) {
+        print("[DEBUG] Starting signup process for email: \(email), username: \(username)")
+        
         isLoading = true
         errorMessage = nil
         
-        print("[DEBUG] Starting signup process for email: \(email), username: \(username), retry: \(retryCount)")
-        
-        // Check network connectivity first
+        // Check network connectivity
         guard isNetworkAvailable() else {
             print("[DEBUG] No network connection available")
             DispatchQueue.main.async {
@@ -102,28 +76,6 @@ class AuthViewModel: ObservableObject {
             return
         }
         
-        // Test internet connectivity
-        testNetworkConnectivity { [weak self] isConnected, errorMessage in
-            guard let self = self else { return }
-            
-            if !isConnected {
-                print("[DEBUG] Internet connectivity test failed: \(errorMessage ?? "Unknown error")")
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                    self.errorMessage = errorMessage ?? "Network connectivity issue. Please check your internet connection."
-                    completion(false)
-                }
-                return
-            }
-            
-            print("[DEBUG] Internet connectivity test passed")
-            
-            // Continue with Firebase operations
-            self.performSignup(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: retryCount, completion: completion)
-        }
-    }
-    
-    private func performSignup(email: String, password: String, username: String, fullName: String, role: String, dob: Date?, retryCount: Int, completion: @escaping (Bool) -> Void) {
         // Check if Firebase is properly configured
         guard FirebaseApp.app() != nil else {
             print("[DEBUG] Firebase not configured")
@@ -135,142 +87,87 @@ class AuthViewModel: ObservableObject {
             return
         }
         
-        // Check username uniqueness with timeout
-        let db = Firestore.firestore()
-        let usernameQuery = db.collection("users").whereField("username", isEqualTo: username)
+        // Generate unique username if needed
+        let finalUsername = username.isEmpty ? generateUsernameFromEmail(email) : username
         
-        // Add timeout for the query
-        let timeoutTask = DispatchWorkItem {
-            print("[DEBUG] Username check timeout")
+        print("[DEBUG] Using username: \(finalUsername)")
+        
+        // Create user account directly
+        Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
             DispatchQueue.main.async {
-                self.isLoading = false
-                if retryCount < 2 {
-                    print("[DEBUG] Retrying username check...")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        self.signUpWithRetry(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: retryCount + 1, completion: completion)
-                    }
-                } else {
-                    self.errorMessage = "Connection timeout. Please check your internet and try again."
-                    completion(false)
-                }
-            }
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0, execute: timeoutTask)
-        
-        usernameQuery.getDocuments { [weak self] snapshot, error in
-            timeoutTask.cancel() // Cancel timeout if query completes
-            
-            if let error = error {
-                print("[DEBUG] Error checking username: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self?.isLoading = false
-                    // Provide more specific error messages
-                    if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
-                        if retryCount < 2 {
-                            print("[DEBUG] Retrying due to network error...")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                self?.signUpWithRetry(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: retryCount + 1, completion: completion)
-                            }
-                        } else {
-                            self?.errorMessage = "Network connection issue. Please check your internet connection and try again."
-                            completion(false)
-                        }
-                    } else if error.localizedDescription.contains("permission") {
-                        self?.errorMessage = "Database access denied. Please contact support."
-                        completion(false)
-                    } else {
-                        self?.errorMessage = "Unable to verify username. Please try again."
-                        completion(false)
-                    }
-                }
-                return
-            }
-            
-            if let docs = snapshot?.documents, !docs.isEmpty {
-                print("[DEBUG] Username '\(username)' already taken, generating unique username")
-                // Generate a unique username by adding a random number
-                let uniqueUsername = "\(username)\(Int.random(in: 1000...9999))"
-                print("[DEBUG] Generated unique username: \(uniqueUsername)")
+                guard let self = self else { return }
                 
-                // Recursively call signUp with the new username
-                self?.signUpWithRetry(email: email, password: password, username: uniqueUsername, fullName: fullName, role: role, dob: dob, retryCount: retryCount, completion: completion)
-                return
-            }
-            
-            print("[DEBUG] Username '\(username)' is unique, proceeding with account creation")
-            
-            // Username is unique, proceed to create user
-            Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
-                DispatchQueue.main.async {
-                    if let error = error {
-                        print("[DEBUG] Firebase Auth error: \(error.localizedDescription)")
-                        self?.isLoading = false
-                        // Provide more specific error messages
-                        if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
-                            if retryCount < 2 {
-                                print("[DEBUG] Retrying due to network error...")
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    self?.signUpWithRetry(email: email, password: password, username: username, fullName: fullName, role: role, dob: dob, retryCount: retryCount + 1, completion: completion)
-                                }
-                            } else {
-                                self?.errorMessage = "Network connection issue. Please check your internet connection and try again."
-                                completion(false)
-                            }
-                        } else if error.localizedDescription.contains("email already in use") {
-                            self?.errorMessage = "An account with this email already exists. Please try logging in instead."
-                            completion(false)
-                        } else if error.localizedDescription.contains("weak password") {
-                            self?.errorMessage = "Password is too weak. Please use a stronger password."
-                            completion(false)
-                        } else if error.localizedDescription.contains("invalid email") {
-                            self?.errorMessage = "Please enter a valid email address."
+                if let error = error {
+                    print("[DEBUG] Firebase Auth error: \(error.localizedDescription)")
+                    self.isLoading = false
+                    
+                    // Provide specific error messages
+                    if error.localizedDescription.contains("email already in use") {
+                        self.errorMessage = "An account with this email already exists. Please try logging in instead."
+                    } else if error.localizedDescription.contains("weak password") {
+                        self.errorMessage = "Password is too weak. Please use a stronger password."
+                    } else if error.localizedDescription.contains("invalid email") {
+                        self.errorMessage = "Please enter a valid email address."
+                    } else if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
+                        self.errorMessage = "Network connection issue. Please check your internet connection and try again."
+                    } else {
+                        self.errorMessage = "Signup failed: \(error.localizedDescription)"
+                    }
+                    completion(false)
+                    return
+                }
+                
+                guard let user = result?.user else {
+                    print("[DEBUG] No user returned from Firebase Auth")
+                    self.isLoading = false
+                    self.errorMessage = "Account creation failed. Please try again."
+                    completion(false)
+                    return
+                }
+                
+                print("[DEBUG] Firebase user created successfully: \(user.uid)")
+                
+                // Save profile data to Firestore
+                var userData: [String: Any] = [
+                    "username": finalUsername,
+                    "email": email,
+                    "name": fullName,
+                    "role": role,
+                    "createdAt": FieldValue.serverTimestamp(),
+                    "lastSignIn": FieldValue.serverTimestamp()
+                ]
+                
+                if let dob = dob {
+                    userData["dob"] = Timestamp(date: dob)
+                }
+                
+                print("[DEBUG] Saving user data to Firestore: \(userData)")
+                
+                let db = Firestore.firestore()
+                db.collection("users").document(user.uid).setData(userData) { firestoreError in
+                    DispatchQueue.main.async {
+                        if let firestoreError = firestoreError {
+                            print("[DEBUG] Firestore error: \(firestoreError.localizedDescription)")
+                            self.isLoading = false
+                            self.errorMessage = "Account created but profile setup failed. Please try again."
                             completion(false)
                         } else {
-                            self?.errorMessage = error.localizedDescription
+                            print("[DEBUG] User profile saved successfully")
+                            self.user = user
+                            self.isLoading = false
+                            completion(true)
                         }
-                        completion(false)
-                    } else if let user = result?.user {
-                        print("[DEBUG] Firebase user created successfully: \(user.uid)")
-                        
-                        // Save profile data to Firestore
-                        var userData: [String: Any] = [
-                            "username": username,
-                            "email": email,
-                            "name": fullName,
-                            "role": role,
-                            "createdAt": FieldValue.serverTimestamp(),
-                            "lastSignIn": FieldValue.serverTimestamp()
-                        ]
-                        if let dob = dob {
-                            userData["dob"] = Timestamp(date: dob)
-                        }
-                        
-                        print("[DEBUG] Saving user data to Firestore: \(userData)")
-                        
-                        db.collection("users").document(user.uid).setData(userData) { firestoreError in
-                            DispatchQueue.main.async {
-                                if let firestoreError = firestoreError {
-                                    print("[DEBUG] Firestore error: \(firestoreError.localizedDescription)")
-                                    self?.errorMessage = "Account created but profile setup failed. Please try again."
-                                    completion(false)
-                                } else {
-                                    print("[DEBUG] User profile saved successfully")
-                                    self?.user = user
-                                    completion(true)
-                                }
-                                self?.isLoading = false
-                            }
-                        }
-                    } else {
-                        print("[DEBUG] Unknown error in user creation")
-                        self?.isLoading = false
-                        self?.errorMessage = "Unknown error occurred. Please try again."
-                        completion(false)
                     }
                 }
             }
         }
+    }
+    
+    private func generateUsernameFromEmail(_ email: String) -> String {
+        let username = email.components(separatedBy: "@").first ?? "user"
+        let cleanUsername = username.replacingOccurrences(of: "[^a-zA-Z0-9]", with: "", options: .regularExpression)
+        let randomSuffix = Int.random(in: 1000...9999)
+        return "\(cleanUsername)\(randomSuffix)"
     }
     
     func login(email: String, password: String, completion: @escaping (Bool) -> Void) {

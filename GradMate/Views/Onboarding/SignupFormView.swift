@@ -7,7 +7,6 @@ struct SignupFormView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
-    @State private var isLoading = false
     @State private var error: String?
     @FocusState private var isInputFocused: Bool
 
@@ -70,7 +69,7 @@ struct SignupFormView: View {
                             .padding(.top, 2)
                     }
                     Button(action: signUp) {
-                        if isLoading {
+                        if authViewModel.isLoading {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: Color.white))
                         } else {
@@ -118,7 +117,6 @@ struct SignupFormView: View {
     private func signUp() {
         guard formIsValid() else { return }
         
-        isLoading = true
         error = nil
         
         // Generate a unique username from email
@@ -127,7 +125,6 @@ struct SignupFormView: View {
         let username = baseUsername.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: "_", with: "")
         
         authViewModel.signUp(email: email, password: password, username: username, fullName: name, role: "Student", dob: nil) { success in
-            isLoading = false
             if !success {
                 error = authViewModel.errorMessage ?? "Signup failed. Please try again."
             }

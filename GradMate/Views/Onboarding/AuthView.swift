@@ -384,10 +384,8 @@ struct LoginFormView: View {
             Button(action: {
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
-                authViewModel.isLoading = true
                 error = nil
                 authViewModel.login(email: debouncedEmail, password: debouncedPassword) { success in
-                    authViewModel.isLoading = false
                     if !success {
                         withAnimation(.spring()) {
                             error = authViewModel.errorMessage ?? "Login failed. Please check your credentials."
