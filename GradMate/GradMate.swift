@@ -92,7 +92,6 @@ struct GradMateApp: App {
                 settings.cacheSettings = PersistentCacheSettings(sizeBytes: NSNumber(value: FirestoreCacheSizeUnlimited))
                 settings.isSSLEnabled = true
                 settings.isPersistenceEnabled = true
-                settings.areTimestampsInSnapshotsEnabled = true
                 // Set longer timeout for slow network connections
                 settings.host = "firestore.googleapis.com"
                 Firestore.firestore().settings = settings
