@@ -220,7 +220,7 @@ struct PlannerView: View {
         }
         .background(Color("appScreenBG"))
         .navigationTitle("Planner")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(showCalendar ? .inline : .large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: { showAddTask = true }) {
