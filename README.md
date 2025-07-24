@@ -87,8 +87,6 @@ GradMate/
 │   │   │   ├── ChatListView.swift    # Chat list
 │   │   │   ├── ChatDetailView.swift  # Individual chat
 │   │   │   └── NewChatView.swift     # Create new chat
-│   │   ├── AskAI/
-│   │   │   └── AskAIView.swift       # AI assistant placeholder
 │   │   ├── Onboarding/
 │   │   │   ├── AuthView.swift        # Login & Google Sign-In
 │   │   │   ├── SignupChatFlowView.swift # Chat-style signup

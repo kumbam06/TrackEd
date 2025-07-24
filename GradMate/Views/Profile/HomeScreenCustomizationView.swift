@@ -353,16 +353,6 @@ struct HomeScreenCustomizationView: View {
                     .padding(.leading, 56)
                 
                 CustomizationRow(
-                    title: "Ask AI",
-                    subtitle: "Get AI assistance",
-                    icon: "brain.head.profile",
-                    isEnabled: $preferencesManager.preferences.showAskAIAction
-                )
-                
-                Divider()
-                    .padding(.leading, 56)
-                
-                CustomizationRow(
                     title: "Focus",
                     subtitle: "Start focus session",
                     icon: "timer",

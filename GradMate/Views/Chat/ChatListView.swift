@@ -49,7 +49,6 @@ struct ChatListView: View {
     @State private var navigateToChat = false
     @State private var userInfos: [String: (username: String, displayName: String?, photoURL: String?)] = [:]
     @State private var hasInitializedViewModel = false
-    @State private var showAskAI = false
     @Binding var isChatDetailActive: Bool
     @State private var incomingRequests: [DocumentSnapshot] = []
     @State private var isLoadingRequests = false

@@ -39,7 +39,6 @@ struct HomeScreenPreferences: Codable {
     
     // Quick actions customization
     var showAddTaskAction: Bool = true
-    var showAskAIAction: Bool = true
     var showFocusAction: Bool = true
     var showNotesAction: Bool = true
 }
@@ -165,14 +164,12 @@ enum StatItem: String, CaseIterable {
 // MARK: - Quick Action Identifiers
 enum HomeQuickAction: String, CaseIterable {
     case addTask = "Add Task"
-    case askAI = "Ask AI"
     case focus = "Focus"
     case notes = "Notes"
     
     var icon: String {
         switch self {
         case .addTask: return "plus"
-        case .askAI: return "brain.head.profile"
         case .focus: return "timer"
         case .notes: return "note.text"
         }
@@ -181,7 +178,6 @@ enum HomeQuickAction: String, CaseIterable {
     var description: String {
         switch self {
         case .addTask: return "Create a new task"
-        case .askAI: return "Get AI assistance"
         case .focus: return "Start focus session"
         case .notes: return "View your notes"
         }
