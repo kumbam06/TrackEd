@@ -404,6 +404,7 @@ struct QuickStatCard: View {
         .padding(12)
         .background(Color("appStrokeGray"))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
     }
 }
 
@@ -436,6 +437,7 @@ struct SkillRowView: View {
         .padding(12)
         .background(Color("appStrokeGray"))
         .cornerRadius(8)
+        .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 1)
     }
 }
 

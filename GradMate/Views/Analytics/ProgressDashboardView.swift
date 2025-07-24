@@ -491,6 +491,7 @@ struct ProgressSummaryCard: View {
         .padding()
         .background(Color("appScreenBG"))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
     }
 }
 
@@ -529,6 +530,7 @@ struct MetricCard: View {
         .padding()
         .background(Color("appScreenBG"))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
     }
 }
 

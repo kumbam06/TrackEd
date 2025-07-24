@@ -32,5 +32,6 @@ struct StatCard: View {
         .padding(.horizontal, 12)
         .background(Color("appStrokeGray"))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
     }
 } 

@@ -37,6 +37,7 @@ struct AddTaskView: View {
                                 .padding(12)
                                 .background(Color("appStrokeGray"))
                                 .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color("appStrokeGray"), lineWidth: 1)
@@ -74,6 +75,7 @@ struct AddTaskView: View {
                             .padding(16)
                             .background(Color("appStrokeGray"))
                             .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
                         }
                         
                         // Priority Section
@@ -198,6 +200,7 @@ struct PriorityButton: View {
             .padding(.horizontal, 16)
             .background(isSelected ? color.opacity(0.1) : Color("appStrokeGray"))
             .cornerRadius(12)
+            .shadow(color: isSelected ? color.opacity(0.2) : Color.black.opacity(0.04), radius: isSelected ? 6 : 4, x: 0, y: 2)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(isSelected ? color : Color("appStrokeGray"), lineWidth: isSelected ? 2 : 1)
@@ -229,6 +232,7 @@ struct QuickActionButton: View {
             .padding(.vertical, 16)
             .background(Color("appCardBG"))
             .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color("appStrokeGray"), lineWidth: 1)

@@ -18,6 +18,7 @@ struct CardView<Content: View>: View {
             .frame(maxWidth: .infinity, minHeight: 120)
             .background(Color("appCardBG"))
             .cornerRadius(16)
+            .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(Color("appStrokeGray"), lineWidth: 1)
@@ -45,10 +46,10 @@ struct FloatingCardView<Content: View>: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Color("appCardBG"))
                     .shadow(
-                        color: Color.black.opacity(0.05),
-                        radius: 10,
+                        color: Color.black.opacity(0.08),
+                        radius: 12,
                         x: 0,
-                        y: 4
+                        y: 6
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)

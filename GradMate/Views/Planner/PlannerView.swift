@@ -439,6 +439,7 @@ struct FilterPill: View {
             .background(isSelected ? Color("appPrimaryAccent") : Color("appStrokeGray"))
             .foregroundColor(isSelected ? .white : Color("appTextPrimary"))
             .cornerRadius(20)
+            .shadow(color: isSelected ? Color("appPrimaryAccent").opacity(0.2) : Color.black.opacity(0.04), radius: isSelected ? 6 : 4, x: 0, y: 2)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(isSelected ? Color("appPrimaryAccent") : Color("appStrokeGray"), lineWidth: 1)

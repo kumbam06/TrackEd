@@ -616,6 +616,7 @@ struct ProfileActionRow: View {
                     Circle()
                         .fill(color.opacity(0.1))
                         .frame(width: 40, height: 40)
+                        .shadow(color: color.opacity(0.2), radius: 4, x: 0, y: 2)
                     Image(systemName: icon)
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(color)
@@ -677,5 +678,6 @@ struct ProfileSkillCard: View {
         .padding(12)
         .background(Color("appStrokeGray"))
         .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
     }
 } 
