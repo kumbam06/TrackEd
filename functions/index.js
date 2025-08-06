@@ -22,15 +22,19 @@ exports.sendChatRequestNotification = onDocumentCreated("chatRequests/{requestId
   const fcmToken = userData ? userData.fcmToken : null;
   if (!fcmToken) return null;
 
-  const payload = {
+  const messaging = getMessaging();
+  const message = {
+    token: fcmToken,
     notification: {
       title: "New Chat Request",
       body: "You have a new chat request!",
     },
+    data: {
+      type: "chatRequest",
+    },
   };
 
-  const messaging = getMessaging();
-  return messaging.sendToDevice(fcmToken, payload);
+  return messaging.send(message);
 });
 
 // This function sends a push notification when a message is sent
@@ -82,7 +86,8 @@ exports.sendMessageNotification = onDocumentCreated("chats/{chatId}/messages/{me
       const truncatedMessage = messageText.length > 50 ?
           messageText.substring(0, 50) + "..." : messageText;
 
-      const payload = {
+      const message = {
+        token: fcmToken,
         notification: {
           title: senderName,
           body: truncatedMessage,
@@ -95,7 +100,7 @@ exports.sendMessageNotification = onDocumentCreated("chats/{chatId}/messages/{me
         },
       };
 
-      return messaging.sendToDevice(fcmToken, payload);
+      return messaging.send(message);
     });
 
   return Promise.all(notificationPromises);
