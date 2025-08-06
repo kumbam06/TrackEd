@@ -17,7 +17,6 @@ struct ProfileCompletionView: View {
     @State private var linkedin = ""
     @State private var website = ""
     @State private var currentCompany = ""
-    @State private var selectedPhoto: PhotosPickerItem?
     @State private var photoData: Data?
     @State private var showingPhotoPicker = false
     @State private var isLoading = false
@@ -66,6 +65,19 @@ struct ProfileCompletionView: View {
             .navigationBarHidden(true)
             .onAppear {
                 loadExistingData()
+            }
+            .onTapGesture {
+                hideKeyboard()
+            }
+            .sheet(isPresented: $showingPhotoPicker) {
+                ImagePicker(selectedImage: Binding(
+                    get: { nil },
+                    set: { image in
+                        if let image = image, let data = image.jpegData(compressionQuality: 0.8) {
+                            photoData = data
+                        }
+                    }
+                ))
             }
         }
     }
@@ -254,29 +266,26 @@ struct ProfileCompletionView: View {
                     .font(.body)
                     .foregroundColor(Color("appTextSecondary"))
                     .multilineTextAlignment(.center)
+                
+                if photoData == nil {
+                    Text("Photo is required to complete your profile")
+                        .font(.caption)
+                        .foregroundColor(Color("appError"))
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 4)
+                }
             }
             
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                HStack(spacing: 8) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Choose Photo")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Color("appPrimaryAccent"))
-                .cornerRadius(12)
+            Button("Choose Photo") {
+                showingPhotoPicker = true
             }
-            .onChange(of: selectedPhoto) { oldValue, newValue in
-                Task {
-                    if let data = try? await newValue?.loadTransferable(type: Data.self) {
-                        photoData = data
-                    }
-                }
-            }
+            .font(.headline)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color("appPrimaryAccent"))
+            .cornerRadius(12)
+            .disabled(isLoading || (currentStep == steps.count - 1 && photoData == nil))
         }
     }
     
@@ -305,8 +314,13 @@ struct ProfileCompletionView: View {
                     .cornerRadius(12)
                 }
                 
-                Button(currentStep == steps.count - 1 ? "Complete Profile" : "Next") {
+                Button(currentStep == steps.count - 1 ? (photoData == nil ? "Add Photo to Complete" : "Complete Profile") : "Next") {
+                    print("[DEBUG] Button tapped - currentStep: \(currentStep), photoData: \(photoData != nil)")
+                    // Hide keyboard before proceeding
+                    hideKeyboard()
+                    
                     if currentStep == steps.count - 1 {
+                        print("[DEBUG] Calling saveProfile()")
                         saveProfile()
                     } else {
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -315,13 +329,12 @@ struct ProfileCompletionView: View {
                     }
                 }
                 .font(.headline)
-                .fontWeight(.semibold)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(Color("appPrimaryAccent"))
                 .cornerRadius(12)
-                .disabled(isLoading)
+                .disabled(isLoading || (currentStep == steps.count - 1 && photoData == nil))
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
@@ -345,6 +358,7 @@ struct ProfileCompletionView: View {
     }
     
     private func saveProfile() {
+        print("[DEBUG] saveProfile() called")
         guard !name.isEmpty else {
             error = "Please enter your full name"
             return
@@ -401,8 +415,14 @@ struct ProfileCompletionView: View {
                 currentCompany: currentCompany
             )
             
+            // Handle photo upload if photo data exists
+            if let photoData = photoData, let image = UIImage(data: photoData) {
+                profileManager.updateProfilePhoto(image)
+            }
+            
             DispatchQueue.main.async {
                 isLoading = false
+                print("[DEBUG] Profile saved successfully, dismissing view")
                 // Profile saved successfully, dismiss the view
                 // The main app will detect the completed profile and show ContentView
                 dismiss()
@@ -410,6 +430,7 @@ struct ProfileCompletionView: View {
         } catch {
             DispatchQueue.main.async {
                 isLoading = false
+                print("[DEBUG] Failed to save profile: \(error.localizedDescription)")
                 self.error = "Failed to save profile: \(error.localizedDescription)"
             }
         }

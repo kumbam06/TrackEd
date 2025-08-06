@@ -100,8 +100,8 @@ struct NewChatView: View {
                         TextField("Search username...", text: $searchText)
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(Color("appTextPrimary"))
-                            .onChange(of: searchText) { oldValue, newValue in
-                                fetchUserSuggestions(for: newValue)
+                            .onChange(of: searchText) { newValue in
+                                // Handle search text changes
                             }
                             .focused($isSearchFocused)
                     }
@@ -180,69 +180,59 @@ struct NewChatView: View {
         isLoadingSuggestions = true
         let db = Firestore.firestore()
         let lowerInput = input.lowercased()
-        var results: [UserSuggestion] = []
-        let group = DispatchGroup()
-        // Username prefix search
-        group.enter()
-        db.collection("users")
-            .order(by: "username")
-            .start(at: [lowerInput])
-            .end(at: [lowerInput + "\u{f8ff}"])
-            .limit(to: 20)
-            .getDocuments { snapshot, error in
-                if let docs = snapshot?.documents {
-                    results.append(contentsOf: docs.compactMap { doc in
-                        let data = doc.data()
-                        let uid = doc.documentID
-                        let username = data["username"] as? String ?? ""
-                        let displayName = data["name"] as? String
-                        if uid == authViewModel.user?.uid { return nil }
-                        if username.lowercased().hasPrefix(lowerInput) {
-                            return UserSuggestion(
-                                id: uid,
-                                username: username,
-                                displayName: displayName,
-                                photoURL: data["photoURL"] as? String
-                            )
-                        }
-                        return nil
-                    })
+        
+        print("[DEBUG] Searching for users with input: \(input)")
+        
+        // Simple search - get all users and filter client-side
+        db.collection("users").getDocuments { snapshot, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("[DEBUG] Error fetching users: \(error.localizedDescription)")
+                    isLoadingSuggestions = false
+                    return
                 }
-                group.leave()
-            }
-        // Name prefix search
-        group.enter()
-        db.collection("users")
-            .order(by: "name")
-            .start(at: [lowerInput])
-            .end(at: [lowerInput + "\u{f8ff}"])
-            .limit(to: 20)
-            .getDocuments { snapshot, error in
-                if let docs = snapshot?.documents {
-                    results.append(contentsOf: docs.compactMap { doc in
-                        let data = doc.data()
-                        let uid = doc.documentID
-                        let username = data["username"] as? String ?? ""
-                        let displayName = data["name"] as? String
-                        if uid == authViewModel.user?.uid { return nil }
-                        if let displayName = displayName, displayName.lowercased().hasPrefix(lowerInput) {
-                            return UserSuggestion(
-                                id: uid,
-                                username: username,
-                                displayName: displayName,
-                                photoURL: data["photoURL"] as? String
-                            )
-                        }
-                        return nil
-                    })
+                
+                guard let docs = snapshot?.documents else {
+                    print("[DEBUG] No documents found")
+                    isLoadingSuggestions = false
+                    return
                 }
-                group.leave()
+                
+                print("[DEBUG] Found \(docs.count) total users")
+                
+                let results = docs.compactMap { doc -> UserSuggestion? in
+                    let data = doc.data()
+                    let uid = doc.documentID
+                    let username = data["username"] as? String ?? ""
+                    let displayName = data["name"] as? String ?? ""
+                    
+                    // Skip current user
+                    if uid == authViewModel.user?.uid { 
+                        print("[DEBUG] Skipping current user: \(uid)")
+                        return nil 
+                    }
+                    
+                    // Check if username or display name contains the search input
+                    let usernameMatch = username.lowercased().contains(lowerInput)
+                    let nameMatch = displayName.lowercased().contains(lowerInput)
+                    
+                    if usernameMatch || nameMatch {
+                        print("[DEBUG] Found matching user: \(username) (\(displayName))")
+                        return UserSuggestion(
+                            id: uid,
+                            username: username,
+                            displayName: displayName.isEmpty ? nil : displayName,
+                            photoURL: data["photoURL"] as? String
+                        )
+                    }
+                    
+                    return nil
+                }
+                
+                print("[DEBUG] Returning \(results.count) matching users")
+                suggestions = results
+                isLoadingSuggestions = false
             }
-        group.notify(queue: .main) {
-            // Deduplicate by user id
-            let unique = Dictionary(grouping: results, by: { $0.id }).compactMap { $0.value.first }
-            suggestions = unique
-            isLoadingSuggestions = false
         }
     }
     
@@ -324,9 +314,26 @@ struct NewChatView: View {
 
     @ViewBuilder
     private func UserRequestRow(user: UserSuggestion) -> some View {
-        @State var requestStatus: String? = nil
-        @State var isLoading = false
         let myId = authViewModel.user?.uid ?? ""
+        UserRequestRowContent(
+            user: user, 
+            myId: myId,
+            onCreateChat: createChatWith,
+            onFetchSentRequests: fetchSentRequests
+        )
+    }
+}
+
+struct UserRequestRowContent: View {
+    let user: UserSuggestion
+    let myId: String
+    let onCreateChat: (String) -> Void
+    let onFetchSentRequests: () -> Void
+    @EnvironmentObject var chatService: FirestoreChatService
+    @State private var requestStatus: String? = nil
+    @State private var isLoading = false
+    
+    var body: some View {
         HStack(spacing: 16) {
             if let url = user.photoURL, let imageURL = URL(string: url) {
                 ZStack {
@@ -356,7 +363,7 @@ struct NewChatView: View {
             if isLoading {
                 ProgressView()
             } else if requestStatus == "accepted" {
-                Button(action: { createChatWith(participantId: user.id) }) {
+                Button(action: { onCreateChat(user.id) }) {
                     Text("Start Chat")
                         .font(.subheadline)
                         .fontWeight(.bold)
@@ -382,7 +389,7 @@ struct NewChatView: View {
                         isLoading = false
                         if success {
                             requestStatus = "pending"
-                            fetchSentRequests()
+                            onFetchSentRequests()
                         }
                     }
                 }) {

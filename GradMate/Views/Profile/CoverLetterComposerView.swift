@@ -102,7 +102,6 @@ struct CoverLetterComposerView: View {
                                         .font(.system(size: 16, weight: .semibold))
                                     Text("Save")
                                         .font(.headline)
-                                        .fontWeight(.semibold)
                                 }
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -118,7 +117,6 @@ struct CoverLetterComposerView: View {
                                         .font(.system(size: 16, weight: .semibold))
                                     Text("Export")
                                         .font(.headline)
-                                        .fontWeight(.semibold)
                                 }
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -136,24 +134,19 @@ struct CoverLetterComposerView: View {
             }
             .navigationTitle("Cover Letter")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(Color("appTextSecondary"))
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    dismiss()
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        saveCoverLetter()
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color("appPrimaryAccent"))
-                    .disabled(companyName.isEmpty || positionTitle.isEmpty || coverLetterContent.isEmpty)
+                .foregroundColor(Color("appTextSecondary")),
+                trailing: Button("Done") {
+                    saveCoverLetter()
+                    dismiss()
                 }
-            }
+                .font(.headline)
+                .foregroundColor(Color("appPrimaryAccent"))
+                .disabled(companyName.isEmpty || positionTitle.isEmpty || coverLetterContent.isEmpty)
+            )
             .alert("Cover Letter Saved", isPresented: $showingSaveAlert) {
                 Button("OK") { }
             } message: {
@@ -161,23 +154,17 @@ struct CoverLetterComposerView: View {
             }
             .background(
                 NavigationLink(
-                    value: CoverLetterExportData(
+                    destination: CoverLetterExportView(
                         coverLetter: coverLetterContent,
                         companyName: companyName,
                         positionTitle: positionTitle
-                    )
+                    ),
+                    isActive: $navigateToExport
                 ) {
                     EmptyView()
                 }
                 .opacity(0)
             )
-            .navigationDestination(isPresented: $navigateToExport) {
-                CoverLetterExportView(
-                    coverLetter: coverLetterContent,
-                    companyName: companyName,
-                    positionTitle: positionTitle
-                )
-            }
         }
     }
     

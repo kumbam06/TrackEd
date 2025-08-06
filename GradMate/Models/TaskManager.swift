@@ -9,17 +9,38 @@ import SwiftUI
 import CoreData
 import Combine
 import Foundation
+import FirebaseAuth
 
 class TaskManager: ObservableObject {
     @Published var tasks: [PlannerTask] = []
     @Published var isLoading = false
+    @Published var cloudTasks: [CloudTask] = []
+    @Published var useCloudStorage = false
     
     private let context: NSManagedObjectContext
+    private let taskDataService = TaskDataService()
     
     init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         self.context = context
+        setupCloudService()
         Task {
             await loadTasksAsync()
+        }
+    }
+    
+    private func setupCloudService() {
+        // Check if user is authenticated to enable cloud storage
+        if Auth.auth().currentUser != nil {
+            useCloudStorage = true
+            // Start listening after a short delay to ensure Firestore is properly initialized
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.taskDataService.startListening()
+            }
+            
+            // Observe cloud tasks changes
+            taskDataService.$tasks
+                .receive(on: DispatchQueue.main)
+                .assign(to: &$cloudTasks)
         }
     }
     
@@ -44,6 +65,7 @@ class TaskManager: ObservableObject {
     }
     
     func createTask(title: String, dueDate: Date?, isAllDay: Bool = false, notes: String = "", priority: Int16 = 1, categoryId: UUID? = nil) {
+        // Create local task
         let task = PlannerTask(context: context)
         task.id = UUID()
         task.title = title
@@ -56,6 +78,28 @@ class TaskManager: ObservableObject {
         task.createdAt = Date()
         save()
         loadTasks()
+        
+        // Create cloud task if user is authenticated
+        if useCloudStorage, let userId = Auth.auth().currentUser?.uid {
+            let cloudTask = CloudTask(
+                userId: userId,
+                title: title,
+                dueDate: dueDate,
+                isAllDay: isAllDay,
+                notes: notes,
+                priority: Int(priority),
+                categoryId: categoryId?.uuidString,
+                completed: false
+            )
+            
+            taskDataService.createTask(cloudTask) { success in
+                if success {
+                    print("[DEBUG] TaskManager - Task created in cloud successfully")
+                } else {
+                    print("[DEBUG] TaskManager - Failed to create task in cloud")
+                }
+            }
+        }
     }
     
     func createTaskFromNaturalLanguage(_ text: String, categoryId: UUID? = nil) {
@@ -75,12 +119,49 @@ class TaskManager: ObservableObject {
         task.completed.toggle()
         save()
         loadTasks()
+        
+        // Update cloud task if user is authenticated
+        if useCloudStorage, let userId = Auth.auth().currentUser?.uid {
+            let cloudTask = CloudTask(
+                id: task.id?.uuidString ?? UUID().uuidString,
+                userId: userId,
+                title: task.title ?? "",
+                dueDate: task.dueDate,
+                isAllDay: task.isAllDay,
+                notes: task.notes ?? "",
+                priority: Int(task.priority),
+                categoryId: task.categoryId?.uuidString,
+                completed: task.completed,
+                createdAt: task.createdAt ?? Date(),
+                updatedAt: Date()
+            )
+            
+            taskDataService.updateTask(cloudTask) { success in
+                if success {
+                    print("[DEBUG] TaskManager - Task completion updated in cloud successfully")
+                } else {
+                    print("[DEBUG] TaskManager - Failed to update task completion in cloud")
+                }
+            }
+        }
     }
     
     func deleteTask(_ task: PlannerTask) {
+        let taskId = task.id?.uuidString ?? UUID().uuidString
         context.delete(task)
         save()
         loadTasks()
+        
+        // Delete cloud task if user is authenticated
+        if useCloudStorage {
+            taskDataService.deleteTask(taskId) { success in
+                if success {
+                    print("[DEBUG] TaskManager - Task deleted from cloud successfully")
+                } else {
+                    print("[DEBUG] TaskManager - Failed to delete task from cloud")
+                }
+            }
+        }
     }
     
     func updateTask(_ task: PlannerTask, title: String, dueDate: Date?, isAllDay: Bool, notes: String, priority: Int16, categoryId: UUID? = nil) {
@@ -92,6 +173,31 @@ class TaskManager: ObservableObject {
         task.categoryId = categoryId
         save()
         loadTasks()
+        
+        // Update cloud task if user is authenticated
+        if useCloudStorage, let userId = Auth.auth().currentUser?.uid {
+            let cloudTask = CloudTask(
+                id: task.id?.uuidString ?? UUID().uuidString,
+                userId: userId,
+                title: title,
+                dueDate: dueDate,
+                isAllDay: isAllDay,
+                notes: notes,
+                priority: Int(priority),
+                categoryId: categoryId?.uuidString,
+                completed: task.completed,
+                createdAt: task.createdAt ?? Date(),
+                updatedAt: Date()
+            )
+            
+            taskDataService.updateTask(cloudTask) { success in
+                if success {
+                    print("[DEBUG] TaskManager - Task updated in cloud successfully")
+                } else {
+                    print("[DEBUG] TaskManager - Failed to update task in cloud")
+                }
+            }
+        }
     }
     
     func getTasksForDate(_ date: Date) -> [PlannerTask] {
@@ -131,6 +237,42 @@ class TaskManager: ObservableObject {
             try context.save()
         } catch {
             print("Error saving task: \(error)")
+        }
+    }
+    
+    // MARK: - Cloud Sync Methods
+    func syncTasksToCloud() {
+        guard useCloudStorage else {
+            print("[DEBUG] TaskManager - Cloud storage not enabled")
+            return
+        }
+        
+        print("[DEBUG] TaskManager - Syncing \(tasks.count) tasks to cloud")
+        taskDataService.syncWithCoreData(tasks)
+    }
+    
+    func enableCloudStorage() {
+        if Auth.auth().currentUser != nil {
+            useCloudStorage = true
+            taskDataService.startListening()
+            syncTasksToCloud()
+            print("[DEBUG] TaskManager - Cloud storage enabled")
+        } else {
+            print("[DEBUG] TaskManager - No authenticated user, cannot enable cloud storage")
+        }
+    }
+    
+    func disableCloudStorage() {
+        useCloudStorage = false
+        taskDataService.stopListening()
+        print("[DEBUG] TaskManager - Cloud storage disabled")
+    }
+    
+    func startCloudService() {
+        if Auth.auth().currentUser != nil && !useCloudStorage {
+            useCloudStorage = true
+            taskDataService.startListening()
+            print("[DEBUG] TaskManager - Cloud storage started")
         }
     }
 }

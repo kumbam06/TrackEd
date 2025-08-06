@@ -55,7 +55,7 @@ class CareerDataService: ObservableObject {
         entity.id = project.id
         entity.title = project.title
         entity.projectDescription = project.description
-        entity.technologies = project.technologies
+        entity.technologies = project.technologies as? NSArray
         entity.startDate = project.startDate
         entity.endDate = project.endDate
         entity.isCurrent = project.isCurrent
@@ -75,7 +75,7 @@ class CareerDataService: ObservableObject {
             if let entity = results.first {
                 entity.title = project.title
                 entity.projectDescription = project.description
-                entity.technologies = project.technologies
+                entity.technologies = project.technologies as? NSArray
                 entity.startDate = project.startDate
                 entity.endDate = project.endDate
                 entity.isCurrent = project.isCurrent
@@ -127,7 +127,7 @@ class CareerDataService: ObservableObject {
         entity.startDate = internship.startDate
         entity.endDate = internship.endDate
         entity.isCurrent = internship.isCurrent
-        entity.technologies = internship.technologies
+        entity.technologies = internship.technologies as? NSArray
         entity.createdAt = Date()
         entity.updatedAt = Date()
         
@@ -149,7 +149,7 @@ class CareerDataService: ObservableObject {
                 entity.startDate = internship.startDate
                 entity.endDate = internship.endDate
                 entity.isCurrent = internship.isCurrent
-                entity.technologies = internship.technologies
+                entity.technologies = internship.technologies as? NSArray
                 entity.updatedAt = Date()
                 
                 save()
@@ -263,7 +263,7 @@ class CareerDataService: ObservableObject {
         entity.startDate = workExperience.startDate
         entity.endDate = workExperience.endDate
         entity.isCurrent = workExperience.isCurrent
-        entity.technologies = workExperience.technologies
+        entity.technologies = workExperience.technologies as? NSArray
         entity.createdAt = Date()
         entity.updatedAt = Date()
         
@@ -285,7 +285,7 @@ class CareerDataService: ObservableObject {
                 entity.startDate = workExperience.startDate
                 entity.endDate = workExperience.endDate
                 entity.isCurrent = workExperience.isCurrent
-                entity.technologies = workExperience.technologies
+                entity.technologies = workExperience.technologies as? NSArray
                 entity.updatedAt = Date()
                 
                 save()
@@ -325,6 +325,82 @@ class CareerDataService: ObservableObject {
             try context.save()
         } catch {
             print("Error saving context: \(error)")
+        }
+    }
+    
+    // MARK: - Conversion Methods
+    func convertToWorkExperienceModels() -> [WorkExperience] {
+        return workExperiences.compactMap { entity in
+            guard let id = entity.id,
+                  let title = entity.title,
+                  let company = entity.company,
+                  let location = entity.location,
+                  let startDate = entity.startDate,
+                  let description = entity.workDescription else {
+                return nil
+            }
+            
+            return WorkExperience(
+                id: id,
+                title: title,
+                company: company,
+                location: location,
+                startDate: startDate,
+                endDate: entity.endDate,
+                isCurrent: entity.isCurrent,
+                description: description,
+                technologies: entity.technologies as? [String]
+            )
+        }
+    }
+    
+    func convertToProjectModels() -> [Project] {
+        return projects.compactMap { entity in
+            guard let id = entity.id,
+                  let title = entity.title,
+                  let description = entity.projectDescription,
+                  let startDate = entity.startDate else {
+                return nil
+            }
+            
+            return Project(
+                id: id,
+                title: title,
+                role: "", // Not stored in Core Data
+                company: "", // Not stored in Core Data
+                location: "", // Not stored in Core Data
+                startDate: startDate,
+                endDate: entity.endDate,
+                isCurrent: entity.isCurrent,
+                description: description,
+                technologies: entity.technologies as? [String]
+            )
+        }
+    }
+    
+    func convertToInternshipModels() -> [Internship] {
+        return internships.compactMap { entity in
+            guard let id = entity.id,
+                  let title = entity.title,
+                  let company = entity.company,
+                  let location = entity.location,
+                  let description = entity.internshipDescription,
+                  let startDate = entity.startDate else {
+                return nil
+            }
+            
+            return Internship(
+                id: id,
+                title: title,
+                role: "", // Not stored in Core Data
+                company: company,
+                location: location,
+                startDate: startDate,
+                endDate: entity.endDate,
+                isCurrent: entity.isCurrent,
+                description: description,
+                technologies: entity.technologies as? [String]
+            )
         }
     }
 } 

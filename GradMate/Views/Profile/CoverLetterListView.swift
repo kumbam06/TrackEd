@@ -158,7 +158,7 @@ struct CoverLetterListView: View {
             hiringManagerName: coverLetter.hiringManagerName ?? "",
             companyAddress: coverLetter.companyAddress ?? "",
             openingParagraph: coverLetter.openingParagraph ?? "",
-            bodyParagraphs: coverLetter.bodyParagraphs ?? [""],
+            bodyParagraphs: (coverLetter.bodyParagraphs as? [String]) ?? [""],
             closingParagraph: coverLetter.closingParagraph ?? ""
         )
         

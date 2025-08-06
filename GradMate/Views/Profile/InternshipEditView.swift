@@ -28,7 +28,7 @@ struct InternshipEditView: View {
         _endDate = State(initialValue: internship?.endDate ?? Date())
         _isCurrent = State(initialValue: internship?.isCurrent ?? false)
         _description = State(initialValue: internship?.description ?? "")
-        _technologies = State(initialValue: internship?.technologies?.joined(separator: ", ") ?? "")
+        _technologies = State(initialValue: (internship?.technologies as? [String])?.joined(separator: ", ") ?? "")
     }
     
     var body: some View {
@@ -196,9 +196,9 @@ struct InternshipEditView: View {
                         onSave(newInternship)
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.headline)
                     .foregroundColor(Color("appPrimaryAccent"))
-                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || company.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }

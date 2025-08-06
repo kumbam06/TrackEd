@@ -28,7 +28,7 @@ struct ProjectEditView: View {
         _endDate = State(initialValue: project?.endDate ?? Date())
         _isCurrent = State(initialValue: project?.isCurrent ?? false)
         _description = State(initialValue: project?.description ?? "")
-        _technologies = State(initialValue: project?.technologies?.joined(separator: ", ") ?? "")
+        _technologies = State(initialValue: (project?.technologies as? [String])?.joined(separator: ", ") ?? "")
     }
     
     var body: some View {
@@ -196,9 +196,9 @@ struct ProjectEditView: View {
                         onSave(newProject)
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.headline)
                     .foregroundColor(Color("appPrimaryAccent"))
-                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || company.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }

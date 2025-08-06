@@ -33,7 +33,7 @@ class CoverLetterDataService: ObservableObject {
         entity.hiringManagerName = coverLetter.hiringManagerName
         entity.companyAddress = coverLetter.companyAddress
         entity.openingParagraph = coverLetter.openingParagraph
-        entity.bodyParagraphs = coverLetter.bodyParagraphs
+        entity.bodyParagraphs = coverLetter.bodyParagraphs as NSArray
         entity.closingParagraph = coverLetter.closingParagraph
         entity.createdAt = Date()
         entity.updatedAt = Date()
@@ -56,7 +56,7 @@ class CoverLetterDataService: ObservableObject {
                 entity.hiringManagerName = coverLetter.hiringManagerName
                 entity.companyAddress = coverLetter.companyAddress
                 entity.openingParagraph = coverLetter.openingParagraph
-                entity.bodyParagraphs = coverLetter.bodyParagraphs
+                entity.bodyParagraphs = coverLetter.bodyParagraphs as NSArray
                 entity.closingParagraph = coverLetter.closingParagraph
                 entity.updatedAt = Date()
                 

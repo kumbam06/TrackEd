@@ -168,6 +168,13 @@ struct PlannerView: View {
                     .background(Color("appCardBG"))
                     .id("search")
                     
+                    // Cloud Sync Section
+                    if #available(iOS 16.0, *) {
+                        CloudSyncView(taskManager: taskManager)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                    }
+                    
                     // Selected Date Tasks (if calendar is shown)
                     if showCalendar && !tasksForSelectedDate.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {

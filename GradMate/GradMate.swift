@@ -70,12 +70,24 @@ struct GradMateApp: App {
                     AuthView()
                         .environmentObject(authViewModel)
                 } else if showProfileCompletion {
-                    ProfileCompletionView()
-                        .environmentObject(authViewModel)
-                        .environmentObject(profileManager)
-                        .onDisappear {
-                            showProfileCompletion = false
-                        }
+                    if #available(iOS 16.0, *) {
+                        ProfileCompletionView()
+                            .environmentObject(authViewModel)
+                            .environmentObject(profileManager)
+                            .onDisappear {
+                                showProfileCompletion = false
+                            }
+                    } else {
+                        // Fallback for iOS 15
+                        ContentView()
+                            .environmentObject(authViewModel)
+                            .environmentObject(profileManager)
+                            .environmentObject(taskManager)
+                            .environmentObject(skillManager)
+                            .environmentObject(chatService)
+                            .environmentObject(homeScreenPreferencesManager)
+                            .environmentObject(taskCategoryManager)
+                    }
                 } else {
                     ContentView()
                         .environmentObject(authViewModel)
@@ -103,7 +115,7 @@ struct GradMateApp: App {
                 Firestore.firestore().settings = settings
                 logToFile("[DEBUG] GradMateApp - Firestore configured successfully with offline support and timeout settings")
             }
-            .onChange(of: authViewModel.user) { oldValue, user in
+            .onChange(of: authViewModel.user) { user in
                 if let user = user {
                     profileManager.loadProfileFromFirestore(uid: user.uid) { profile in
                         // Check if this is a new user (no profile or incomplete profile)

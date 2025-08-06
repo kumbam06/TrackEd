@@ -37,24 +37,24 @@ struct TabContent: View {
     
     var body: some View {
         if selectedTab == 0 {
-            NavigationStack {
+            NavigationView {
                 HomeView()
             }
         } else if selectedTab == 1 {
-            NavigationStack {
+            NavigationView {
                 PlannerView()
                     .environmentObject(taskManager)
             }
         } else if selectedTab == 2 {
-            NavigationStack {
+            NavigationView {
                 ChatListView(isChatDetailActive: $isChatDetailActive)
             }
         } else if selectedTab == 3 {
-            NavigationStack {
+            NavigationView {
                 ProfileView()
             }
         } else {
-            NavigationStack {
+            NavigationView {
                 HomeView()
             }
         }

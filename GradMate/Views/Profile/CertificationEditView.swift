@@ -57,7 +57,6 @@ struct CertificationEditView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Dates")
                                 .font(.headline)
-                                .fontWeight(.semibold)
                                 .foregroundColor(Color("appTextPrimary"))
                             
                             VStack(spacing: 12) {
@@ -94,7 +93,6 @@ struct CertificationEditView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Additional Information")
                                 .font(.headline)
-                                .fontWeight(.semibold)
                                 .foregroundColor(Color("appTextPrimary"))
                             
                             VStack(spacing: 12) {
@@ -107,11 +105,10 @@ struct CertificationEditView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("Description")
                                         .font(.subheadline)
-                                        .fontWeight(.medium)
                                         .foregroundColor(Color("appTextSecondary"))
                                     
-                                    TextField("Description", text: $description, axis: .vertical)
-                                        .lineLimit(3...6)
+                                    TextField("Description", text: $description)
+                                        .frame(minHeight: 80)
                                         .textFieldStyle(CustomTextFieldStyle())
                                 }
                             }
@@ -127,33 +124,29 @@ struct CertificationEditView: View {
             }
             .navigationTitle(certification == nil ? "Add Certification" : "Edit Certification")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        onCancel()
-                    }
-                    .foregroundColor(Color("appTextSecondary"))
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    onCancel()
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let newCertification = Certification(
-                            id: certification?.id ?? UUID(),
-                            title: title,
-                            organization: organization,
-                            location: location,
-                            dateReceived: dateReceived,
-                            dateExpiry: hasExpiryDate ? dateExpiry : nil,
-                            description: description,
-                            credentialID: credentialID.isEmpty ? nil : credentialID
-                        )
-                        onSave(newCertification)
-                    }
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color("appPrimaryAccent"))
-                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || 
-                             organization.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .foregroundColor(Color("appTextSecondary")),
+                trailing: Button("Save") {
+                    let newCertification = Certification(
+                        id: certification?.id ?? UUID(),
+                        title: title,
+                        organization: organization,
+                        location: location,
+                        dateReceived: dateReceived,
+                        dateExpiry: hasExpiryDate ? dateExpiry : nil,
+                        description: description,
+                        credentialID: credentialID.isEmpty ? nil : credentialID
+                    )
+                    onSave(newCertification)
                 }
-            }
+                .font(.headline)
+                .foregroundColor(Color("appPrimaryAccent"))
+                .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || 
+                         organization.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            )
             .onAppear {
                 if let cert = certification {
                     title = cert.title

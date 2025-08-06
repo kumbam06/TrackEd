@@ -6,12 +6,10 @@
 //
 
 import SwiftUI
-import PhotosUI
 import Firebase
 import FirebaseAuth
 import SDWebImageSwiftUI
 
-@available(iOS 16.0, *)
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var profileManager: ProfileManager
@@ -24,7 +22,6 @@ struct EditProfileView: View {
     @State private var bio = ""
     @State private var linkedin = ""
     @State private var website = ""
-    @State private var selectedPhoto: PhotosPickerItem?
     @State private var profileImage: UIImage?
     @State private var username = ""
     @State private var dob: Date = Date()
@@ -42,6 +39,7 @@ struct EditProfileView: View {
     @State private var debouncedAddress = ""
     @State private var debouncedCurrentCompany = ""
     @State private var debounceWorkItem: DispatchWorkItem? = nil
+    @State private var showingImagePicker = false
     private let debounceDelay = 0.25
     
     var body: some View {
@@ -67,7 +65,7 @@ struct EditProfileView: View {
                     Button("CANCEL") {
                         dismiss()
                     }
-                    .fontWeight(.bold)
+                    .font(.headline)
                     .foregroundColor(Color("appTextSecondary"))
                 }
                 
@@ -75,7 +73,7 @@ struct EditProfileView: View {
                     Button("SAVE") {
                         saveProfile()
                     }
-                    .fontWeight(.bold)
+                    .font(.headline)
                     .foregroundColor(Color("appPrimaryAccent"))
                     .disabled(firstName.isEmpty || lastName.isEmpty || role.isEmpty)
                 }
@@ -83,13 +81,8 @@ struct EditProfileView: View {
             .onAppear {
                 loadProfileData()
             }
-            .onChange(of: selectedPhoto) {
-                Task {
-                    if let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        profileImage = image
-                    }
-                }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(selectedImage: $profileImage)
             }
         }
     }
@@ -97,14 +90,15 @@ struct EditProfileView: View {
     private var profilePhotoSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("PROFILE PHOTO")
-                .font(.headline)
-                .fontWeight(.heavy)
+                .font(.title2)
                 .foregroundColor(Color("appTextPrimary"))
                 .kerning(1)
             HStack {
                 Spacer()
                 ZStack(alignment: .topTrailing) {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    Button(action: {
+                        showingImagePicker = true
+                    }) {
                         if let profileImage = profileImage {
                             Image(uiImage: profileImage)
                                 .resizable()
@@ -148,7 +142,6 @@ struct EditProfileView: View {
                     }
                     Button(action: {
                         // Trigger PhotosPicker
-                        selectedPhoto = nil // This will allow re-picking the same image
                     }) {
                         Image(systemName: "pencil.circle.fill")
                             .resizable()
@@ -179,17 +172,17 @@ struct EditProfileView: View {
                     .foregroundColor(Color("appTextPrimary"))
                     .kerning(1)
                 CustomTextField(title: "Username", text: $username, placeholder: "Enter your username")
-                    .onChange(of: username) { newValue, _ in debounceInput(newValue, for: "username") }
+                    .onChange(of: username) { newValue in debounceInput(newValue, for: "username") }
                 HStack(spacing: 12) {
                     CustomTextField(title: "First Name", text: $firstName, placeholder: "Enter your first name")
-                        .onChange(of: firstName) { newValue, _ in debounceInput(newValue, for: "firstName") }
+                        .onChange(of: firstName) { newValue in debounceInput(newValue, for: "firstName") }
                     CustomTextField(title: "Last Name", text: $lastName, placeholder: "Enter your last name")
-                        .onChange(of: lastName) { newValue, _ in debounceInput(newValue, for: "lastName") }
+                        .onChange(of: lastName) { newValue in debounceInput(newValue, for: "lastName") }
                 }
                 CustomTextField(title: "Role/Title", text: $role, placeholder: "e.g., iOS Developer, Student")
-                    .onChange(of: role) { newValue, _ in debounceInput(newValue, for: "role") }
+                    .onChange(of: role) { newValue in debounceInput(newValue, for: "role") }
                 CustomTextField(title: "Current Company/Institution", text: $currentCompany, placeholder: "e.g., Acme Corp, University of X")
-                    .onChange(of: currentCompany) { newValue, _ in debounceInput(newValue, for: "currentCompany") }
+                    .onChange(of: currentCompany) { newValue in debounceInput(newValue, for: "currentCompany") }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Bio")
                         .font(.subheadline)
@@ -204,12 +197,12 @@ struct EditProfileView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(Color("appStrokeGray"), lineWidth: 1)
                         )
-                        .onChange(of: bio) { newValue, _ in debounceInput(newValue, for: "bio") }
+                        .onChange(of: bio) { newValue in debounceInput(newValue, for: "bio") }
                 }
                 DatePicker("Date of Birth", selection: $dob, displayedComponents: .date)
                     .datePickerStyle(CompactDatePickerStyle())
                 CustomTextField(title: "Address", text: $address, placeholder: "Enter your address")
-                    .onChange(of: address) { newValue, _ in debounceInput(newValue, for: "address") }
+                    .onChange(of: address) { newValue in debounceInput(newValue, for: "address") }
             }
         }
     }
@@ -224,10 +217,10 @@ struct EditProfileView: View {
             
             VStack(spacing: 12) {
                 CustomTextField(title: "Email", text: $email, placeholder: "Enter your email address")
-                    .onChange(of: email) { newValue, _ in debounceInput(newValue, for: "email") }
+                    .onChange(of: email) { newValue in debounceInput(newValue, for: "email") }
                 
                 CustomTextField(title: "Phone", text: $phone, placeholder: "Enter your phone number")
-                    .onChange(of: phone) { newValue, _ in debounceInput(newValue, for: "phone") }
+                    .onChange(of: phone) { newValue in debounceInput(newValue, for: "phone") }
             }
         }
         .padding(20)
@@ -246,10 +239,10 @@ struct EditProfileView: View {
             
             VStack(spacing: 12) {
                 CustomTextField(title: "LinkedIn", text: $linkedin, placeholder: "linkedin.com/in/yourprofile")
-                    .onChange(of: linkedin) { newValue, _ in debounceInput(newValue, for: "linkedin") }
+                    .onChange(of: linkedin) { newValue in debounceInput(newValue, for: "linkedin") }
                 
                 CustomTextField(title: "Website", text: $website, placeholder: "yourwebsite.com")
-                    .onChange(of: website) { newValue, _ in debounceInput(newValue, for: "website") }
+                    .onChange(of: website) { newValue in debounceInput(newValue, for: "website") }
             }
         }
         .padding(20)

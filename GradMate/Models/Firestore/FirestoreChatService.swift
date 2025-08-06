@@ -20,17 +20,21 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
             .order(by: "createdAt", descending: true)
             .addSnapshotListener { snapshot, error in
                 if let error = error {
+                    print("[DEBUG] Error loading chats: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         completion([], error)
                     }
                     return
                 }
                 guard let documents = snapshot?.documents else {
+                    print("[DEBUG] No chat documents found")
                     DispatchQueue.main.async {
                         completion([], nil)
                     }
                     return
                 }
+                
+                print("[DEBUG] Found \(documents.count) chat documents")
                 let chats = documents.compactMap { doc -> Chat? in
                     let data = doc.data() 
                     let id = doc.documentID
@@ -48,6 +52,8 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
                     }
                     return Chat(id: id, participants: participants, createdAt: createdAt, isGroup: isGroup, name: name, lastMessage: lastMessage)
                 }
+                
+                print("[DEBUG] Returning \(chats.count) chats")
                 DispatchQueue.main.async {
                     completion(chats, nil)
                 }
@@ -78,14 +84,50 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
     }
     
     func sendMessage(chatId: String, text: String, senderId: String, completion: ((Error?) -> Void)?) {
-        let messageData: [String: Any] = [
-            "senderId": senderId,
-            "text": text,
-            "timestamp": FieldValue.serverTimestamp()
-        ]
-        db.collection("chats").document(chatId).collection("messages").addDocument(data: messageData) { error in
-            completion?(error)
+        print("[DEBUG] Sending message to chat \(chatId): \(text)")
+        print("[DEBUG] Sender ID: \(senderId)")
+        
+        // First, let's verify the chat exists and user is a participant
+        db.collection("chats").document(chatId).getDocument { [weak self] doc, error in
+            if let error = error {
+                print("[DEBUG] Error fetching chat: \(error.localizedDescription)")
+                completion?(error)
+                return
+            }
+            
+            guard let doc = doc, doc.exists, let data = doc.data() else {
+                print("[DEBUG] Chat document not found")
+                completion?(NSError(domain: "ChatError", code: 404, userInfo: [NSLocalizedDescriptionKey: "Chat not found"]))
+                return
+            }
+            
+            let participants = data["participants"] as? [String] ?? []
+            print("[DEBUG] Chat participants: \(participants)")
+            print("[DEBUG] Is sender in participants: \(participants.contains(senderId))")
+            
+            guard participants.contains(senderId) else {
+                print("[DEBUG] Sender is not a participant in this chat")
+                completion?(NSError(domain: "ChatError", code: 403, userInfo: [NSLocalizedDescriptionKey: "Not a participant in this chat"]))
+                return
+            }
+            
+            let messageData: [String: Any] = [
+                "senderId": senderId,
+                "text": text,
+                "timestamp": FieldValue.serverTimestamp()
+            ]
+            
+            self?.db.collection("chats").document(chatId).collection("messages").addDocument(data: messageData) { error in
+                if let error = error {
+                    print("[DEBUG] Error sending message: \(error.localizedDescription)")
+                    completion?(error)
+                } else {
+                    print("[DEBUG] Message sent successfully")
+                    completion?(nil)
+                }
+            }
         }
+        
         // Update lastMessage in chat doc
         db.collection("chats").document(chatId).updateData([
             "lastMessage": [
@@ -93,22 +135,33 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
                 "senderId": senderId,
                 "timestamp": FieldValue.serverTimestamp()
             ]
-        ])
+        ]) { error in
+            if let error = error {
+                print("[DEBUG] Error updating lastMessage: \(error.localizedDescription)")
+            } else {
+                print("[DEBUG] LastMessage updated successfully")
+            }
+        }
     }
     
     func createChat(participants: [String], isGroup: Bool, name: String?, completion: @escaping (String?) -> Void) {
+        print("[DEBUG] Creating chat with participants: \(participants), isGroup: \(isGroup)")
         var data: [String: Any] = [
             "participants": participants,
             "createdAt": FieldValue.serverTimestamp(),
             "isGroup": isGroup
         ]
         if let name = name { data["name"] = name }
+        
+        print("[DEBUG] Chat data to save: \(data)")
         let ref = db.collection("chats").document()
         ref.setData(data) { error in
-            if error == nil {
-                completion(ref.documentID)
-            } else {
+            if let error = error {
+                print("[DEBUG] Error creating chat: \(error.localizedDescription)")
                 completion(nil)
+            } else {
+                print("[DEBUG] Chat created successfully with ID: \(ref.documentID)")
+                completion(ref.documentID)
             }
         }
     }
@@ -137,8 +190,11 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
     }
     
     func stopListening() {
+        print("[DEBUG] Stopping chat listeners")
         chatListener?.remove()
         messageListener?.remove()
+        chatListener = nil
+        messageListener = nil
     }
     
     func lookupUserId(byUsername username: String, completion: @escaping (String?) -> Void) {
@@ -190,29 +246,53 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
     func sendChatRequest(from senderId: String, to recipientId: String, completion: @escaping (Bool) -> Void) {
         let db = Firestore.firestore()
         let requestId = "\(senderId)_\(recipientId)"
-        let data: [String: Any] = [
-            "fromUserId": senderId,
-            "toUserId": recipientId,
-            "status": "pending",
-            "createdAt": FieldValue.serverTimestamp()
-        ]
-        db.collection("chatRequests").document(requestId).setData(data) { error in
-            completion(error == nil)
+        
+        // First get the sender's user information
+        db.collection("users").document(senderId).getDocument { doc, error in
+            guard let userData = doc?.data() else {
+                completion(false)
+                return
+            }
+            
+            let data: [String: Any] = [
+                "fromUserId": senderId,
+                "toUserId": recipientId,
+                "fromDisplayName": userData["name"] as? String ?? "",
+                "fromUsername": userData["username"] as? String ?? "",
+                "fromPhotoURL": userData["photoURL"] as? String ?? "",
+                "status": "pending",
+                "createdAt": FieldValue.serverTimestamp()
+            ]
+            
+            db.collection("chatRequests").document(requestId).setData(data) { error in
+                completion(error == nil)
+            }
         }
     }
 
     // Only create chat when request is accepted
     func acceptChatRequest(from senderId: String, to recipientId: String, completion: @escaping (Bool) -> Void) {
+        print("[DEBUG] Accepting chat request from \(senderId) to \(recipientId)")
         let db = Firestore.firestore()
         let requestId = "\(senderId)_\(recipientId)"
+        
         db.collection("chatRequests").document(requestId).updateData(["status": "accepted"]) { error in
-            if error == nil {
-                // Create chat document only now
-                self.createChat(participants: [senderId, recipientId], isGroup: false, name: nil) { chatId in
-                    completion(chatId != nil)
-                }
-            } else {
+            if let error = error {
+                print("[DEBUG] Error updating chat request status: \(error.localizedDescription)")
                 completion(false)
+                return
+            }
+            
+            print("[DEBUG] Chat request status updated to accepted, creating chat...")
+            // Create chat document only now
+            self.createChat(participants: [senderId, recipientId], isGroup: false, name: nil) { chatId in
+                if let chatId = chatId {
+                    print("[DEBUG] Chat created successfully with ID: \(chatId)")
+                    completion(true)
+                } else {
+                    print("[DEBUG] Failed to create chat")
+                    completion(false)
+                }
             }
         }
     }

@@ -91,7 +91,7 @@ struct ResumeExportView: View {
                     Button("CANCEL") {
                         dismiss()
                     }
-                    .fontWeight(.bold)
+                    .font(.headline)
                     .foregroundColor(.white.opacity(0.7))
                 }
             }
@@ -114,7 +114,6 @@ struct ResumeExportView: View {
             VStack(spacing: 8) {
                 Text("EXPORT RESUME")
                     .font(.title2)
-                    .fontWeight(.heavy)
                     .foregroundColor(.white)
                     .kerning(1)
                 
@@ -131,7 +130,6 @@ struct ResumeExportView: View {
         VStack(alignment: .leading, spacing: selectedTheme.sectionSpacing) {
             Text("RESUME PREVIEW")
                 .font(selectedTheme.sectionTitleFont)
-                .fontWeight(.bold)
                 .foregroundColor(selectedTheme.sectionTitleColor)
                 .kerning(1)
             ScrollView {
@@ -229,7 +227,7 @@ struct ResumeExportView: View {
                                             .font(.caption)
                                             .foregroundColor(selectedTheme.primaryColor.opacity(0.6))
                                     }
-                                    if let technologies = project.technologies, !technologies.isEmpty {
+                                    if let technologies = project.technologies as? [String], !technologies.isEmpty {
                                         Text(technologies.joined(separator: ", "))
                                             .font(.caption)
                                             .foregroundColor(selectedTheme.accentColor)
@@ -625,7 +623,7 @@ struct ResumeExportView: View {
                         .foregroundColor: primaryColor.withAlphaComponent(0.6)
                     ])
                     yPosition += 15
-                    if let technologies = project.technologies, !technologies.isEmpty {
+                    if let technologies = project.technologies as? [String], !technologies.isEmpty {
                         let techText = technologies.joined(separator: ", ")
                         techText.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
                             .font: captionFont,

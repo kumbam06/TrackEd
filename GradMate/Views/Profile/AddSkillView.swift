@@ -182,7 +182,7 @@ struct AddSkillView: View {
                     Button("Save") {
                         saveSkill()
                     }
-                    .fontWeight(.semibold)
+                    .font(.headline)
                     .foregroundColor(Color("appPrimaryAccent"))
                     .disabled(skillName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }

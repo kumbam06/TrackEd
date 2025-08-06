@@ -196,7 +196,7 @@ struct WorkExperienceEditView: View {
                     Button("Save") {
                         saveWorkExperience()
                     }
-                    .fontWeight(.semibold)
+                    .font(.headline)
                     .foregroundColor(Color("appPrimaryAccent"))
                     .disabled(title.isEmpty || company.isEmpty)
                 }

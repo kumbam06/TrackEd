@@ -52,29 +52,59 @@ struct ChatListView: View {
     @Binding var isChatDetailActive: Bool
     @State private var incomingRequests: [DocumentSnapshot] = []
     @State private var isLoadingRequests = false
+    @State private var shouldRefreshChats = false
+    @State private var userInfoUpdateTrigger = false
+    @State private var searchText = ""
     
     // Batch preload user info for all chat participants (batched)
     private func preloadUserInfos(for chats: [Chat], myId: String) {
         let partnerIds = Set(chats.compactMap { $0.participants.first(where: { $0 != myId }) })
+        print("[DEBUG] preloadUserInfos - partnerIds: \(partnerIds)")
+        
+        // First, load any cached data into userInfos
+        for partnerId in partnerIds {
+            if let cachedInfo = UserCache.shared.getUserInfo(uid: partnerId) {
+                userInfos[partnerId] = cachedInfo
+                print("[DEBUG] preloadUserInfos - Loaded cached info for \(partnerId): \(cachedInfo)")
+            }
+        }
+        
         let uncachedIds = partnerIds.filter { UserCache.shared.getUserInfo(uid: $0) == nil && userInfos[$0] == nil }
-        guard !uncachedIds.isEmpty else { return }
+        print("[DEBUG] preloadUserInfos - uncachedIds: \(uncachedIds)")
+        guard !uncachedIds.isEmpty else { 
+            print("[DEBUG] preloadUserInfos - No uncached IDs to load")
+            return 
+        }
         let db = Firestore.firestore()
         // Firestore allows up to 10 'in' values per query, so batch if needed
         let batchSize = 10
         let uncachedIdsArray = Array(uncachedIds)
         let batches = stride(from: 0, to: uncachedIdsArray.count, by: batchSize).map { Array(uncachedIdsArray[$0..<min($0+batchSize, uncachedIdsArray.count)]) }
+        print("[DEBUG] preloadUserInfos - Loading \(uncachedIdsArray.count) users in \(batches.count) batches")
         for batch in batches {
             db.collection("users").whereField(FieldPath.documentID(), in: batch).getDocuments { snapshot, error in
-                guard let docs = snapshot?.documents else { return }
+                if let error = error {
+                    print("[DEBUG] preloadUserInfos - Error loading users: \(error.localizedDescription)")
+                    return
+                }
+                guard let docs = snapshot?.documents else { 
+                    print("[DEBUG] preloadUserInfos - No documents returned")
+                    return 
+                }
+                print("[DEBUG] preloadUserInfos - Loaded \(docs.count) user documents")
                 for doc in docs {
                     let data = doc.data()
                     let uid = doc.documentID
                     let username = data["username"] as? String ?? "User"
                     let displayName = data["name"] as? String
                     let photoURL = data["photoURL"] as? String
+                    print("[DEBUG] preloadUserInfos - User \(uid): username=\(username), displayName=\(displayName ?? "nil"), photoURL=\(photoURL ?? "nil")")
                     UserCache.shared.setUserInfo(uid: uid, username: username, displayName: displayName, photoURL: photoURL)
                     DispatchQueue.main.async {
                         userInfos[uid] = (username, displayName, photoURL)
+                        print("[DEBUG] preloadUserInfos - Updated userInfos for \(uid)")
+                        // Force UI update by toggling the trigger
+                        userInfoUpdateTrigger.toggle()
                     }
                 }
             }
@@ -105,7 +135,7 @@ struct ChatListView: View {
         isLoadingRequests = true
         let db = Firestore.firestore()
         db.collection("chatRequests")
-            .whereField("recipientId", isEqualTo: userId)
+            .whereField("toUserId", isEqualTo: userId)
             .whereField("status", isEqualTo: "pending")
             .addSnapshotListener { snapshot, error in
                 DispatchQueue.main.async {
@@ -139,51 +169,106 @@ struct ChatListView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            headerSection
-            chatRequestsSection
-            mainContentSection
+        ScrollView {
+            VStack(spacing: 0) {
+                searchSection
+                chatRequestsSection
+                mainContentSection
+            }
+            .padding(.bottom, 100) // Padding for tab bar
         }
         .background(Color("appScreenBG"))
-        .navigationBarHidden(true)
+        .navigationTitle("Chats")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showNewChat = true }) {
+                    Image(systemName: "plus")
+                        .font(.title2.bold())
+                        .foregroundColor(Color("appPrimaryAccent"))
+                }
+            }
+        }
         .sheet(isPresented: $showNewChat) {
             NewChatView()
                 .environmentObject(authViewModel)
         }
+                                .background(
+                    NavigationLink(
+                        destination: Group {
+                            if let selectedChat = selectedChat {
+                                ChatDetailView(
+                                    chat: selectedChat,
+                                    userId: authViewModel.user?.uid ?? "",
+                                    chatService: chatService,
+                                    isChatDetailActive: $isChatDetailActive
+                                )
+                                .environmentObject(authViewModel)
+                                .environmentObject(chatService)
+                            }
+                        },
+                        isActive: $navigateToChat
+                    ) {
+                        EmptyView()
+                    }
+                    .opacity(0)
+                )
         .onAppear {
             loadIncomingRequests()
             initializeViewModel()
         }
-        .onChange(of: authViewModel.user?.uid) { oldValue, newValue in
+        .onChange(of: authViewModel.user?.uid) { newValue in
             if newValue != nil {
                 initializeViewModel()
             } else {
                 viewModel = nil
             }
         }
+        .onChange(of: shouldRefreshChats) { newValue in
+            if newValue {
+                print("[DEBUG] Refreshing chats due to accepted request")
+                viewModel?.loadChats(forceRefresh: true)
+                shouldRefreshChats = false
+            }
+        }
+        .onChange(of: viewModel?.chats) { newValue in
+            if let chats = newValue, let myId = authViewModel.user?.uid {
+                print("[DEBUG] Chats changed, preloading user info for \(chats.count) chats")
+                preloadUserInfos(for: chats, myId: myId)
+            }
+        }
+        .onChange(of: navigateToChat) { newValue in
+            if !newValue {
+                // Reset selected chat when navigation is dismissed
+                selectedChat = nil
+                isChatDetailActive = false
+            }
+        }
+        .onDisappear {
+            print("[DEBUG] ChatListView disappearing, cleaning up listeners")
+            viewModel?.stopListening()
+        }
     }
     
     @ViewBuilder
-    private var headerSection: some View {
-        HStack {
-            Text("Chats")
-                .font(.largeTitle)
-                .fontWeight(.black)
-                .foregroundColor(Color("appTextPrimary"))
-                .kerning(1.5)
-            Spacer()
-            Button(action: { showNewChat = true }) {
-                Image(systemName: "plus")
-                    .font(.title2.bold())
-                    .foregroundColor(Color("appPrimaryAccent"))
-                    .padding(10)
-                    .background(Color("appPrimaryAccent").opacity(0.08))
-                    .clipShape(Circle())
+    private var searchSection: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color("appTextSecondary"))
+                TextField("Search chats...", text: $searchText)
+                    .font(.body)
+                    .textFieldStyle(PlainTextFieldStyle())
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color("appCardBG"))
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 24)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
     
     @ViewBuilder
@@ -203,11 +288,11 @@ struct ChatListView: View {
                     .fontWeight(.bold)
                     .foregroundColor(Color("appPrimaryAccent"))
                     .padding(.leading, 8)
-                                    ForEach(incomingRequests, id: \.documentID) { doc in
-                        ChatRequestRowView(requestDoc: doc)
-                            .environmentObject(authViewModel)
-                            .environmentObject(chatService)
-                    }
+                ForEach(incomingRequests, id: \.documentID) { doc in
+                    ChatRequestRowView(requestDoc: doc, shouldRefreshChats: $shouldRefreshChats)
+                        .environmentObject(authViewModel)
+                        .environmentObject(chatService)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
@@ -305,14 +390,16 @@ struct ChatListView: View {
     @ViewBuilder
     private func chatListView(viewModel: ChatListViewModel) -> some View {
         ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(viewModel.chats) { chat in
+            LazyVStack(spacing: 12) {
+                ForEach(filteredChats(viewModel.chats)) { chat in
                     ChatRowView(
                         chat: chat,
                         userInfos: userInfos,
                         onTap: {
+                            print("[DEBUG] Chat tapped: \(chat.id)")
                             selectedChat = chat
                             navigateToChat = true
+                            isChatDetailActive = true
                         },
                         onDelete: {
                             deleteChat(chat)
@@ -320,7 +407,25 @@ struct ChatListView: View {
                     )
                 }
             }
+            .padding(.horizontal, 16)
             .padding(.bottom, 100) // Padding for tab bar
+        }
+    }
+    
+    private func filteredChats(_ chats: [Chat]) -> [Chat] {
+        guard !searchText.isEmpty else { return chats }
+        
+        return chats.filter { chat in
+            let myId = authViewModel.user?.uid ?? ""
+            let partnerId = chat.participants.first(where: { $0 != myId }) ?? ""
+            let userInfo = userInfos[partnerId]
+            
+            let displayName = userInfo?.1 ?? userInfo?.0 ?? ""
+            let username = userInfo?.0 ?? ""
+            
+            return displayName.localizedCaseInsensitiveContains(searchText) ||
+                   username.localizedCaseInsensitiveContains(searchText) ||
+                   chat.lastMessage?.text.localizedCaseInsensitiveContains(searchText) == true
         }
     }
     
@@ -342,6 +447,8 @@ struct ChatRequestRowView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var chatService: FirestoreChatService
     @State private var isProcessing = false
+    @State private var showSuccessMessage = false
+    @Binding var shouldRefreshChats: Bool
     
     var body: some View {
         let data = requestDoc.data() ?? [:]
@@ -376,9 +483,21 @@ struct ChatRequestRowView: View {
             } else {
                 Button(action: {
                     isProcessing = true
+                    print("[DEBUG] Accepting chat request from \(fromUserId)")
                     chatService.acceptChatRequest(from: fromUserId, to: authViewModel.user?.uid ?? "") { success in
-                        isProcessing = false
-                        // Optionally, show a toast or feedback
+                        DispatchQueue.main.async {
+                            isProcessing = false
+                            if success {
+                                print("[DEBUG] Chat request accepted successfully")
+                                showSuccessMessage = true
+                                // Force refresh the chat list after a short delay
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    shouldRefreshChats = true
+                                }
+                            } else {
+                                print("[DEBUG] Failed to accept chat request")
+                            }
+                        }
                     }
                 }) {
                     Text("Accept")
@@ -417,6 +536,7 @@ struct ChatRequestRowView: View {
 
 struct EmptyChatListView: View {
     var body: some View {
+        Spacer()
         VStack(spacing: 24) {
             ZStack {
                 Circle()
@@ -439,6 +559,7 @@ struct EmptyChatListView: View {
                 .padding(.horizontal, 40)
         }
         .padding(.vertical, 32)
+        Spacer()
     }
 }
 
@@ -453,7 +574,14 @@ struct ChatRowView: View {
     private func formatTimeAgo(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+        
+        // Safety check for invalid dates
+        let now = Date()
+        if date > now || date.timeIntervalSince1970 < 0 {
+            return "now"
+        }
+        
+        return formatter.localizedString(for: date, relativeTo: now)
     }
 
     var body: some View {
@@ -463,7 +591,7 @@ struct ChatRowView: View {
                 let partnerId = chat.participants.first(where: { $0 != myId }) ?? ""
                 let userInfo = userInfos[partnerId]
                 
-                if let userInfo = userInfo, let url = userInfo.2, let imageURL = URL(string: url) {
+                if let userInfo = userInfo, let url = userInfo.2, !url.isEmpty, let imageURL = URL(string: url) {
                     ZStack {
                         Circle()
                             .fill(Color.gray.opacity(0.2))
@@ -474,17 +602,27 @@ struct ChatRowView: View {
                             .clipShape(Circle())
                             .frame(width: 48, height: 48)
                     }
+                    .onAppear {
+                        print("[DEBUG] ChatRowView - Loading image for \(partnerId): \(url)")
+                    }
                 } else {
                     Circle().fill(Color("appPrimaryAccent").opacity(0.12))
                         .frame(width: 48, height: 48)
                         .overlay(Image(systemName: "person.fill").foregroundColor(Color("appPrimaryAccent")))
+                        .onAppear {
+                            print("[DEBUG] ChatRowView - No image URL for \(partnerId), userInfo: \(String(describing: userInfo))")
+                        }
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(userInfo?.1 ?? userInfo?.0 ?? "...")
+                    Text(userInfo?.1 ?? userInfo?.0 ?? "Loading...")
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(Color("appTextPrimary"))
                         .lineLimit(1)
+                        .onAppear {
+                            print("[DEBUG] ChatRowView - partnerId: \(partnerId)")
+                            print("[DEBUG] ChatRowView - userInfo: \(String(describing: userInfo))")
+                        }
                     if let last = chat.lastMessage {
                         Text("\(last.senderId == myId ? "You: " : "")\(last.text)")
                             .font(.subheadline)
@@ -500,9 +638,9 @@ struct ChatRowView: View {
                 }
             }
             .padding(.vertical, 16)
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 16)
             .background(Color("appCardBG"))
-            .cornerRadius(18)
+            .cornerRadius(16)
             .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
         }
         .buttonStyle(PlainButtonStyle())

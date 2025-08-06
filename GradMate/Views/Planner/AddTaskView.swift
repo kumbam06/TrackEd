@@ -161,7 +161,7 @@ struct AddTaskView: View {
                         onAdd(title, notes, dueDate, isAllDay, priority)
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(.headline)
                     .foregroundColor(Color("appPrimaryAccent"))
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }

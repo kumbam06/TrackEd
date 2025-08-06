@@ -80,7 +80,7 @@ struct AuthView: View {
     // MARK: - Main Body
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             ZStack {
                 LinearGradient(gradient: Gradient(colors: [Color(uiColor: .systemGray6), Color(uiColor: .systemGray4)]), startPoint: .top, endPoint: .bottom)
                     .ignoresSafeArea()

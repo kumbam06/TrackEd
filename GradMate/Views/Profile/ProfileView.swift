@@ -177,27 +177,33 @@ struct ProfileView: View {
             }
         }
         private func captureIDCards() {
-            let rendererFront = ImageRenderer(content:
-                ProfileView.ProfileIDCardView(profile: profile, showEditProfile: .constant(false), showEditButton: false)
-                    .frame(width: 340, height: 400)
-                    .padding(.horizontal, 20)
-            )
-            rendererFront.scale = 3 // High quality
-            let rendererBack = ImageRenderer(content:
-                ProfileView.IDCardBackView(profile: profile)
-                    .frame(width: 340, height: 400)
-                    .padding(.horizontal, 20)
-            )
-            rendererBack.scale = 3 // High quality
-            var images: [UIImage] = []
-            if let front = rendererFront.uiImage {
-                images.append(front)
+            if #available(iOS 16.0, *) {
+                let rendererFront = ImageRenderer(content:
+                    ProfileView.ProfileIDCardView(profile: profile, showEditProfile: .constant(false), showEditButton: false)
+                        .frame(width: 340, height: 400)
+                        .padding(.horizontal, 20)
+                )
+                rendererFront.scale = 3 // High quality
+                let rendererBack = ImageRenderer(content:
+                    ProfileView.IDCardBackView(profile: profile)
+                        .frame(width: 340, height: 400)
+                        .padding(.horizontal, 20)
+                )
+                rendererBack.scale = 3 // High quality
+                var images: [UIImage] = []
+                if let front = rendererFront.uiImage {
+                    images.append(front)
+                }
+                if let back = rendererBack.uiImage {
+                    images.append(back)
+                }
+                idCardImages = images
+                showShareSheet = true
+            } else {
+                // For iOS 15.0+, show an alert that this feature requires iOS 16.0+
+                // You could implement an alternative sharing method here
+                print("ID Card sharing requires iOS 16.0 or later")
             }
-            if let back = rendererBack.uiImage {
-                images.append(back)
-            }
-            idCardImages = images
-            showShareSheet = true
         }
     }
 

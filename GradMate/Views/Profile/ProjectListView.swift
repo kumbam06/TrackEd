@@ -89,6 +89,10 @@ struct ProjectListView: View {
 
 struct ProjectListView_Previews: PreviewProvider {
     static var previews: some View {
-        ProjectListView()
+        if #available(iOS 16.0, *) {
+            ProjectListView()
+        } else {
+            Text("Project List requires iOS 16.0+")
+        }
     }
 } 

@@ -26,6 +26,96 @@ struct AnimatedWaveHand: View {
     }
 }
 
+
+
+struct ChatMessagesView: View {
+    let messages: [Message]
+    let userId: String
+    let messageGradient: LinearGradient
+    
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 14) {
+                    if messages.isEmpty {
+                        VStack(spacing: 20) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color("appPrimaryAccent").opacity(0.10))
+                                    .frame(width: 90, height: 90)
+                                AnimatedWaveHand()
+                            }
+                            Text("No messages yet. Say hi to start your conversation!")
+                                .font(.body)
+                                .foregroundColor(Color("appTextSecondary"))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
+                        .padding(.vertical, 40)
+                    } else {
+                        ForEach(messages, id: \.id) { message in
+                            MessageRowView(message: message, userId: userId, messageGradient: messageGradient)
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+        }
+    }
+}
+
+struct MessageRowView: View {
+    let message: Message
+    let userId: String
+    let messageGradient: LinearGradient
+    
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            if message.senderId == userId {
+                Spacer(minLength: 60)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(message.text)
+                        .font(.body)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(messageGradient)
+                        .cornerRadius(20)
+                    Text(timeString(from: message.timestamp))
+                        .font(.caption2)
+                        .foregroundColor(Color("appTextSecondary"))
+                        .padding(.trailing, 8)
+                }
+                .padding(.trailing, 8)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(message.text)
+                        .font(.body)
+                        .foregroundColor(Color("appTextPrimary"))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color("appCardBG"))
+                        .cornerRadius(20)
+                    Text(timeString(from: message.timestamp))
+                        .font(.caption2)
+                        .foregroundColor(Color("appTextSecondary"))
+                        .padding(.leading, 8)
+                }
+                .padding(.leading, 8)
+                Spacer(minLength: 60)
+            }
+        }
+        .id(message.id)
+    }
+    
+    private func timeString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
 struct ChatDetailView: View {
     let chat: Chat
     let userId: String
@@ -39,16 +129,18 @@ struct ChatDetailView: View {
     @State private var partnerPhotoURL: String? = nil
     @State private var partnerStatus: String = "online"
     @State private var partnerId: String? = nil
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) var dismiss
+    @Binding var isChatDetailActive: Bool
     @State private var debouncedMessageText = ""
     @State private var debounceWorkItem: DispatchWorkItem?
     private let debounceDelay = 0.25
     @State private var isRefreshing = false
     
-    init(chat: Chat, userId: String, chatService: ChatServiceProtocol) {
+    init(chat: Chat, userId: String, chatService: ChatServiceProtocol, isChatDetailActive: Binding<Bool>) {
         self.chat = chat
         self.userId = userId
         self.chatService = chatService
+        self._isChatDetailActive = isChatDetailActive
         _viewModel = StateObject(wrappedValue: ChatDetailViewModel(chatService: chatService, chatId: chat.id, userId: userId))
     }
     
@@ -56,55 +148,60 @@ struct ChatDetailView: View {
         ZStack {
             Color("appScreenBG").ignoresSafeArea()
             VStack(spacing: 0) {
-                // WhatsApp/Instagram-style custom header
-                HStack(spacing: 14) {
-                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                // Custom Header as part of content
+                HStack(spacing: 12) {
+                    Button(action: {
+                        isChatDetailActive = false
+                        dismiss()
+                    }) {
                         Image(systemName: "chevron.left")
-                            .font(.title2.bold())
-                            .foregroundColor(Color("appPrimaryAccent"))
-                            .padding(8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
+                            .font(.title2)
+                            .foregroundColor(Color("appTextSecondary"))
                     }
-                    if let url = partnerPhotoURL, let imageURL = URL(string: url) {
-                        WebImage(url: imageURL)
+                    
+                    if let photoURL = partnerPhotoURL, let url = URL(string: photoURL) {
+                        WebImage(url: url)
                             .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 36, height: 36)
                             .clipShape(Circle())
-                            .frame(width: 40, height: 40)
+                            .overlay(Circle().stroke(Color("appPrimaryAccent").opacity(0.2), lineWidth: 1))
                     } else {
-                        Circle().fill(Color("appPrimaryAccent").opacity(0.12))
-                            .frame(width: 40, height: 40)
-                            .overlay(Image(systemName: "person.fill").foregroundColor(Color("appPrimaryAccent")))
+                        Circle()
+                            .fill(Color("appPrimaryAccent").opacity(0.1))
+                            .frame(width: 36, height: 36)
+                            .overlay(
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(Color("appPrimaryAccent"))
+                            )
                     }
+                    
                     VStack(alignment: .leading, spacing: 2) {
                         Text(partnerDisplayName.isEmpty ? partnerUsername : partnerDisplayName)
                             .font(.headline)
-                            .fontWeight(.bold)
+                            .fontWeight(.semibold)
                             .foregroundColor(Color("appTextPrimary"))
-                        Text(partnerStatus)
+                        Text("online")
                             .font(.caption2)
                             .foregroundColor(Color("appPrimaryAccent").opacity(0.8))
                     }
+                    
                     Spacer()
-                    Menu {
-                        Button("View Profile", action: viewProfile)
-                        Button("Mute Chat", action: muteChat)
-                        Button("Block User", action: blockUser)
-                        Button("Clear Chat", action: clearChat)
-                    } label: {
+                    
+                    Button(action: viewProfile) {
                         Image(systemName: "ellipsis")
                             .rotationEffect(.degrees(90))
                             .font(.title2)
                             .foregroundColor(Color("appPrimaryAccent"))
-                            .padding(8)
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(Color("appPrimaryAccent").opacity(0.1)))
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-                .padding(.bottom, 8)
-                .background(.ultraThinMaterial)
-                .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
-                Divider().opacity(0.05)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color("appScreenBG"))
+                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
                 
                 if viewModel.isLoading {
                     Spacer()
@@ -137,96 +234,22 @@ struct ChatDetailView: View {
                     }
                     Spacer()
                 } else {
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 14) {
-                                if viewModel.messages.isEmpty {
-                                    VStack(spacing: 20) {
-                                        ZStack {
-                                            Circle()
-                                                .fill(Color("appPrimaryAccent").opacity(0.10))
-                                                .frame(width: 90, height: 90)
-                                            AnimatedWaveHand()
-                                        }
-                                        Text("No messages yet. Say hi to start your conversation!")
-                                            .font(.body)
-                                            .foregroundColor(Color("appTextSecondary"))
-                                            .multilineTextAlignment(.center)
-                                            .padding(.horizontal, 24)
-                                    }
-                                    .padding(.vertical, 40)
-                                }
-                                ForEach(groupMessagesByDay(viewModel.messages), id: \.date) { group in
-                                    VStack(alignment: .center, spacing: 8) {
-                                        Text(dateHeaderString(for: group.date))
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(Color("appPrimaryAccent"))
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 6)
-                                            .background(Color("appPrimaryAccent").opacity(0.12))
-                                            .clipShape(Capsule())
-                                            .padding(.vertical, 8)
-                                            .frame(maxWidth: .infinity)
-                                        ForEach(group.messages) { message in
-                                            HStack(alignment: .bottom, spacing: 8) {
-                                                if message.senderId == userId {
-                                                    Spacer(minLength: 60)
-                                                    VStack(alignment: .trailing, spacing: 4) {
-                                                        Text(message.text)
-                                                            .font(.body)
-                                                            .foregroundColor(.white)
-                                                            .padding(.horizontal, 16)
-                                                            .padding(.vertical, 12)
-                                                            .background(
-                                                                LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                                            )
-                                                            .cornerRadius(20)
-                                                            .shadow(color: Color("appPrimaryAccent").opacity(0.08), radius: 4, x: 0, y: 2)
-                                                        Text(timeString(from: message.timestamp))
-                                                            .font(.caption2)
-                                                            .foregroundColor(Color("appTextSecondary"))
-                                                            .padding(.trailing, 8)
-                                                    }
-                                                    .padding(.trailing, 8)
-                                                } else {
-                                                    VStack(alignment: .leading, spacing: 4) {
-                                                        Text(message.text)
-                                                            .font(.body)
-                                                            .foregroundColor(Color("appTextPrimary"))
-                                                            .padding(.horizontal, 16)
-                                                            .padding(.vertical, 12)
-                                                            .background(Color("appCardBG"))
-                                                            .cornerRadius(20)
-                                                            .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
-                                                        Text(timeString(from: message.timestamp))
-                                                            .font(.caption2)
-                                                            .foregroundColor(Color("appTextSecondary"))
-                                                            .padding(.leading, 8)
-                                                    }
-                                                    .padding(.leading, 8)
-                                                    Spacer(minLength: 60)
-                                                }
-                                            }
-                                            .id(message.id)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
-                        .refreshable {
-                            isRefreshing = true
-                            viewModel.loadMessages(forceRefresh: true)
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                isRefreshing = false
-                            }
+                    ChatMessagesView(
+                        messages: viewModel.messages,
+                        userId: userId,
+                        messageGradient: messageGradient
+                    )
+                    .refreshable {
+                        isRefreshing = true
+                        viewModel.loadMessages(forceRefresh: true)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            isRefreshing = false
                         }
                     }
                 }
                 // Message Input Bar
                 HStack(spacing: 12) {
-                    TextField("Message...", text: $messageText, axis: .vertical)
+                    TextField("Message...", text: $messageText)
                         .font(.body)
                         .textFieldStyle(PlainTextFieldStyle())
                         .padding(.horizontal, 16)
@@ -234,16 +257,14 @@ struct ChatDetailView: View {
                         .background(.ultraThinMaterial)
                         .cornerRadius(22)
                         .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
-                        .lineLimit(1...4)
-                        .onChange(of: messageText) { oldValue, newValue in debounceInput(newValue) }
+                        .frame(minHeight: 40)
+                        .onChange(of: messageText) { newValue in debounceInput(newValue) }
                     Button(action: sendMessage) {
                         Image(systemName: "paperplane.fill")
                             .font(.title2)
                             .foregroundColor(.white)
                             .frame(width: 48, height: 48)
-                            .background(
-                                LinearGradient(colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            )
+                            .background(sendButtonGradient)
                             .clipShape(Circle())
                             .shadow(color: Color("appPrimaryAccent").opacity(0.18), radius: 8, x: 0, y: 3)
                     }
@@ -254,7 +275,6 @@ struct ChatDetailView: View {
                 .background(Color("appScreenBG").opacity(0.98))
             }
         }
-        .navigationBarHidden(true)
         .onDisappear {
             viewModel.stopListening()
         }
@@ -273,7 +293,16 @@ struct ChatDetailView: View {
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
-        .onChange(of: viewModel.error) { oldValue, newValue in
+        .gesture(
+            DragGesture()
+                .onEnded { value in
+                    if value.translation.width > 100 {
+                        isChatDetailActive = false
+                        dismiss()
+                    }
+                }
+        )
+        .onChange(of: viewModel.error) { newValue in
             showErrorAlert = newValue != nil
         }
         .alert(isPresented: $showErrorAlert) {
@@ -285,8 +314,7 @@ struct ChatDetailView: View {
                 }
             )
         }
-        // REMOVE .navigationBarHidden(true)
-        // .toolbar(.hidden, for: .tabBar) can remain if you want to hide the tab bar in native TabView
+        .navigationBarHidden(true)
     }
     
     private func sendMessage() {
@@ -310,7 +338,10 @@ struct ChatDetailView: View {
         }
     }
     
-    private func viewProfile() {}
+    private func viewProfile() {
+        // TODO: Implement profile view or menu
+        print("[DEBUG] View profile tapped for user: \(partnerUsername)")
+    }
     private func muteChat() {}
     private func blockUser() {}
     private func clearChat() {}
@@ -355,6 +386,38 @@ struct ChatDetailView: View {
             formatter.timeStyle = .none
             return formatter.string(from: date)
         }
+    }
+    
+    private var messageGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.85)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var sendButtonGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color("appPrimaryAccent"), Color("appPrimaryAccent").opacity(0.85)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var partnerImageURL: URL? {
+        partnerPhotoURL.flatMap { URL(string: $0) }
+    }
+    
+    private var partnerDisplayText: String {
+        partnerDisplayName.isEmpty ? partnerUsername : partnerDisplayName
+    }
+    
+    private var circleBackground: Color {
+        Color("appPrimaryAccent").opacity(0.12)
+    }
+    
+    private var personIcon: some View {
+        Image(systemName: "person.fill").foregroundColor(Color("appPrimaryAccent"))
     }
 }
 
