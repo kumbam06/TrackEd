@@ -269,6 +269,11 @@ struct ChatListView: View {
             print("[DEBUG] ChatListView - onAppear")
             loadIncomingRequests()
             initializeViewModel()
+            // Force refresh to ensure we have latest data
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                print("[DEBUG] ChatListView - Refreshing chats on appear")
+                viewModel?.refreshChats()
+            }
         }
         .onChange(of: authViewModel.user?.uid) { newValue in
             if newValue != nil {
@@ -297,6 +302,9 @@ struct ChatListView: View {
                 // Reset selected chat when navigation is dismissed
                 selectedChat = nil
                 isChatDetailActive = false
+                // Force refresh the chat list to get latest updates
+                print("[DEBUG] ChatListView - Returning from chat detail, refreshing chat list")
+                viewModel?.refreshChats()
             }
         }
         .onDisappear {

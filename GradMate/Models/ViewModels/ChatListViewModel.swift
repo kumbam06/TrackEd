@@ -79,6 +79,12 @@ class ChatListViewModel: ObservableObject, Equatable {
         }
     }
     
+    /// Force refresh the chat list (useful when returning from chat detail)
+    func refreshChats() {
+        print("[DEBUG] ChatListViewModel - Force refreshing chats")
+        loadChats(forceRefresh: true)
+    }
+    
     /// Sorts chats by most recent activity (last message or creation time)
     private func sortChatsByRecentActivity(_ chats: [Chat]) -> [Chat] {
         return chats.sorted { chat1, chat2 in
