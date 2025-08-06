@@ -149,6 +149,58 @@ struct ChatListView: View {
             }
     }
     
+    private func loadChatById(chatId: String) {
+        let db = Firestore.firestore()
+        db.collection("chats").document(chatId).getDocument { document, error in
+            if let error = error {
+                print("[Push] Error loading chat: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let document = document, document.exists,
+                  let data = document.data() else {
+                print("[Push] Chat document not found")
+                return
+            }
+            
+            let participants = data["participants"] as? [String] ?? []
+            let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+            let isGroup = data["isGroup"] as? Bool ?? false
+            let name = data["name"] as? String
+            
+            let lastMessageData = data["lastMessage"] as? [String: Any]
+            let lastMessage: Message?
+            if let lastMessageData = lastMessageData {
+                let messageId = lastMessageData["id"] as? String ?? ""
+                let senderId = lastMessageData["senderId"] as? String ?? ""
+                let text = lastMessageData["text"] as? String ?? ""
+                let timestamp = (lastMessageData["timestamp"] as? Timestamp)?.dateValue() ?? Date()
+                lastMessage = Message(id: messageId, senderId: senderId, text: text, timestamp: timestamp)
+            } else {
+                lastMessage = nil
+            }
+            
+            let chat = Chat(
+                id: chatId,
+                participants: participants,
+                createdAt: createdAt,
+                isGroup: isGroup,
+                name: name,
+                lastMessage: lastMessage
+            )
+            
+            DispatchQueue.main.async {
+                self.selectedChat = chat
+                self.navigateToChat = true
+                self.isChatDetailActive = true
+                // Add to viewModel chats if not already present
+                if !(self.viewModel?.chats.contains { $0.id == chatId } ?? false) {
+                    self.viewModel?.chats.insert(chat, at: 0)
+                }
+            }
+        }
+    }
+    
     private func initializeViewModel() {
         guard let userId = authViewModel.user?.uid else {
             print("[DEBUG] ChatListView - No user ID available, clearing viewModel")
@@ -247,6 +299,21 @@ struct ChatListView: View {
         .onDisappear {
             print("[DEBUG] ChatListView disappearing, cleaning up listeners")
             viewModel?.stopListening()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToChat"))) { notification in
+            if let chatId = notification.userInfo?["chatId"] as? String {
+                print("[Push] Navigating to chat: \(chatId)")
+                // Find the chat in the current list
+                if let chat = viewModel?.chats.first(where: { $0.id == chatId }) {
+                    selectedChat = chat
+                    navigateToChat = true
+                    isChatDetailActive = true
+                } else {
+                    // If chat not found in current list, try to load it
+                    print("[Push] Chat not found in current list, attempting to load")
+                    loadChatById(chatId: chatId)
+                }
+            }
         }
     }
     
