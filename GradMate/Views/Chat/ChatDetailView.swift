@@ -32,33 +32,73 @@ struct ChatMessagesView: View {
     let messages: [Message]
     let userId: String
     let messageGradient: LinearGradient
+    @State private var showScrollToBottomButton = false
     
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 14) {
-                    if messages.isEmpty {
-                        VStack(spacing: 20) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color("appPrimaryAccent").opacity(0.10))
-                                    .frame(width: 90, height: 90)
-                                AnimatedWaveHand()
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 14) {
+                        if messages.isEmpty {
+                            VStack(spacing: 20) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color("appPrimaryAccent").opacity(0.10))
+                                        .frame(width: 90, height: 90)
+                                    AnimatedWaveHand()
+                                }
+                                Text("No messages yet. Say hi to start your conversation!")
+                                    .font(.body)
+                                    .foregroundColor(Color("appTextSecondary"))
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
                             }
-                            Text("No messages yet. Say hi to start your conversation!")
-                                .font(.body)
-                                .foregroundColor(Color("appTextSecondary"))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
+                            .padding(.vertical, 40)
+                        } else {
+                            ForEach(messages, id: \.id) { message in
+                                MessageRowView(message: message, userId: userId, messageGradient: messageGradient)
+                            }
                         }
-                        .padding(.vertical, 40)
-                    } else {
-                        ForEach(messages, id: \.id) { message in
-                            MessageRowView(message: message, userId: userId, messageGradient: messageGradient)
+                    }
+                    .padding(.vertical, 8)
+                }
+                .onAppear {
+                    // Scroll to bottom when view appears
+                    if let lastMessage = messages.last {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
                         }
                     }
                 }
-                .padding(.vertical, 8)
+                .onChange(of: messages.count) { newCount in
+                    // Scroll to bottom when new messages are added
+                    if let lastMessage = messages.last {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+                    }
+                }
+                
+                // Scroll to bottom button
+                if showScrollToBottomButton && !messages.isEmpty {
+                    Button(action: {
+                        if let lastMessage = messages.last {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
+                        }
+                    }) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color("appPrimaryAccent"))
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 80) // Above the message input
+                }
             }
         }
     }
