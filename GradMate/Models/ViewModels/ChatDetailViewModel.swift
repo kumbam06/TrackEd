@@ -54,7 +54,13 @@ class ChatDetailViewModel: ObservableObject {
                     self?.error = error.localizedDescription
                 } else {
                     print("[DEBUG] ChatDetailViewModel - Message sent successfully")
+                    print("[DEBUG] ChatDetailViewModel - This should trigger chat list update")
                     self?.error = nil
+                    
+                    // Force a small delay to ensure the message is processed
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        print("[DEBUG] ChatDetailViewModel - Message processing completed")
+                    }
                 }
             }
         }

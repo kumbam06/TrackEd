@@ -270,8 +270,13 @@ struct ChatListView: View {
             loadIncomingRequests()
             initializeViewModel()
             // Force refresh to ensure we have latest data
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 print("[DEBUG] ChatListView - Refreshing chats on appear")
+                viewModel?.refreshChats()
+            }
+            // Additional refresh after a longer delay to catch any missed updates
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                print("[DEBUG] ChatListView - Second refresh to ensure latest data")
                 viewModel?.refreshChats()
             }
         }
@@ -304,7 +309,9 @@ struct ChatListView: View {
                 isChatDetailActive = false
                 // Force refresh the chat list to get latest updates
                 print("[DEBUG] ChatListView - Returning from chat detail, refreshing chat list")
-                viewModel?.refreshChats()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    viewModel?.refreshChats()
+                }
             }
         }
         .onDisappear {

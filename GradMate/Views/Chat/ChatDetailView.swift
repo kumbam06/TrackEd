@@ -33,6 +33,7 @@ struct ChatMessagesView: View {
     let userId: String
     let messageGradient: LinearGradient
     @State private var showScrollToBottomButton = false
+    @State private var keyboardHeight: CGFloat = 0
     
     var body: some View {
         ScrollViewReader { proxy in
@@ -61,22 +62,35 @@ struct ChatMessagesView: View {
                         }
                     }
                     .padding(.vertical, 8)
+                    .padding(.bottom, keyboardHeight > 0 ? keyboardHeight + 20 : 0) // Add padding for keyboard
                 }
                 .onAppear {
                     // Scroll to bottom when view appears
                     if let lastMessage = messages.last {
-                        withAnimation(.easeOut(duration: 0.3)) {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
                         }
                     }
                 }
                 .onChange(of: messages.count) { newCount in
                     // Scroll to bottom when new messages are added
                     if let lastMessage = messages.last {
-                        withAnimation(.easeOut(duration: 0.3)) {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
                         }
                     }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+                    if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                        keyboardHeight = keyboardFrame.height
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                    keyboardHeight = 0
                 }
                 
                 // Scroll to bottom button
@@ -97,7 +111,7 @@ struct ChatMessagesView: View {
                             .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
                     }
                     .padding(.trailing, 16)
-                    .padding(.bottom, 80) // Above the message input
+                    .padding(.bottom, keyboardHeight > 0 ? keyboardHeight + 20 : 80) // Adjust for keyboard
                 }
             }
         }
