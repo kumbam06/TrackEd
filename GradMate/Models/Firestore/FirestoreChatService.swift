@@ -29,6 +29,7 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
                 }
                 
                 print("[DEBUG] FirestoreChatService - Found \(documents.count) chat documents")
+                print("[DEBUG] FirestoreChatService - Snapshot hasChanges: \(snapshot?.metadata.hasPendingWrites ?? false)")
                 var chats: [Chat] = []
                 
                 for document in documents {
@@ -57,6 +58,7 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
                 }
                 
                 print("[DEBUG] FirestoreChatService - Returning \(chats.count) chats")
+                print("[DEBUG] FirestoreChatService - Chat list updated at: \(Date())")
                 completion(chats, nil)
             }
     }
@@ -136,29 +138,31 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
                 "timestamp": FieldValue.serverTimestamp()
             ]
             
+            // Send message first
             self?.db.collection("chats").document(chatId).collection("messages").addDocument(data: messageData) { error in
                 if let error = error {
                     print("[DEBUG] Error sending message: \(error.localizedDescription)")
                     completion?(error)
                 } else {
                     print("[DEBUG] Message sent successfully")
-                    completion?(nil)
+                    
+                    // Update lastMessage in chat doc AFTER message is sent successfully
+                    self?.db.collection("chats").document(chatId).updateData([
+                        "lastMessage": [
+                            "text": text,
+                            "senderId": senderId,
+                            "timestamp": FieldValue.serverTimestamp()
+                        ]
+                    ]) { error in
+                        if let error = error {
+                            print("[DEBUG] Error updating lastMessage: \(error.localizedDescription)")
+                        } else {
+                            print("[DEBUG] LastMessage updated successfully for chat \(chatId)")
+                            print("[DEBUG] This should trigger the real-time listener")
+                        }
+                        completion?(nil)
+                    }
                 }
-            }
-        }
-        
-        // Update lastMessage in chat doc
-        db.collection("chats").document(chatId).updateData([
-            "lastMessage": [
-                "text": text,
-                "senderId": senderId,
-                "timestamp": FieldValue.serverTimestamp()
-            ]
-        ]) { error in
-            if let error = error {
-                print("[DEBUG] Error updating lastMessage: \(error.localizedDescription)")
-            } else {
-                print("[DEBUG] LastMessage updated successfully")
             }
         }
     }

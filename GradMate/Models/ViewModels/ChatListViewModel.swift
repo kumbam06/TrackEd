@@ -40,8 +40,31 @@ class ChatListViewModel: ObservableObject, Equatable {
                     self.error = error.localizedDescription
                     // Don't clear existing chats on error
                 } else {
-                    print("[DEBUG] ChatListViewModel - Received \(chats.count) chats from real-time listener")
+                    print("[DEBUG] ChatListViewModel - Received \(chats.count) chats from real-time listener at \(Date())")
+                    
+                    // Check if chats actually changed
+                    let oldChats = self.chats
                     let sortedChats = self.sortChatsByRecentActivity(chats)
+                    
+                    // Compare if the chats actually changed
+                    let chatsChanged = oldChats.count != sortedChats.count || 
+                        zip(oldChats, sortedChats).contains { old, new in
+                            old.id != new.id || 
+                            old.lastMessage?.text != new.lastMessage?.text ||
+                            old.lastMessage?.timestamp != new.lastMessage?.timestamp
+                        }
+                    
+                    if chatsChanged {
+                        print("[DEBUG] ChatListViewModel - Chat list changed, updating UI")
+                        print("[DEBUG] ChatListViewModel - Old count: \(oldChats.count), New count: \(sortedChats.count)")
+                        if let oldLastMessage = oldChats.first?.lastMessage, let newLastMessage = sortedChats.first?.lastMessage {
+                            print("[DEBUG] ChatListViewModel - Old last message: \(oldLastMessage.text) at \(oldLastMessage.timestamp)")
+                            print("[DEBUG] ChatListViewModel - New last message: \(newLastMessage.text) at \(newLastMessage.timestamp)")
+                        }
+                    } else {
+                        print("[DEBUG] ChatListViewModel - No changes detected in chat list")
+                    }
+                    
                     self.chats = sortedChats
                     
                     // Update cache
