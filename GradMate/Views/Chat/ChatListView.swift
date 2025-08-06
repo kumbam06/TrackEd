@@ -245,34 +245,37 @@ struct ChatListView: View {
             NewChatView()
                 .environmentObject(authViewModel)
         }
-                                .background(
-                    NavigationLink(
-                        destination: Group {
-                            if let selectedChat = selectedChat {
-                                ChatDetailView(
-                                    chat: selectedChat,
-                                    userId: authViewModel.user?.uid ?? "",
-                                    chatService: chatService,
-                                    isChatDetailActive: $isChatDetailActive
-                                )
-                                .environmentObject(authViewModel)
-                                .environmentObject(chatService)
-                            }
-                        },
-                        isActive: $navigateToChat
-                    ) {
-                        EmptyView()
+        .background(
+            NavigationLink(
+                destination: Group {
+                    if let selectedChat = selectedChat {
+                        ChatDetailView(
+                            chat: selectedChat,
+                            userId: authViewModel.user?.uid ?? "",
+                            chatService: chatService,
+                            isChatDetailActive: $isChatDetailActive
+                        )
+                        .environmentObject(authViewModel)
+                        .environmentObject(chatService)
                     }
-                    .opacity(0)
-                )
+                },
+                isActive: $navigateToChat
+            ) {
+                EmptyView()
+            }
+            .opacity(0)
+        )
         .onAppear {
+            print("[DEBUG] ChatListView - onAppear")
             loadIncomingRequests()
             initializeViewModel()
         }
         .onChange(of: authViewModel.user?.uid) { newValue in
             if newValue != nil {
+                print("[DEBUG] ChatListView - User ID changed, reinitializing")
                 initializeViewModel()
             } else {
+                print("[DEBUG] ChatListView - User logged out, clearing viewModel")
                 viewModel = nil
             }
         }
@@ -456,27 +459,25 @@ struct ChatListView: View {
     
     @ViewBuilder
     private func chatListView(viewModel: ChatListViewModel) -> some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(filteredChats(viewModel.chats)) { chat in
-                    ChatRowView(
-                        chat: chat,
-                        userInfos: userInfos,
-                        onTap: {
-                            print("[DEBUG] Chat tapped: \(chat.id)")
-                            selectedChat = chat
-                            navigateToChat = true
-                            isChatDetailActive = true
-                        },
-                        onDelete: {
-                            deleteChat(chat)
-                        }
-                    )
-                }
+        LazyVStack(spacing: 12) {
+            ForEach(filteredChats(viewModel.chats)) { chat in
+                ChatRowView(
+                    chat: chat,
+                    userInfos: userInfos,
+                    onTap: {
+                        print("[DEBUG] Chat tapped: \(chat.id)")
+                        selectedChat = chat
+                        navigateToChat = true
+                        isChatDetailActive = true
+                    },
+                    onDelete: {
+                        deleteChat(chat)
+                    }
+                )
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 100) // Padding for tab bar
         }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 100) // Padding for tab bar
     }
     
     private func filteredChats(_ chats: [Chat]) -> [Chat] {

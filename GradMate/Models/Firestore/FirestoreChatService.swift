@@ -11,52 +11,53 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
     }
     
     func loadChats(for userId: String, completion: @escaping ([Chat], Error?) -> Void) {
-        print("[DEBUG] Loading chats for userId: \(userId)")
-        print("[DEBUG] FirestoreChatService - Firestore instance: \(db)")
+        print("[DEBUG] FirestoreChatService - Loading chats for userId: \(userId)")
         chatListener?.remove()
-        
         chatListener = db.collection("chats")
             .whereField("participants", arrayContains: userId)
-            .order(by: "createdAt", descending: true)
             .addSnapshotListener { snapshot, error in
                 if let error = error {
-                    print("[DEBUG] Error loading chats: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        completion([], error)
-                    }
-                    return
-                }
-                guard let documents = snapshot?.documents else {
-                    print("[DEBUG] No chat documents found")
-                    DispatchQueue.main.async {
-                        completion([], nil)
-                    }
+                    print("[DEBUG] FirestoreChatService - Error listening for chats: \(error.localizedDescription)")
+                    completion([], error)
                     return
                 }
                 
-                print("[DEBUG] Found \(documents.count) chat documents")
-                let chats = documents.compactMap { doc -> Chat? in
-                    let data = doc.data() 
-                    let id = doc.documentID
+                guard let documents = snapshot?.documents else {
+                    print("[DEBUG] FirestoreChatService - No documents returned")
+                    completion([], nil)
+                    return
+                }
+                
+                print("[DEBUG] FirestoreChatService - Found \(documents.count) chat documents")
+                var chats: [Chat] = []
+                
+                for document in documents {
+                    let data = document.data()
+                    let id = document.documentID
                     let participants = data["participants"] as? [String] ?? []
-                    print("[DEBUG] Chat \(id) participants: \(participants)")
                     let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
                     let isGroup = data["isGroup"] as? Bool ?? false
                     let name = data["name"] as? String
+                    
+                    print("[DEBUG] FirestoreChatService - Chat \(id) participants: \(participants)")
+                    
                     var lastMessage: Message? = nil
                     if let last = data["lastMessage"] as? [String: Any],
                        let text = last["text"] as? String,
                        let senderId = last["senderId"] as? String,
                        let ts = last["timestamp"] as? Timestamp {
                         lastMessage = Message(id: UUID().uuidString, senderId: senderId, text: text, timestamp: ts.dateValue())
+                        print("[DEBUG] FirestoreChatService - Chat \(id) has lastMessage: \(text) from \(senderId) at \(ts.dateValue())")
+                    } else {
+                        print("[DEBUG] FirestoreChatService - Chat \(id) has no lastMessage")
                     }
-                    return Chat(id: id, participants: participants, createdAt: createdAt, isGroup: isGroup, name: name, lastMessage: lastMessage)
+                    
+                    let chat = Chat(id: id, participants: participants, createdAt: createdAt, isGroup: isGroup, name: name, lastMessage: lastMessage)
+                    chats.append(chat)
                 }
                 
-                print("[DEBUG] Returning \(chats.count) chats")
-                DispatchQueue.main.async {
-                    completion(chats, nil)
-                }
+                print("[DEBUG] FirestoreChatService - Returning \(chats.count) chats")
+                completion(chats, nil)
             }
     }
     
