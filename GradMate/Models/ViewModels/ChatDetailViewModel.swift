@@ -34,17 +34,28 @@ class ChatDetailViewModel: ObservableObject {
     func listenForMessages() {
         isLoading = true
         chatService.listenForMessages(chatId: chatId) { [weak self] messages in
-            guard let self = self else { return }
-            self.messages = messages
-            ChatDetailViewModel.messageCache[self.chatId] = messages
-            self.isLoading = false
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                print("[DEBUG] ChatDetailViewModel - Received \(messages.count) messages for chat \(self.chatId)")
+                self.messages = messages
+                ChatDetailViewModel.messageCache[self.chatId] = messages
+                self.isLoading = false
+                self.error = nil
+            }
         }
     }
     
     func sendMessage(_ text: String) {
+        print("[DEBUG] ChatDetailViewModel - Sending message: \(text)")
         chatService.sendMessage(chatId: chatId, text: text, senderId: userId) { [weak self] error in
-            if let error = error {
-                self?.error = error.localizedDescription
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("[DEBUG] ChatDetailViewModel - Error sending message: \(error.localizedDescription)")
+                    self?.error = error.localizedDescription
+                } else {
+                    print("[DEBUG] ChatDetailViewModel - Message sent successfully")
+                    self?.error = nil
+                }
             }
         }
     }

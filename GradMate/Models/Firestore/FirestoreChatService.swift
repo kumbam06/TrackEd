@@ -61,22 +61,40 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
     }
     
     func listenForMessages(chatId: String, onUpdate: @escaping ([Message]) -> Void) {
+        print("[DEBUG] FirestoreChatService - Starting listener for chat: \(chatId)")
         messageListener?.remove()
         messageListener = db.collection("chats").document(chatId).collection("messages")
             .order(by: "timestamp")
             .addSnapshotListener { snapshot, error in
-                guard let documents = snapshot?.documents else {
-                    onUpdate([])
+                if let error = error {
+                    print("[DEBUG] FirestoreChatService - Error listening for messages: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        onUpdate([])
+                    }
                     return
                 }
+                
+                guard let documents = snapshot?.documents else {
+                    print("[DEBUG] FirestoreChatService - No documents found for chat: \(chatId)")
+                    DispatchQueue.main.async {
+                        onUpdate([])
+                    }
+                    return
+                }
+                
+                print("[DEBUG] FirestoreChatService - Received \(documents.count) messages for chat: \(chatId)")
                 let messages = documents.compactMap { doc -> Message? in
                     let data = doc.data()
                     let id = doc.documentID
                     let senderId = data["senderId"] as? String ?? ""
                     let text = data["text"] as? String ?? ""
                     let timestamp = (data["timestamp"] as? Timestamp)?.dateValue() ?? Date()
-                    return Message(id: id, senderId: senderId, text: text, timestamp: timestamp)
+                    let message = Message(id: id, senderId: senderId, text: text, timestamp: timestamp)
+                    print("[DEBUG] FirestoreChatService - Parsed message: \(message.text) from \(message.senderId)")
+                    return message
                 }
+                
+                print("[DEBUG] FirestoreChatService - Sending \(messages.count) messages to UI")
                 DispatchQueue.main.async {
                     onUpdate(messages)
                 }
@@ -187,14 +205,6 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
             let chat = Chat(id: id, participants: participants, createdAt: createdAt, isGroup: isGroup, name: name, lastMessage: lastMessage)
             completion(chat)
         }
-    }
-    
-    func stopListening() {
-        print("[DEBUG] Stopping chat listeners")
-        chatListener?.remove()
-        messageListener?.remove()
-        chatListener = nil
-        messageListener = nil
     }
     
     func lookupUserId(byUsername username: String, completion: @escaping (String?) -> Void) {
@@ -325,6 +335,14 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
             .getDocuments { snapshot, error in
                 completion(snapshot?.documents ?? [])
             }
+    }
+    
+    func stopListening() {
+        print("[DEBUG] FirestoreChatService - Stopping listeners")
+        chatListener?.remove()
+        chatListener = nil
+        messageListener?.remove()
+        messageListener = nil
     }
     
     deinit {
