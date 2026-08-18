@@ -66,6 +66,19 @@ class ChatDetailViewModel: ObservableObject {
         }
     }
     
+    func clearMessages() {
+        chatService.clearMessages(chatId: chatId) { [weak self] error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self?.error = error.localizedDescription
+                } else {
+                    self?.messages = []
+                    self?.clearCache()
+                }
+            }
+        }
+    }
+    
     /// Clears the message cache for this chat (e.g., on manual refresh)
     func clearCache() {
         ChatDetailViewModel.messageCache[chatId] = nil

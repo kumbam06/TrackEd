@@ -1,36 +1,47 @@
-//
-//  GradMateTests.swift
-//  GradMateTests
-//
-//  Created by Pradeep Reddy Kumbam on 23/06/2025.
-//
-
 import XCTest
 @testable import GradMate
 
-class GradMateTests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+final class NaturalLanguageParserTests: XCTestCase {
+    private let parser = NaturalLanguageParser()
+    
+    func testUrgentPriorityAndTitleCleanup() {
+        let parsed = parser.parseTask("Submit report urgent")
+        XCTAssertEqual(parsed.priority, 3)
+        XCTAssertEqual(parsed.title, "Submit report")
     }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    
+    func testTomorrowKeepsTitleWithoutDateWords() {
+        let parsed = parser.parseTask("Study SwiftUI at 8pm tomorrow")
+        XCTAssertFalse(parsed.title.lowercased().contains("tomorrow"))
+        XCTAssertFalse(parsed.title.lowercased().contains("8pm"))
+        XCTAssertEqual(parsed.title.trimmingCharacters(in: .whitespaces), "Study SwiftUI")
+        XCTAssertNotNil(parsed.dueDate)
+        
+        let hour = Calendar.current.component(.hour, from: parsed.dueDate!)
+        XCTAssertEqual(hour, 20)
+        
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
+        XCTAssertTrue(Calendar.current.isDate(parsed.dueDate!, inSameDayAs: tomorrow))
     }
-
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    
+    func testAllDayFlag() {
+        let parsed = parser.parseTask("Team meeting all day Friday")
+        XCTAssertTrue(parsed.isAllDay)
+        XCTAssertTrue(parsed.title.lowercased().contains("team meeting"))
     }
+}
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+final class CareerModelTests: XCTestCase {
+    func testWorkExperienceDefaultIdentity() {
+        let first = WorkExperience(title: "Intern", company: "Acme")
+        let second = WorkExperience(id: first.id, title: "Intern", company: "Acme")
+        XCTAssertEqual(first, second)
     }
-
+    
+    func testLanguageRoundTrip() throws {
+        let language = Language(name: "Spanish", proficiency: .fluent)
+        let data = try JSONEncoder().encode([language])
+        let decoded = try JSONDecoder().decode([Language].self, from: data)
+        XCTAssertEqual(decoded, [language])
+    }
 }

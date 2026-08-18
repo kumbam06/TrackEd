@@ -12,8 +12,8 @@ struct ProgressDashboardView: View {
     @EnvironmentObject private var taskManager: TaskManager
     @EnvironmentObject private var skillManager: SkillManager
     @EnvironmentObject private var taskCategoryManager: TaskCategoryManager
-    @StateObject private var progressDataService = ProgressDataService()
-    @StateObject private var careerDataService = CareerDataService()
+    @EnvironmentObject private var progressDataService: ProgressDataService
+    @EnvironmentObject private var careerDataService: CareerDataService
     
     @State private var selectedTimeframe: Timeframe = .week
     @State private var showingAchievementDetails = false
@@ -69,6 +69,9 @@ struct ProgressDashboardView: View {
             .sheet(isPresented: $showingAchievementDetails) {
                 AchievementDetailsView()
                     .environmentObject(progressDataService)
+            }
+            .onAppear {
+                refreshAchievementProgress()
             }
         }
     }
@@ -324,26 +327,37 @@ struct ProgressDashboardView: View {
     private func calculateProductivityScore() -> Int {
         let completedTasks = getCompletedTasksCount()
         let skillsCount = skillManager.skills.count
-        
-        // Simple scoring algorithm
         let taskScore = min(completedTasks * 5, 40)
         let skillScore = min(skillsCount * 2, 30)
-        
-        return taskScore + skillScore
+        let careerScore = min(Int(careerDataService.careerCompletionRatio * 30), 30)
+        return min(taskScore + skillScore + careerScore, 100)
     }
     
     private func calculateCareerProgress() -> Int {
-        let resumeProgress = 85
-        let portfolioProgress = 60
-        let certificationProgress = 40
-        let networkingProgress = 30
-        
-        return (resumeProgress + portfolioProgress + certificationProgress + networkingProgress) / 4
+        Int((careerDataService.careerCompletionRatio * 100).rounded())
+    }
+    
+    private var timeframeStart: Date {
+        let calendar = Calendar.current
+        let now = Date()
+        switch selectedTimeframe {
+        case .week:
+            return calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: now)) ?? now
+        case .month:
+            return calendar.date(byAdding: .month, value: -1, to: now) ?? now
+        case .quarter:
+            return calendar.date(byAdding: .month, value: -3, to: now) ?? now
+        case .year:
+            return calendar.date(byAdding: .year, value: -1, to: now) ?? now
+        }
     }
     
     private func getCompletedTasksCount() -> Int {
-        // TODO: Implement based on selected timeframe
-        return 24
+        taskManager.tasks.filter { task in
+            guard task.completed else { return false }
+            let date = task.dueDate ?? task.createdAt ?? Date.distantPast
+            return date >= timeframeStart
+        }.count
     }
     
     private func getMasteredSkillsCount() -> Int {
@@ -351,64 +365,104 @@ struct ProgressDashboardView: View {
     }
     
     private func getProjectsCount() -> Int {
-        // TODO: Get from projects data
-        return 3
+        careerDataService.projects.count
     }
     
     private func getCertificationsCount() -> Int {
-        // TODO: Implement based on selected timeframe
-        return 1
+        careerDataService.certifications.count
     }
     
     private func generateProductivityData() -> [ProductivityDataPoint] {
-        // TODO: Generate real data based on selected timeframe
-        return [
-            ProductivityDataPoint(date: Date().addingTimeInterval(-6*24*60*60), tasks: 4),
-            ProductivityDataPoint(date: Date().addingTimeInterval(-5*24*60*60), tasks: 6),
-            ProductivityDataPoint(date: Date().addingTimeInterval(-4*24*60*60), tasks: 3),
-            ProductivityDataPoint(date: Date().addingTimeInterval(-3*24*60*60), tasks: 8),
-            ProductivityDataPoint(date: Date().addingTimeInterval(-2*24*60*60), tasks: 5),
-            ProductivityDataPoint(date: Date().addingTimeInterval(-1*24*60*60), tasks: 7),
-            ProductivityDataPoint(date: Date(), tasks: 6)
-        ]
+        let calendar = Calendar.current
+        let days: Int
+        switch selectedTimeframe {
+        case .week: days = 7
+        case .month: days = 14
+        case .quarter: days = 12
+        case .year: days = 12
+        }
+        
+        return (0..<days).reversed().map { offset in
+            let date: Date
+            if selectedTimeframe == .year || selectedTimeframe == .quarter {
+                date = calendar.date(byAdding: .month, value: -offset, to: Date()) ?? Date()
+                let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) ?? date
+                let monthEnd = calendar.date(byAdding: .month, value: 1, to: monthStart) ?? date
+                let count = taskManager.tasks.filter { task in
+                    guard task.completed, let due = task.dueDate ?? task.createdAt else { return false }
+                    return due >= monthStart && due < monthEnd
+                }.count
+                return ProductivityDataPoint(date: monthStart, tasks: count)
+            } else {
+                date = calendar.date(byAdding: .day, value: -offset, to: calendar.startOfDay(for: Date())) ?? Date()
+                let count = taskManager.tasks.filter { task in
+                    guard task.completed else { return false }
+                    let due = task.dueDate ?? task.createdAt
+                    return due.map { calendar.isDate($0, inSameDayAs: date) } ?? false
+                }.count
+                return ProductivityDataPoint(date: date, tasks: count)
+            }
+        }
     }
     
     private func getRecentAchievements() -> [Achievement] {
-        return [
+        let completed = progressDataService.achievements
+            .filter { $0.isCompleted }
+            .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+            .prefix(5)
+        
+        let mapped = completed.map { entity in
             Achievement(
-                id: UUID(),
-                title: "Task Master",
-                description: "Completed 20 tasks this week",
-                icon: "checkmark.circle.fill",
-                color: .green,
-                date: Date()
-            ),
-            Achievement(
-                id: UUID(),
-                title: "Skill Builder",
-                description: "Mastered 3 new skills",
-                icon: "star.fill",
-                color: .orange,
-                date: Date().addingTimeInterval(-24*60*60)
-            ),
-            Achievement(
-                id: UUID(),
-                title: "Project Champion",
-                description: "Completed 2 major projects",
-                icon: "folder.fill",
-                color: .purple,
-                date: Date().addingTimeInterval(-2*24*60*60)
+                id: entity.id ?? UUID(),
+                title: entity.title ?? "Achievement",
+                description: entity.achievementDescription ?? "",
+                icon: entity.icon ?? "star.fill",
+                color: Color(hex: entity.color ?? "#34C759") ?? .green,
+                date: entity.completedAt ?? entity.updatedAt ?? Date()
             )
-        ]
+        }
+        return Array(mapped)
     }
     
     private func getCategoryBreakdown() -> [CategoryBreakdown] {
-        return [
-            CategoryBreakdown(category: "Academic", count: 12, percentage: 40, color: .blue),
-            CategoryBreakdown(category: "Career", count: 8, percentage: 27, color: .green),
-            CategoryBreakdown(category: "Personal", count: 6, percentage: 20, color: .orange),
-            CategoryBreakdown(category: "Health", count: 4, percentage: 13, color: .red)
-        ]
+        let categories = taskCategoryManager.categories
+        let grouped = Dictionary(grouping: taskManager.tasks) { task -> String in
+            if let id = task.categoryId, let match = categories.first(where: { $0.id == id }) {
+                return match.name ?? "Uncategorized"
+            }
+            return "Uncategorized"
+        }
+        let total = max(taskManager.tasks.count, 1)
+        let palette: [Color] = [.blue, .green, .orange, .purple, .red, .teal]
+        return grouped.keys.sorted().enumerated().map { index, name in
+            let count = grouped[name]?.count ?? 0
+            return CategoryBreakdown(
+                category: name,
+                count: count,
+                percentage: Double(count) / Double(total) * 100,
+                color: palette[index % palette.count]
+            )
+        }
+    }
+    
+    private func refreshAchievementProgress() {
+        let snapshot = progressDataService.achievements
+        let completedThisWeek = taskManager.tasks.filter { $0.completed }.count
+        let masteredSkills = getMasteredSkillsCount()
+        for achievement in snapshot {
+            switch achievement.title {
+            case "Task Master":
+                progressDataService.updateAchievementProgress(achievement, current: Int32(completedThisWeek))
+            case "Skill Builder":
+                progressDataService.updateAchievementProgress(achievement, current: Int32(masteredSkills))
+            case "Project Pioneer":
+                progressDataService.updateAchievementProgress(achievement, current: Int32(careerDataService.projects.count))
+            case "Certification Collector":
+                progressDataService.updateAchievementProgress(achievement, current: Int32(careerDataService.certifications.count))
+            default:
+                break
+            }
+        }
     }
 }
 
@@ -538,16 +592,29 @@ struct ProductivityChart: View {
     let data: [ProductivityDataPoint]
     
     var body: some View {
-        VStack {
-            // Placeholder for chart - in a real app, use Charts framework
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.blue.opacity(0.1))
-                .overlay(
-                    Text("Productivity Chart")
-                        .font(.caption)
+        let maxValue = max(data.map(\.tasks).max() ?? 1, 1)
+        HStack(alignment: .bottom, spacing: 6) {
+            ForEach(Array(data.enumerated()), id: \.offset) { _, point in
+                VStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.blue.opacity(0.75))
+                        .frame(height: max(4, CGFloat(point.tasks) / CGFloat(maxValue) * 140))
+                    Text(shortLabel(for: point.date))
+                        .font(.caption2)
                         .foregroundColor(Color("appTextSecondary"))
-                )
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .padding(.top, 8)
+    }
+    
+    private func shortLabel(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
     }
 }
 
@@ -703,4 +770,6 @@ struct CategoryBreakdownRow: View {
         .environmentObject(TaskManager())
         .environmentObject(SkillManager())
         .environmentObject(TaskCategoryManager())
+        .environmentObject(ProgressDataService())
+        .environmentObject(CareerDataService())
 } 

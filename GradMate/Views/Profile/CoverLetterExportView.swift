@@ -113,9 +113,44 @@ struct CoverLetterExportView: View {
     }
     
     private func generatePDF() -> Data? {
-        // TODO: Implement PDF generation
-        // For now, return text data
-        return coverLetter.data(using: .utf8)
+        let pdfMetaData = [
+            kCGPDFContextCreator: "GradMate",
+            kCGPDFContextAuthor: companyName
+        ]
+        let format = UIGraphicsPDFRendererFormat()
+        format.documentInfo = pdfMetaData as [String: Any]
+        let pageRect = CGRect(x: 0, y: 0, width: 595.2, height: 841.8)
+        let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
+        return renderer.pdfData { context in
+            context.beginPage()
+            let left: CGFloat = 50
+            var y: CGFloat = 50
+            let titleFont = UIFont.systemFont(ofSize: 22, weight: .bold)
+            let subtitleFont = UIFont.systemFont(ofSize: 14, weight: .medium)
+            let bodyFont = UIFont.systemFont(ofSize: 12, weight: .regular)
+            
+            "Cover Letter".draw(at: CGPoint(x: left, y: y), withAttributes: [
+                .font: titleFont,
+                .foregroundColor: UIColor.black
+            ])
+            y += 32
+            "\(positionTitle) — \(companyName)".draw(at: CGPoint(x: left, y: y), withAttributes: [
+                .font: subtitleFont,
+                .foregroundColor: UIColor.darkGray
+            ])
+            y += 28
+            
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.lineSpacing = 4
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: bodyFont,
+                .foregroundColor: UIColor.black,
+                .paragraphStyle: paragraphStyle
+            ]
+            let attributed = NSAttributedString(string: coverLetter, attributes: attributes)
+            let textRect = CGRect(x: left, y: y, width: pageRect.width - 100, height: pageRect.height - y - 50)
+            attributed.draw(in: textRect)
+        }
     }
 }
 

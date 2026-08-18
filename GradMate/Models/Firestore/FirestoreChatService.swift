@@ -350,6 +350,31 @@ class FirestoreChatService: ChatServiceProtocol, ObservableObject {
         messageListener = nil
     }
     
+    func clearMessages(chatId: String, completion: ((Error?) -> Void)?) {
+        db.collection("chats").document(chatId).collection("messages").getDocuments { [weak self] snapshot, error in
+            guard let self else {
+                completion?(error)
+                return
+            }
+            if let error = error {
+                completion?(error)
+                return
+            }
+            let batch = self.db.batch()
+            snapshot?.documents.forEach { doc in
+                batch.deleteDocument(doc.reference)
+            }
+            batch.commit { error in
+                if error == nil {
+                    self.db.collection("chats").document(chatId).updateData([
+                        "lastMessage": FieldValue.delete()
+                    ])
+                }
+                completion?(error)
+            }
+        }
+    }
+    
     deinit {
         stopListening()
     }

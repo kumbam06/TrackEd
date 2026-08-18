@@ -178,6 +178,7 @@ struct ChatDetailView: View {
     @State private var messageText = ""
     @State private var showErrorAlert = false
     @State private var showMenu = false
+    @State private var showProfileAlert = false
     @State private var partnerDisplayName: String = ""
     @State private var partnerUsername: String = ""
     @State private var partnerPhotoURL: String? = nil
@@ -243,7 +244,7 @@ struct ChatDetailView: View {
                     
                     Spacer()
                     
-                    Button(action: viewProfile) {
+                    Button(action: { showMenu = true }) {
                         Image(systemName: "ellipsis")
                             .rotationEffect(.degrees(90))
                             .font(.title2)
@@ -368,6 +369,22 @@ struct ChatDetailView: View {
                 }
             )
         }
+        .confirmationDialog("Chat options", isPresented: $showMenu, titleVisibility: .visible) {
+            Button("View profile") { viewProfile() }
+            Button(ChatModerationStore.isMuted(chatId: chat.id) ? "Unmute chat" : "Mute chat") { muteChat() }
+            Button("Clear chat", role: .destructive) { clearChat() }
+            if let partnerId {
+                Button("Block user", role: .destructive) { blockUser(partnerId) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(partnerDisplayName.isEmpty ? partnerUsername : partnerDisplayName)
+        }
+        .alert("Profile", isPresented: $showProfileAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("\(partnerDisplayName.isEmpty ? partnerUsername : partnerDisplayName)\n@\(partnerUsername)")
+        }
         .navigationBarHidden(true)
     }
     
@@ -393,12 +410,22 @@ struct ChatDetailView: View {
     }
     
     private func viewProfile() {
-        // TODO: Implement profile view or menu
-        print("[DEBUG] View profile tapped for user: \(partnerUsername)")
+        showProfileAlert = true
     }
-    private func muteChat() {}
-    private func blockUser() {}
-    private func clearChat() {}
+    
+    private func muteChat() {
+        _ = ChatModerationStore.toggleMute(chatId: chat.id)
+    }
+    
+    private func blockUser(_ userIdToBlock: String) {
+        ChatModerationStore.block(userId: userIdToBlock)
+        isChatDetailActive = false
+        dismiss()
+    }
+    
+    private func clearChat() {
+        viewModel.clearMessages()
+    }
     
     private func debounceInput(_ value: String) {
         debounceWorkItem?.cancel()

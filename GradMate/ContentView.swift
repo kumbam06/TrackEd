@@ -66,4 +66,12 @@ struct TabContent: View {
         .environmentObject(ProfileManager())
         .environmentObject(TaskManager())
         .environmentObject(SkillManager())
+        .environmentObject(AuthViewModel())
+        .environmentObject(FirestoreChatService())
+        .environmentObject(HomeScreenPreferencesManager())
+        .environmentObject(TaskCategoryManager())
+        .environmentObject(CareerDataService())
+        .environmentObject(FocusSessionService())
+        .environmentObject(ProgressDataService())
+        .environmentObject(LanguageManager())
 }

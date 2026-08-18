@@ -63,7 +63,8 @@ struct ResumeExportView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var profileManager: ProfileManager
     @EnvironmentObject private var skillManager: SkillManager
-    @StateObject private var careerDataService = CareerDataService()
+    @EnvironmentObject private var careerDataService: CareerDataService
+    @EnvironmentObject private var languageManager: LanguageManager
     
     @State private var isGenerating = false
     @State private var pdfData: Data?
@@ -800,4 +801,6 @@ struct ResumeExportView: View {
     ResumeExportView()
         .environmentObject(ProfileManager())
         .environmentObject(SkillManager())
+        .environmentObject(CareerDataService())
+        .environmentObject(LanguageManager())
 } 

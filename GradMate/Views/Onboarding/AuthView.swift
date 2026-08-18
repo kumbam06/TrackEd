@@ -13,6 +13,7 @@ extension View {
 
 struct AuthView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isLoginMode = true
     @State private var name = ""
     @State private var email = ""
@@ -214,6 +215,15 @@ struct AuthView: View {
                         .cornerRadius(12)
                         .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
                     }
+                    
+                    SignInWithAppleButton(.signIn) { request in
+                        authViewModel.configureAppleRequest(request)
+                    } onCompletion: { result in
+                        authViewModel.signInWithApple(result: result)
+                    }
+                    .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                    .frame(height: 48)
+                    .cornerRadius(12)
                 }
                 .padding(24)
                 .background(

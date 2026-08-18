@@ -8,11 +8,10 @@
 import SwiftUI
 
 struct LanguageListView: View {
-    @EnvironmentObject private var profileManager: ProfileManager
+    @EnvironmentObject private var languageManager: LanguageManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
-    @State private var languages: [Language] = []
     @State private var showingAddLanguage = false
     @State private var editingLanguage: Language?
     
@@ -46,7 +45,7 @@ struct LanguageListView: View {
                     .padding(.top, 16)
                     
                     // Content
-                    if languages.isEmpty {
+                    if languageManager.languages.isEmpty {
                         emptyStateView
                     } else {
                         languageListView
@@ -55,20 +54,16 @@ struct LanguageListView: View {
             }
             .navigationBarHidden(true)
             .onAppear {
-                loadLanguages()
+                languageManager.load()
             }
             .sheet(isPresented: $showingAddLanguage) {
                 LanguageEditView(language: nil) { newLanguage in
-                    languages.append(newLanguage)
-                    saveLanguages()
+                    languageManager.upsert(newLanguage)
                 }
             }
             .sheet(item: $editingLanguage) { language in
                 LanguageEditView(language: language) { updatedLanguage in
-                    if let index = languages.firstIndex(where: { $0.id == language.id }) {
-                        languages[index] = updatedLanguage
-                        saveLanguages()
-                    }
+                    languageManager.upsert(updatedLanguage)
                 }
             }
         }
@@ -128,11 +123,11 @@ struct LanguageListView: View {
     private var languageListView: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                ForEach(languages) { language in
+                ForEach(languageManager.languages) { language in
                     LanguageCard(language: language) {
                         editingLanguage = language
                     } onDelete: {
-                        deleteLanguage(language)
+                        languageManager.delete(language)
                     }
                 }
             }
@@ -160,26 +155,6 @@ struct LanguageListView: View {
                 .padding(.bottom, 20)
             }
         )
-    }
-    
-    // MARK: - Helper Methods
-    private func loadLanguages() {
-        // Load from profile manager or user defaults
-        if let data = UserDefaults.standard.data(forKey: "userLanguages"),
-           let decoded = try? JSONDecoder().decode([Language].self, from: data) {
-            languages = decoded
-        }
-    }
-    
-    private func saveLanguages() {
-        if let encoded = try? JSONEncoder().encode(languages) {
-            UserDefaults.standard.set(encoded, forKey: "userLanguages")
-        }
-    }
-    
-    private func deleteLanguage(_ language: Language) {
-        languages.removeAll { $0.id == language.id }
-        saveLanguages()
     }
 }
 
@@ -374,5 +349,5 @@ extension Language.ProficiencyLevel {
 
 #Preview {
     LanguageListView()
-        .environmentObject(ProfileManager())
+        .environmentObject(LanguageManager())
 } 

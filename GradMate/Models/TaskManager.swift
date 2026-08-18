@@ -296,16 +296,21 @@ struct NaturalLanguageParser {
         var priority: Int16 = 1
         
         // Extract time patterns
+        var parsedTime: Date? = nil
         if let timeMatch = lowercasedText.range(of: "at (\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?", options: .regularExpression) {
-            let timeString = String(lowercasedText[timeMatch])
-            dueDate = parseTimeString(timeString)
+            parsedTime = parseTimeString(String(lowercasedText[timeMatch]))
+            dueDate = parsedTime
         }
         
         // Extract date patterns
         if lowercasedText.contains("tomorrow") {
-            dueDate = Calendar.current.date(byAdding: .day, value: 1, to: Date())
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+            dueDate = merge(date: tomorrow, timeFrom: parsedTime)
         } else if lowercasedText.contains("next week") {
-            dueDate = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: Date())
+            let nextWeek = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: Date()) ?? Date()
+            dueDate = merge(date: nextWeek, timeFrom: parsedTime)
+        } else if lowercasedText.contains("today") {
+            dueDate = parsedTime ?? Date()
         }
         
         // Extract priority
@@ -330,6 +335,7 @@ struct NaturalLanguageParser {
         title = title.replacingOccurrences(of: "allday", with: "", options: .caseInsensitive)
         title = title.replacingOccurrences(of: "tomorrow", with: "", options: .caseInsensitive)
         title = title.replacingOccurrences(of: "next week", with: "", options: .caseInsensitive)
+        title = title.replacingOccurrences(of: "today", with: "", options: .caseInsensitive)
         title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         
         return ParsedTask(
@@ -344,17 +350,36 @@ struct NaturalLanguageParser {
     private func parseTimeString(_ timeString: String) -> Date? {
         let calendar = Calendar.current
         var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        let lowered = timeString.lowercased()
         
-        // Simple time parsing - in a real app, you'd use a more robust parser
-        if let hourMatch = timeString.range(of: "\\d{1,2}", options: .regularExpression) {
-            let hourString = String(timeString[hourMatch])
-            if let hour = Int(hourString) {
-                components.hour = hour
-                components.minute = 0
-                return calendar.date(from: components)
-            }
+        guard let hourMatch = lowered.range(of: "\\d{1,2}", options: .regularExpression) else {
+            return nil
+        }
+        guard var hour = Int(String(lowered[hourMatch])) else { return nil }
+        
+        var minute = 0
+        if let minuteMatch = lowered.range(of: ":(\\d{2})", options: .regularExpression) {
+            let minuteText = lowered[minuteMatch].dropFirst()
+            minute = Int(minuteText) ?? 0
         }
         
-        return nil
+        let isPM = lowered.contains("pm")
+        let isAM = lowered.contains("am")
+        if isPM, hour < 12 { hour += 12 }
+        if isAM, hour == 12 { hour = 0 }
+        
+        components.hour = hour
+        components.minute = minute
+        return calendar.date(from: components)
+    }
+    
+    private func merge(date: Date, timeFrom timeDate: Date?) -> Date {
+        guard let timeDate else { return date }
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: date)
+        let time = calendar.dateComponents([.hour, .minute], from: timeDate)
+        components.hour = time.hour
+        components.minute = time.minute
+        return calendar.date(from: components) ?? date
     }
 } 

@@ -13,12 +13,16 @@ struct HomeView: View {
     @EnvironmentObject private var taskManager: TaskManager
     @EnvironmentObject private var skillManager: SkillManager
     @EnvironmentObject private var preferencesManager: HomeScreenPreferencesManager
+    @EnvironmentObject private var careerDataService: CareerDataService
+    @EnvironmentObject private var focusSessionService: FocusSessionService
     @Environment(\.colorScheme) private var colorScheme
     
     @State private var todayTasks: [PlannerTask] = []
     @State private var showAddTask = false
     @State private var isLoading = false
     @State private var selectedTab = 0
+    @State private var showFocusSession = false
+    @State private var showProgressDashboard = false
     
     private var timeOfDay: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -70,6 +74,9 @@ struct HomeView: View {
                     if preferencesManager.preferences.showTodayFocus {
                         todayProgressSection
                     }
+                    if preferencesManager.preferences.showQuickActions {
+                        quickActionsSection
+                    }
                     // Quick Stats
                     if preferencesManager.preferences.showProductivityStats {
                         quickStatsSection
@@ -92,6 +99,19 @@ struct HomeView: View {
             }
             .onAppear {
                 loadTodayTasks()
+            }
+            .sheet(isPresented: $showAddTask) {
+                AddTaskView { title, notes, dueDate, isAllDay, priority in
+                    taskManager.createTask(title: title, dueDate: dueDate, isAllDay: isAllDay, notes: notes, priority: priority)
+                    loadTodayTasks()
+                }
+            }
+            .sheet(isPresented: $showFocusSession) {
+                FocusSessionView(focusSessionService: focusSessionService)
+                    .environmentObject(taskManager)
+            }
+            .sheet(isPresented: $showProgressDashboard) {
+                ProgressDashboardView()
             }
         }
         .navigationTitle("GradMate")
@@ -175,6 +195,36 @@ struct HomeView: View {
                     icon: "star.fill",
                     color: Color("appPrimaryAccent")
                 )
+            }
+        }
+        .padding(20)
+        .background(Color("appCardBG"))
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+    
+    // MARK: - Quick Actions
+    private var quickActionsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick Actions")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("appTextPrimary"))
+            
+            HStack(spacing: 12) {
+                if preferencesManager.preferences.showAddTaskAction {
+                    QuickActionButton(title: "Add Task", icon: "plus", color: Color("appPrimaryAccent")) {
+                        showAddTask = true
+                    }
+                }
+                if preferencesManager.preferences.showFocusAction {
+                    QuickActionButton(title: "Focus", icon: "timer", color: Color("appSuccess")) {
+                        showFocusSession = true
+                    }
+                }
+                QuickActionButton(title: "Progress", icon: "chart.bar.fill", color: Color("appWarning")) {
+                    showProgressDashboard = true
+                }
             }
         }
         .padding(20)
@@ -335,9 +385,16 @@ struct HomeView: View {
                 .foregroundColor(Color("appTextPrimary"))
             
             VStack(spacing: 12) {
-                ProgressRow(title: "Resume", progress: 0.8, color: Color("appPrimaryAccent"))
-                ProgressRow(title: "Portfolio", progress: 0.6, color: Color("appSuccess"))
-                ProgressRow(title: "Certifications", progress: 0.4, color: Color("appWarning"))
+                ProgressRow(title: "Resume", progress: resumeProgress, color: Color("appPrimaryAccent"))
+                ProgressRow(title: "Portfolio", progress: careerDataService.projects.isEmpty ? 0 : min(Double(careerDataService.projects.count) / 3.0, 1.0), color: Color("appSuccess"))
+                ProgressRow(title: "Certifications", progress: careerDataService.certifications.isEmpty ? 0 : min(Double(careerDataService.certifications.count) / 3.0, 1.0), color: Color("appWarning"))
+            }
+            
+            Button(action: { showProgressDashboard = true }) {
+                Text("Open dashboard")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("appPrimaryAccent"))
             }
         }
         .padding(20)
@@ -353,6 +410,18 @@ struct HomeView: View {
     
     private func firstName(_ fullName: String) -> String {
         fullName.split(separator: " ").first.map(String.init) ?? fullName
+    }
+    
+    private var resumeProgress: Double {
+        let profile = profileManager.currentProfile
+        let fields = [
+            !(profile?.name ?? "").isEmpty,
+            !(profile?.email ?? "").isEmpty,
+            !(profile?.role ?? "").isEmpty,
+            !skillManager.skills.isEmpty,
+            !careerDataService.workExperiences.isEmpty || !careerDataService.projects.isEmpty
+        ]
+        return Double(fields.filter { $0 }.count) / Double(fields.count)
     }
     
     private var greetingText: String {
@@ -405,6 +474,32 @@ struct QuickStatCard: View {
         .background(Color("appStrokeGray"))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+    }
+}
+
+struct QuickActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(color)
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("appTextPrimary"))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color("appStrokeGray"))
+            .cornerRadius(12)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

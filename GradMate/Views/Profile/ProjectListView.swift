@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct ProjectListView: View {
-    @State private var projects: [Project] = []
+    @EnvironmentObject private var careerDataService: CareerDataService
     @State private var showingEdit = false
     @State private var editingProject: Project? = nil
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                if projects.isEmpty {
+                if careerDataService.projectModels.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "folder.badge.plus")
                             .font(.system(size: 48))
@@ -33,7 +33,7 @@ struct ProjectListView: View {
                     .padding(.top, 60)
                 } else {
                     List {
-                        ForEach(projects) { project in
+                        ForEach(careerDataService.projectModels) { project in
                             Button(action: { editingProject = project; showingEdit = true }) {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(project.title)
@@ -49,9 +49,7 @@ struct ProjectListView: View {
                             }
                             .swipeActions {
                                 Button(role: .destructive) {
-                                    if let idx = projects.firstIndex(of: project) {
-                                        projects.remove(at: idx)
-                                    }
+                                    careerDataService.deleteProject(project)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -59,13 +57,13 @@ struct ProjectListView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
-                    .navigationTitle("Projects")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button(action: { editingProject = nil; showingEdit = true }) {
-                                Image(systemName: "plus")
-                            }
-                        }
+                }
+            }
+            .navigationTitle("Projects")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { editingProject = nil; showingEdit = true }) {
+                        Image(systemName: "plus")
                     }
                 }
             }
@@ -73,10 +71,10 @@ struct ProjectListView: View {
                 ProjectEditView(
                     project: editingProject,
                     onSave: { newProject in
-                        if let idx = projects.firstIndex(where: { $0.id == newProject.id }) {
-                            projects[idx] = newProject
+                        if editingProject != nil {
+                            careerDataService.updateProject(newProject)
                         } else {
-                            projects.append(newProject)
+                            careerDataService.createProject(newProject)
                         }
                         showingEdit = false
                     },
@@ -89,10 +87,7 @@ struct ProjectListView: View {
 
 struct ProjectListView_Previews: PreviewProvider {
     static var previews: some View {
-        if #available(iOS 16.0, *) {
-            ProjectListView()
-        } else {
-            Text("Project List requires iOS 16.0+")
-        }
+        ProjectListView()
+            .environmentObject(CareerDataService())
     }
-} 
+}

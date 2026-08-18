@@ -21,23 +21,19 @@ struct GradMateApp: App {
     @StateObject private var chatService = FirestoreChatService()
     @StateObject private var homeScreenPreferencesManager = HomeScreenPreferencesManager()
     @StateObject private var taskCategoryManager = TaskCategoryManager()
+    @StateObject private var careerDataService = CareerDataService()
+    @StateObject private var focusSessionService = FocusSessionService()
+    @StateObject private var progressDataService = ProgressDataService()
+    @StateObject private var languageManager = LanguageManager()
     @State private var didSeeOnboarding = UserDefaults.standard.bool(forKey: "didSeeOnboarding")
     @State private var showProfileCompletion = false
     
     init() {
         logToFile("[DEBUG] GradMateApp.init() - Configuring Firebase")
-        // FirebaseApp.configure() // Removed to avoid double configuration
-        
-        // Configure Firestore with better offline support
-        // let settings = FirestoreSettings()
-        // settings.cacheSettings = PersistentCacheSettings(sizeBytes: NSNumber(value: FirestoreCacheSizeUnlimited))
-        // Firestore.firestore().settings = settings
-        // logToFile("[DEBUG] GradMateApp.init() - Firebase configured successfully with offline support")
     }
     
     private func logToFile(_ message: String) {
         print(message)
-        // Also write to a file for debugging when running directly
         if let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
             let logFile = documentsPath.appendingPathComponent("debug.log")
             let timestamp = DateFormatter().string(from: Date())
@@ -61,56 +57,45 @@ struct GradMateApp: App {
         WindowGroup {
             ZStack {
                 if !didSeeOnboarding {
-                    OnboardingView()
-                        .environmentObject(authViewModel)
-                        .onDisappear {
-                            didSeeOnboarding = true
-                        }
+                    OnboardingView {
+                        UserDefaults.standard.set(true, forKey: "didSeeOnboarding")
+                        didSeeOnboarding = true
+                    }
+                    .environmentObject(authViewModel)
                 } else if authViewModel.user == nil {
                     AuthView()
                         .environmentObject(authViewModel)
                 } else if showProfileCompletion {
-                    if #available(iOS 16.0, *) {
-                        ProfileCompletionView()
-                            .environmentObject(authViewModel)
-                            .environmentObject(profileManager)
-                            .onDisappear {
-                                showProfileCompletion = false
-                            }
-                    } else {
-                        // Fallback for iOS 15
-                        ContentView()
-                            .environmentObject(authViewModel)
-                            .environmentObject(profileManager)
-                            .environmentObject(taskManager)
-                            .environmentObject(skillManager)
-                            .environmentObject(chatService)
-                            .environmentObject(homeScreenPreferencesManager)
-                            .environmentObject(taskCategoryManager)
-                    }
-                } else {
-                    ContentView()
+                    ProfileCompletionView()
                         .environmentObject(authViewModel)
                         .environmentObject(profileManager)
-                        .environmentObject(taskManager)
-                        .environmentObject(skillManager)
-                        .environmentObject(chatService)
-                        .environmentObject(homeScreenPreferencesManager)
-                        .environmentObject(taskCategoryManager)
+                        .onDisappear {
+                            showProfileCompletion = false
+                        }
+                } else {
+                    ContentView()
+                        .modifier(AppEnvironment(
+                            authViewModel: authViewModel,
+                            profileManager: profileManager,
+                            taskManager: taskManager,
+                            skillManager: skillManager,
+                            chatService: chatService,
+                            homeScreenPreferencesManager: homeScreenPreferencesManager,
+                            taskCategoryManager: taskCategoryManager,
+                            careerDataService: careerDataService,
+                            focusSessionService: focusSessionService,
+                            progressDataService: progressDataService,
+                            languageManager: languageManager
+                        ))
                 }
-                // Custom loader overlay
                 if authViewModel.isCheckingAuth || authViewModel.isLoading {
                     CustomLoaderOverlay()
                 }
             }
             .onAppear {
-                // Auth listener is now set up in AuthViewModel.init()
-                
-                // Configure Firestore with better offline support and timeout settings
                 let settings = FirestoreSettings()
                 settings.cacheSettings = PersistentCacheSettings(sizeBytes: NSNumber(value: FirestoreCacheSizeUnlimited))
                 settings.isSSLEnabled = true
-                // Set longer timeout for slow network connections
                 settings.host = "firestore.googleapis.com"
                 Firestore.firestore().settings = settings
                 logToFile("[DEBUG] GradMateApp - Firestore configured successfully with offline support and timeout settings")
@@ -118,8 +103,7 @@ struct GradMateApp: App {
             .onChange(of: authViewModel.user) { user in
                 if let user = user {
                     profileManager.loadProfileFromFirestore(uid: user.uid) { profile in
-                        // Check if this is a new user (no profile or incomplete profile)
-                        if profile == nil || profile?.name?.isEmpty == true {
+                        if profile == nil || (profile?.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             showProfileCompletion = true
                         }
                     }
@@ -129,5 +113,34 @@ struct GradMateApp: App {
                 }
             }
         }
+    }
+}
+
+private struct AppEnvironment: ViewModifier {
+    @ObservedObject var authViewModel: AuthViewModel
+    @ObservedObject var profileManager: ProfileManager
+    @ObservedObject var taskManager: TaskManager
+    @ObservedObject var skillManager: SkillManager
+    @ObservedObject var chatService: FirestoreChatService
+    @ObservedObject var homeScreenPreferencesManager: HomeScreenPreferencesManager
+    @ObservedObject var taskCategoryManager: TaskCategoryManager
+    @ObservedObject var careerDataService: CareerDataService
+    @ObservedObject var focusSessionService: FocusSessionService
+    @ObservedObject var progressDataService: ProgressDataService
+    @ObservedObject var languageManager: LanguageManager
+    
+    func body(content: Content) -> some View {
+        content
+            .environmentObject(authViewModel)
+            .environmentObject(profileManager)
+            .environmentObject(taskManager)
+            .environmentObject(skillManager)
+            .environmentObject(chatService)
+            .environmentObject(homeScreenPreferencesManager)
+            .environmentObject(taskCategoryManager)
+            .environmentObject(careerDataService)
+            .environmentObject(focusSessionService)
+            .environmentObject(progressDataService)
+            .environmentObject(languageManager)
     }
 }

@@ -8,27 +8,29 @@ class CareerDataService: ObservableObject {
     @Published var certifications: [CertificationEntity] = []
     @Published var workExperiences: [WorkExperienceEntity] = []
     
-    // Computed properties for model objects
     var certificationModels: [Certification] {
-        certifications.compactMap { entity in
-            guard let id = entity.id,
-                  let name = entity.name,
-                  let issuingOrganization = entity.issuingOrganization,
-                  let issueDate = entity.issueDate else {
-                return nil
-            }
-            
-            return Certification(
-                id: id,
-                title: name,
-                organization: issuingOrganization,
-                location: "", // Not stored in Core Data
-                dateReceived: issueDate,
-                dateExpiry: entity.expiryDate,
-                description: "", // Not stored in Core Data
-                credentialID: entity.credentialId
-            )
-        }
+        convertToCertificationModels()
+    }
+    
+    var projectModels: [Project] {
+        convertToProjectModels()
+    }
+    
+    var internshipModels: [Internship] {
+        convertToInternshipModels()
+    }
+    
+    var workExperienceModels: [WorkExperience] {
+        convertToWorkExperienceModels()
+    }
+    
+    var careerCompletionRatio: Double {
+        let hasWork = !workExperiences.isEmpty
+        let hasProjects = !projects.isEmpty
+        let hasInternships = !internships.isEmpty
+        let hasCerts = !certifications.isEmpty
+        let filled = [hasWork, hasProjects, hasInternships, hasCerts].filter { $0 }.count
+        return Double(filled) / 4.0
     }
     
     private let context: NSManagedObjectContext
@@ -54,6 +56,9 @@ class CareerDataService: ObservableObject {
         let entity = ProjectEntity(context: context)
         entity.id = project.id
         entity.title = project.title
+        entity.role = project.role
+        entity.company = project.company
+        entity.location = project.location
         entity.projectDescription = project.description
         entity.technologies = project.technologies as? NSArray
         entity.startDate = project.startDate
@@ -74,6 +79,9 @@ class CareerDataService: ObservableObject {
             let results = try context.fetch(request)
             if let entity = results.first {
                 entity.title = project.title
+                entity.role = project.role
+                entity.company = project.company
+                entity.location = project.location
                 entity.projectDescription = project.description
                 entity.technologies = project.technologies as? NSArray
                 entity.startDate = project.startDate
@@ -121,6 +129,7 @@ class CareerDataService: ObservableObject {
         let entity = InternshipEntity(context: context)
         entity.id = internship.id
         entity.title = internship.title
+        entity.role = internship.role
         entity.company = internship.company
         entity.location = internship.location
         entity.internshipDescription = internship.description
@@ -143,6 +152,7 @@ class CareerDataService: ObservableObject {
             let results = try context.fetch(request)
             if let entity = results.first {
                 entity.title = internship.title
+                entity.role = internship.role
                 entity.company = internship.company
                 entity.location = internship.location
                 entity.internshipDescription = internship.description
@@ -193,6 +203,8 @@ class CareerDataService: ObservableObject {
         entity.id = certification.id
         entity.name = certification.title
         entity.issuingOrganization = certification.organization
+        entity.location = certification.location
+        entity.certDescription = certification.description
         entity.issueDate = certification.dateReceived
         entity.expiryDate = certification.dateExpiry
         entity.credentialId = certification.credentialID
@@ -212,6 +224,8 @@ class CareerDataService: ObservableObject {
             if let entity = results.first {
                 entity.name = certification.title
                 entity.issuingOrganization = certification.organization
+                entity.location = certification.location
+                entity.certDescription = certification.description
                 entity.issueDate = certification.dateReceived
                 entity.expiryDate = certification.dateExpiry
                 entity.credentialId = certification.credentialID
@@ -331,24 +345,16 @@ class CareerDataService: ObservableObject {
     // MARK: - Conversion Methods
     func convertToWorkExperienceModels() -> [WorkExperience] {
         return workExperiences.compactMap { entity in
-            guard let id = entity.id,
-                  let title = entity.title,
-                  let company = entity.company,
-                  let location = entity.location,
-                  let startDate = entity.startDate,
-                  let description = entity.workDescription else {
-                return nil
-            }
-            
+            guard let id = entity.id else { return nil }
             return WorkExperience(
                 id: id,
-                title: title,
-                company: company,
-                location: location,
-                startDate: startDate,
+                title: entity.title ?? "",
+                company: entity.company ?? "",
+                location: entity.location ?? "",
+                startDate: entity.startDate ?? Date(),
                 endDate: entity.endDate,
                 isCurrent: entity.isCurrent,
-                description: description,
+                description: entity.workDescription ?? "",
                 technologies: entity.technologies as? [String]
             )
         }
@@ -356,23 +362,17 @@ class CareerDataService: ObservableObject {
     
     func convertToProjectModels() -> [Project] {
         return projects.compactMap { entity in
-            guard let id = entity.id,
-                  let title = entity.title,
-                  let description = entity.projectDescription,
-                  let startDate = entity.startDate else {
-                return nil
-            }
-            
+            guard let id = entity.id else { return nil }
             return Project(
                 id: id,
-                title: title,
-                role: "", // Not stored in Core Data
-                company: "", // Not stored in Core Data
-                location: "", // Not stored in Core Data
-                startDate: startDate,
+                title: entity.title ?? "",
+                role: entity.role ?? "",
+                company: entity.company ?? "",
+                location: entity.location ?? "",
+                startDate: entity.startDate ?? Date(),
                 endDate: entity.endDate,
                 isCurrent: entity.isCurrent,
-                description: description,
+                description: entity.projectDescription ?? "",
                 technologies: entity.technologies as? [String]
             )
         }
@@ -380,26 +380,34 @@ class CareerDataService: ObservableObject {
     
     func convertToInternshipModels() -> [Internship] {
         return internships.compactMap { entity in
-            guard let id = entity.id,
-                  let title = entity.title,
-                  let company = entity.company,
-                  let location = entity.location,
-                  let description = entity.internshipDescription,
-                  let startDate = entity.startDate else {
-                return nil
-            }
-            
+            guard let id = entity.id else { return nil }
             return Internship(
                 id: id,
-                title: title,
-                role: "", // Not stored in Core Data
-                company: company,
-                location: location,
-                startDate: startDate,
+                title: entity.title ?? "",
+                role: entity.role ?? "",
+                company: entity.company ?? "",
+                location: entity.location ?? "",
+                startDate: entity.startDate ?? Date(),
                 endDate: entity.endDate,
                 isCurrent: entity.isCurrent,
-                description: description,
+                description: entity.internshipDescription ?? "",
                 technologies: entity.technologies as? [String]
+            )
+        }
+    }
+    
+    func convertToCertificationModels() -> [Certification] {
+        return certifications.compactMap { entity in
+            guard let id = entity.id else { return nil }
+            return Certification(
+                id: id,
+                title: entity.name ?? "",
+                organization: entity.issuingOrganization ?? "",
+                location: entity.location ?? "",
+                dateReceived: entity.issueDate ?? Date(),
+                dateExpiry: entity.expiryDate,
+                description: entity.certDescription ?? "",
+                credentialID: entity.credentialId
             )
         }
     }

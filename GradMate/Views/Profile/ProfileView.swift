@@ -16,7 +16,8 @@ struct ProfileView: View {
     @EnvironmentObject private var taskManager: TaskManager
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject private var preferencesManager: HomeScreenPreferencesManager
-    @StateObject private var careerDataService = CareerDataService()
+    @EnvironmentObject private var careerDataService: CareerDataService
+    @EnvironmentObject private var languageManager: LanguageManager
     @StateObject private var coverLetterDataService = CoverLetterDataService()
     @Environment(\.colorScheme) private var colorScheme
     
@@ -62,6 +63,8 @@ struct ProfileView: View {
                 ResumeExportView()
                     .environmentObject(profileManager)
                     .environmentObject(skillManager)
+                    .environmentObject(careerDataService)
+                    .environmentObject(languageManager)
             }
             .sheet(isPresented: $showingEditProfile) {
                 EditProfileView()
@@ -96,7 +99,9 @@ struct ProfileView: View {
                     .environmentObject(coverLetterDataService)
             }
             .sheet(isPresented: $showingLanguages) {
-                LanguageListView().environmentObject(profileManager)
+                LanguageListView()
+                    .environmentObject(profileManager)
+                    .environmentObject(languageManager)
             }
             .sheet(isPresented: $showingResumeUpload) {
                 ResumeUploadView()
@@ -109,7 +114,12 @@ struct ProfileView: View {
                     deleteConfirmationText = ""
                 }
                 Button("Delete", role: .destructive) {
-                    // Implement delete account logic here
+                    Task {
+                        let success = await authViewModel.deleteAccount()
+                        if !success {
+                            deleteConfirmationText = ""
+                        }
+                    }
                     deleteConfirmationText = ""
                 }.disabled(deleteConfirmationText != "DELETE")
             }, message: {

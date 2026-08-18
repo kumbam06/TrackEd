@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct InternshipListView: View {
-    @State private var internships: [Internship] = []
+    @EnvironmentObject private var careerDataService: CareerDataService
     @State private var showingEdit = false
     @State private var editingInternship: Internship? = nil
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                if internships.isEmpty {
+                if careerDataService.internshipModels.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "briefcase.badge.plus")
                             .font(.system(size: 48))
@@ -33,7 +33,7 @@ struct InternshipListView: View {
                     .padding(.top, 60)
                 } else {
                     List {
-                        ForEach(internships) { internship in
+                        ForEach(careerDataService.internshipModels) { internship in
                             Button(action: { editingInternship = internship; showingEdit = true }) {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(internship.title)
@@ -49,9 +49,7 @@ struct InternshipListView: View {
                             }
                             .swipeActions {
                                 Button(role: .destructive) {
-                                    if let idx = internships.firstIndex(of: internship) {
-                                        internships.remove(at: idx)
-                                    }
+                                    careerDataService.deleteInternship(internship)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -59,13 +57,13 @@ struct InternshipListView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
-                    .navigationTitle("Internships")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button(action: { editingInternship = nil; showingEdit = true }) {
-                                Image(systemName: "plus")
-                            }
-                        }
+                }
+            }
+            .navigationTitle("Internships")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { editingInternship = nil; showingEdit = true }) {
+                        Image(systemName: "plus")
                     }
                 }
             }
@@ -73,10 +71,10 @@ struct InternshipListView: View {
                 InternshipEditView(
                     internship: editingInternship,
                     onSave: { newInternship in
-                        if let idx = internships.firstIndex(where: { $0.id == newInternship.id }) {
-                            internships[idx] = newInternship
+                        if editingInternship != nil {
+                            careerDataService.updateInternship(newInternship)
                         } else {
-                            internships.append(newInternship)
+                            careerDataService.createInternship(newInternship)
                         }
                         showingEdit = false
                     },
@@ -90,5 +88,6 @@ struct InternshipListView: View {
 struct InternshipListView_Previews: PreviewProvider {
     static var previews: some View {
         InternshipListView()
+            .environmentObject(CareerDataService())
     }
-} 
+}

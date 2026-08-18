@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WorkExperienceListView: View {
-    @State private var workExperiences: [WorkExperience] = []
+    @EnvironmentObject private var careerDataService: CareerDataService
     @State private var showingAddWorkExperience = false
     @State private var selectedWorkExperience: WorkExperience?
     
@@ -11,7 +11,7 @@ struct WorkExperienceListView: View {
                 Color("appScreenBG")
                     .ignoresSafeArea()
                 
-                if workExperiences.isEmpty {
+                if careerDataService.workExperienceModels.isEmpty {
                     VStack(spacing: 20) {
                         Image(systemName: "briefcase.fill")
                             .font(.system(size: 60))
@@ -45,7 +45,7 @@ struct WorkExperienceListView: View {
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 16) {
-                            ForEach(workExperiences) { workExperience in
+                            ForEach(careerDataService.workExperienceModels) { workExperience in
                                 WorkExperienceCard(workExperience: workExperience) {
                                     selectedWorkExperience = workExperience
                                 }
@@ -69,47 +69,18 @@ struct WorkExperienceListView: View {
             }
             .sheet(isPresented: $showingAddWorkExperience) {
                 WorkExperienceEditView(workExperience: nil) { newWorkExperience in
-                    workExperiences.append(newWorkExperience)
+                    careerDataService.createWorkExperience(newWorkExperience)
                 }
             }
             .sheet(item: $selectedWorkExperience) { workExperience in
                 WorkExperienceEditView(workExperience: workExperience) { updatedWorkExperience in
-                    if let index = workExperiences.firstIndex(where: { $0.id == workExperience.id }) {
-                        workExperiences[index] = updatedWorkExperience
-                    }
+                    careerDataService.updateWorkExperience(updatedWorkExperience)
                 }
             }
         }
         .onAppear {
-            loadWorkExperiences()
+            careerDataService.loadWorkExperiences()
         }
-    }
-    
-    private func loadWorkExperiences() {
-        // TODO: Load from Core Data or other storage
-        // For now, using sample data
-        workExperiences = [
-            WorkExperience(
-                title: "Software Engineer Intern",
-                company: "Tech Corp",
-                location: "San Francisco, CA",
-                startDate: Date().addingTimeInterval(-6 * 30 * 24 * 60 * 60), // 6 months ago
-                endDate: Date(),
-                isCurrent: true,
-                description: "Developed and maintained web applications using React and Node.js. Collaborated with cross-functional teams to deliver high-quality software solutions.",
-                technologies: ["React", "Node.js", "JavaScript", "MongoDB"]
-            ),
-            WorkExperience(
-                title: "Research Assistant",
-                company: "University Lab",
-                location: "Boston, MA",
-                startDate: Date().addingTimeInterval(-12 * 30 * 24 * 60 * 60), // 1 year ago
-                endDate: Date().addingTimeInterval(-6 * 30 * 24 * 60 * 60), // 6 months ago
-                isCurrent: false,
-                description: "Conducted research on machine learning algorithms and data analysis. Published findings in academic journals.",
-                technologies: ["Python", "TensorFlow", "Pandas", "Scikit-learn"]
-            )
-        ]
     }
 }
 
@@ -209,4 +180,5 @@ struct WorkExperienceCard: View {
 
 #Preview {
     WorkExperienceListView()
+        .environmentObject(CareerDataService())
 } 

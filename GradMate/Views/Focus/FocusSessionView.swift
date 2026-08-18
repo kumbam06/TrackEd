@@ -12,14 +12,13 @@ import Combine
 struct FocusSessionView: View {
     @EnvironmentObject private var taskManager: TaskManager
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var focusSessionService: FocusSessionService
     @StateObject private var viewModel: FocusSessionViewModel
     @State private var selectedTask: PlannerTask?
     @State private var showingTaskPicker = false
     @State private var showTaskRequiredAlert = false
     
-    init() {
-        _viewModel = StateObject(wrappedValue: FocusSessionViewModel(focusSessionService: FocusSessionService()))
+    init(focusSessionService: FocusSessionService) {
+        _viewModel = StateObject(wrappedValue: FocusSessionViewModel(focusSessionService: focusSessionService))
     }
     
     var body: some View {

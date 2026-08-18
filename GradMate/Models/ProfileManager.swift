@@ -51,20 +51,7 @@ class ProfileManager: ObservableObject {
     }
     
     private func createDefaultProfile() {
-        let profile = Profile(context: context)
-        profile.id = UUID()
-        profile.name = "John Doe"
-        profile.role = "iOS Developer"
-        profile.email = "john.doe@example.com"
-        profile.phone = "+1 (555) 123-4567"
-        profile.bio = "Passionate iOS developer with expertise in SwiftUI and Core Data."
-        profile.linkedin = "linkedin.com/in/johndoe"
-        profile.website = "johndoe.dev"
-        profile.dob = nil
-        profile.address = ""
-        profile.currentCompany = ""
-        currentProfile = profile
-        save()
+        currentProfile = nil
     }
     
     func updateProfile(name: String, role: String, email: String, phone: String, bio: String, linkedin: String, website: String, username: String, dob: Date?, address: String, currentCompany: String) {

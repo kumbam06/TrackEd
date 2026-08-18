@@ -6,6 +6,9 @@ import FirebaseFirestore
 import GoogleSignIn
 import FirebaseCore
 import Network
+import CryptoKit
+import UIKit
+import Security
 
 class AuthViewModel: ObservableObject {
     @Published var user: User?
@@ -16,6 +19,7 @@ class AuthViewModel: ObservableObject {
     private var handle: AuthStateDidChangeListenerHandle?
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "NetworkMonitor")
+    private var currentNonce: String?
     
     init() {
         print("[DEBUG] AuthViewModel.init() - Firebase Auth initialized")
@@ -336,12 +340,83 @@ class AuthViewModel: ObservableObject {
         }
     }
     
+    func configureAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
+        let nonce = randomNonceString()
+        currentNonce = nonce
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = sha256(nonce)
+    }
+    
     func signInWithApple(result: Result<ASAuthorization, Error>) {
-        // TODO: Implement Apple Sign-In using ASAuthorizationAppleIDCredential and FirebaseAuth
-        // See: https://firebase.google.com/docs/auth/ios/apple
-        // 1. Handle Apple sign-in result
-        // 2. Get credential and authenticate with Firebase
-        print("Apple Sign-In tapped (not yet implemented)")
+        switch result {
+        case .failure(let error):
+            DispatchQueue.main.async {
+                self.errorMessage = error.localizedDescription
+            }
+        case .success(let authorization):
+            guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                errorMessage = "Apple Sign-In failed."
+                return
+            }
+            guard let nonce = currentNonce else {
+                errorMessage = "Invalid Apple Sign-In state. Please try again."
+                return
+            }
+            guard let appleIDToken = appleIDCredential.identityToken,
+                  let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
+                errorMessage = "Unable to fetch identity token from Apple."
+                return
+            }
+            
+            isLoading = true
+            let credential = OAuthProvider.credential(
+                withProviderID: "apple.com",
+                idToken: idTokenString,
+                rawNonce: nonce
+            )
+            
+            Auth.auth().signIn(with: credential) { [weak self] authResult, error in
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    self.isLoading = false
+                    if let error = error {
+                        self.errorMessage = error.localizedDescription
+                        return
+                    }
+                    guard let user = authResult?.user else {
+                        self.errorMessage = "Apple Sign-In failed."
+                        return
+                    }
+                    
+                    var displayName = user.displayName ?? ""
+                    if displayName.isEmpty, let fullName = appleIDCredential.fullName {
+                        displayName = [fullName.givenName, fullName.familyName]
+                            .compactMap { $0 }
+                            .joined(separator: " ")
+                    }
+                    
+                    let db = Firestore.firestore()
+                    var userData: [String: Any] = [
+                        "email": user.email ?? appleIDCredential.email ?? "",
+                        "name": displayName,
+                        "provider": "apple",
+                        "lastSignIn": FieldValue.serverTimestamp()
+                    ]
+                    if let email = appleIDCredential.email {
+                        userData["email"] = email
+                    }
+                    
+                    db.collection("users").document(user.uid).setData(userData, merge: true) { error in
+                        DispatchQueue.main.async {
+                            if let error = error {
+                                print("[DEBUG] Error saving Apple user: \(error.localizedDescription)")
+                            }
+                            self.user = user
+                        }
+                    }
+                }
+            }
+        }
     }
     
     @MainActor
@@ -350,11 +425,51 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         do {
             try Auth.auth().signOut()
+            GIDSignIn.sharedInstance.signOut()
             self.user = nil
-            // Optionally clear any other user-related state here
         } catch {
             self.errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+    
+    @MainActor
+    func deleteAccount() async -> Bool {
+        guard let user = Auth.auth().currentUser else {
+            errorMessage = "No signed-in user."
+            return false
+        }
+        isLoading = true
+        errorMessage = nil
+        let uid = user.uid
+        
+        do {
+            try await Firestore.firestore().collection("users").document(uid).delete()
+            try await user.delete()
+            self.user = nil
+            isLoading = false
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+            return false
+        }
+    }
+    
+    private func randomNonceString(length: Int = 32) -> String {
+        precondition(length > 0)
+        var randomBytes = [UInt8](repeating: 0, count: length)
+        let errorCode = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
+        if errorCode != errSecSuccess {
+            fatalError("Unable to generate nonce. OSStatus \(errorCode)")
+        }
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        return String(randomBytes.map { charset[Int($0) % charset.count] })
+    }
+    
+    private func sha256(_ input: String) -> String {
+        let inputData = Data(input.utf8)
+        let hashed = SHA256.hash(data: inputData)
+        return hashed.compactMap { String(format: "%02x", $0) }.joined()
     }
 } 

@@ -154,8 +154,8 @@ class ProgressDataService: ObservableObject {
     }
     
     private func calculateCareerProgress() -> Double {
-        // TODO: Implement based on actual career data
-        return 0.65
+        let service = CareerDataService(context: context)
+        return service.careerCompletionRatio
     }
     
     private func save() {

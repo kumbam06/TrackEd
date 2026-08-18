@@ -24,8 +24,8 @@ let onboardingPages = [
 ]
 
 struct OnboardingView: View {
+    var onFinished: () -> Void
     @State private var currentPage = 0
-    @State private var showAuth = false
 
     var body: some View {
         ZStack {
@@ -99,8 +99,7 @@ struct OnboardingView: View {
                     }
                     Button(action: {
                         if currentPage == onboardingPages.count - 1 {
-                            UserDefaults.standard.set(true, forKey: "didSeeOnboarding")
-                            withAnimation { showAuth = true }
+                            onFinished()
                         } else {
                             withAnimation { currentPage += 1 }
                         }
@@ -119,8 +118,7 @@ struct OnboardingView: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 8)
                 Button(action: {
-                    UserDefaults.standard.set(true, forKey: "didSeeOnboarding")
-                    withAnimation { showAuth = true }
+                    onFinished()
                 }) {
                     Text("Skip")
                         .font(.subheadline)
@@ -136,8 +134,5 @@ struct OnboardingView: View {
             .padding(.horizontal, 0)
         }
         .transition(.opacity)
-        .fullScreenCover(isPresented: $showAuth) {
-            AuthView()
-        }
     }
 } 
