@@ -234,7 +234,7 @@ struct WorkExperienceEditView: View {
     
     private func saveWorkExperience() {
         let workExperience = WorkExperience(
-            id: workExperience?.id ?? UUID(),
+            id: self.workExperience?.id ?? UUID(),
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             company: company.trimmingCharacters(in: .whitespacesAndNewlines),
             location: location.trimmingCharacters(in: .whitespacesAndNewlines),

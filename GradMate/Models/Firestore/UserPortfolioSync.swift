@@ -93,27 +93,51 @@ enum UserPortfolioSync {
                     return
                 }
                 profileManager.applyCloudProfile(portfolio)
-                if !portfolio.skills.isEmpty {
-                    skillManager.replaceAll(portfolio.skills)
-                }
-                let hasCareer = !portfolio.workExperiences.isEmpty
-                    || !portfolio.projects.isEmpty
-                    || !portfolio.internships.isEmpty
-                    || !portfolio.certifications.isEmpty
-                if hasCareer {
-                    career.replaceAll(
-                        workExperiences: portfolio.workExperiences,
-                        projects: portfolio.projects,
-                        internships: portfolio.internships,
-                        certifications: portfolio.certifications
-                    )
-                }
-                if !portfolio.languages.isEmpty {
-                    languages.replaceAll(portfolio.languages)
-                }
+                let local = snapshot(
+                    profileManager: profileManager,
+                    skillManager: skillManager,
+                    career: career,
+                    languages: languages
+                )
+                let merged = merge(local: local, remote: portfolio)
+                skillManager.replaceAll(merged.skills)
+                career.replaceAll(
+                    workExperiences: merged.workExperiences,
+                    projects: merged.projects,
+                    internships: merged.internships,
+                    certifications: merged.certifications
+                )
+                languages.replaceAll(merged.languages)
                 push(profileManager: profileManager, skillManager: skillManager, career: career, languages: languages)
-                completion?(portfolio)
+                completion?(merged)
             }
         }
+    }
+    
+    /// Keep local lists when the device already has data so a partial cloud document cannot wipe work, projects, or internships.
+    static func merge(local: UserPortfolio, remote: UserPortfolio) -> UserPortfolio {
+        UserPortfolio(
+            name: pick(local.name, remote.name),
+            role: pick(local.role, remote.role),
+            email: pick(local.email, remote.email),
+            phone: pick(local.phone, remote.phone),
+            bio: pick(local.bio, remote.bio),
+            linkedin: pick(local.linkedin, remote.linkedin),
+            website: pick(local.website, remote.website),
+            username: pick(local.username, remote.username),
+            address: pick(local.address, remote.address),
+            currentCompany: pick(local.currentCompany, remote.currentCompany),
+            photoURL: local.photoURL ?? remote.photoURL,
+            skills: local.skills.isEmpty ? remote.skills : local.skills,
+            workExperiences: local.workExperiences.isEmpty ? remote.workExperiences : local.workExperiences,
+            projects: local.projects.isEmpty ? remote.projects : local.projects,
+            internships: local.internships.isEmpty ? remote.internships : local.internships,
+            certifications: local.certifications.isEmpty ? remote.certifications : local.certifications,
+            languages: local.languages.isEmpty ? remote.languages : local.languages
+        )
+    }
+    
+    private static func pick(_ local: String, _ remote: String) -> String {
+        local.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? remote : local
     }
 }

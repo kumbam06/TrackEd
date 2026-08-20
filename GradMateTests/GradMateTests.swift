@@ -141,3 +141,23 @@ final class CareerModelTests: XCTestCase {
         XCTAssertEqual(decoded, [language])
     }
 }
+
+final class PortfolioMergeTests: XCTestCase {
+    func testKeepsLocalWorkWhenRemoteOnlyHasCertifications() {
+        let localWork = WorkExperience(title: "iOS Engineer", company: "Anvi Labs")
+        let remoteCert = Certification(title: "Objective C", organization: "Apple")
+        let local = UserPortfolio(workExperiences: [localWork], certifications: [])
+        let remote = UserPortfolio(workExperiences: [], certifications: [remoteCert])
+        let merged = UserPortfolioSync.merge(local: local, remote: remote)
+        XCTAssertEqual(merged.workExperiences, [localWork])
+        XCTAssertEqual(merged.certifications, [remoteCert])
+    }
+    
+    func testUsesRemoteWorkWhenLocalIsEmpty() {
+        let remoteWork = WorkExperience(title: "Senior iOS Developer", company: "Anvi Labs")
+        let local = UserPortfolio()
+        let remote = UserPortfolio(workExperiences: [remoteWork])
+        let merged = UserPortfolioSync.merge(local: local, remote: remote)
+        XCTAssertEqual(merged.workExperiences, [remoteWork])
+    }
+}

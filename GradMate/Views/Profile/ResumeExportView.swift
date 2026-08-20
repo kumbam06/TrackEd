@@ -1,7 +1,55 @@
 import SwiftUI
 import MessageUI
 
+struct ResumeTheme: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let primaryColor: Color
+    let accentColor: Color
+    let headerFont: Font
+    let bodyFont: Font
+    let sectionSpacing: CGFloat
+    let dividerColor: Color
+    let backgroundColor: Color
+    let subtitleFont: Font
+    let sectionTitleFont: Font
+    let sectionTitleColor: Color
+    let sectionHeaderCaps: Bool
+}
+
 extension ResumeTheme {
+    static let modernMinimalist = ResumeTheme(
+        id: "modern-minimalist",
+        name: "Modern Minimalist",
+        primaryColor: .black,
+        accentColor: Color(red: 0.25, green: 0.25, blue: 0.28),
+        headerFont: .system(size: 28, weight: .bold),
+        bodyFont: .system(size: 13, weight: .regular),
+        sectionSpacing: 16,
+        dividerColor: Color.gray.opacity(0.22),
+        backgroundColor: Color.white,
+        subtitleFont: .system(size: 16, weight: .medium),
+        sectionTitleFont: .system(size: 14, weight: .semibold),
+        sectionTitleColor: .black,
+        sectionHeaderCaps: false
+    )
+    
+    static let professionalClassic = ResumeTheme(
+        id: "professional-classic",
+        name: "Professional Classic",
+        primaryColor: .black,
+        accentColor: .gray,
+        headerFont: .system(size: 26, weight: .bold, design: .serif),
+        bodyFont: .system(size: 12, weight: .regular, design: .serif),
+        sectionSpacing: 16,
+        dividerColor: Color.gray.opacity(0.3),
+        backgroundColor: Color.white,
+        subtitleFont: .system(size: 15, weight: .medium, design: .serif),
+        sectionTitleFont: .system(size: 14, weight: .bold, design: .serif),
+        sectionTitleColor: .black,
+        sectionHeaderCaps: false
+    )
+    
     static let creativeTeal = ResumeTheme(
         id: "creative-teal",
         name: "Creative Teal",
@@ -49,7 +97,14 @@ struct ResumeExportView: View {
     @State private var isGenerating = false
     
     private var snapshot: ResumeSnapshot {
-        ResumeSnapshot.current(
+        _ = careerDataService.workExperiences
+        _ = careerDataService.projects
+        _ = careerDataService.internships
+        _ = careerDataService.certifications
+        _ = skillManager.skills
+        _ = languageManager.languages
+        _ = profileManager.currentProfile
+        return ResumeSnapshot.current(
             profile: profileManager.currentProfile,
             skills: skillManager.skills,
             career: careerDataService,
@@ -81,6 +136,11 @@ struct ResumeExportView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                 }
+            }
+            .onAppear {
+                careerDataService.reload()
+                skillManager.loadSkills()
+                languageManager.load()
             }
             .sheet(isPresented: $showingShare) {
                 if let shareURL {
@@ -217,11 +277,11 @@ struct ResumePaperView: View {
                     .font(theme.subtitleFont)
                     .foregroundColor(theme.accentColor)
             }
-            contactRow
+            contactBlock
             if !snapshot.bio.isEmpty {
                 Text(snapshot.bio)
                     .font(theme.bodyFont)
-                    .foregroundColor(theme.primaryColor.opacity(0.8))
+                    .foregroundColor(theme.primaryColor.opacity(0.85))
             }
             experienceSection("Work Experience", items: snapshot.workExperiences.map {
                 ($0.title, $0.company, ResumePDFBuilder.dateRange($0.startDate, $0.endDate, $0.isCurrent), $0.description)
@@ -230,7 +290,7 @@ struct ResumePaperView: View {
                 ($0.title, $0.company, ResumePDFBuilder.dateRange($0.startDate, $0.endDate, $0.isCurrent), $0.description)
             })
             experienceSection("Projects", items: snapshot.projects.map {
-                ($0.title, $0.company, ResumePDFBuilder.dateRange($0.startDate, $0.endDate, $0.isCurrent), $0.description)
+                ($0.title, $0.role.isEmpty ? $0.company : "\($0.role) · \($0.company)", ResumePDFBuilder.dateRange($0.startDate, $0.endDate, $0.isCurrent), $0.description)
             })
             if !snapshot.certifications.isEmpty {
                 sectionTitle("Certifications")
@@ -263,11 +323,23 @@ struct ResumePaperView: View {
         .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 4)
     }
     
-    private var contactRow: some View {
-        let parts = [snapshot.email, snapshot.phone, snapshot.linkedin, snapshot.website, snapshot.address].filter { !$0.isEmpty }
-        return Text(parts.joined(separator: "  •  "))
-            .font(.caption)
-            .foregroundColor(theme.primaryColor.opacity(0.7))
+    private var contactBlock: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            contactLine("Email", snapshot.email)
+            contactLine("Phone", snapshot.phone)
+            contactLine("LinkedIn", snapshot.linkedin)
+            contactLine("Website", snapshot.website)
+            contactLine("Address", snapshot.address)
+        }
+    }
+    
+    @ViewBuilder
+    private func contactLine(_ label: String, _ value: String) -> some View {
+        if !value.isEmpty {
+            Text("\(label): \(value)")
+                .font(.caption)
+                .foregroundColor(theme.primaryColor.opacity(0.75))
+        }
     }
     
     private func sectionTitle(_ title: String) -> some View {

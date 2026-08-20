@@ -338,8 +338,13 @@ class CareerDataService: ObservableObject {
         }
     }
     
+    func reload() {
+        loadAllData()
+        objectWillChange.send()
+    }
+    
     // MARK: - Helper Methods
-    private func loadAllData() {
+    func loadAllData() {
         loadProjects()
         loadInternships()
         loadCertifications()
@@ -470,9 +475,10 @@ class CareerDataService: ObservableObject {
     // MARK: - Conversion Methods
     func convertToWorkExperienceModels() -> [WorkExperience] {
         return workExperiences.compactMap { entity in
-            guard let id = entity.id else { return nil }
+            let identifier = entity.id ?? UUID()
+            if entity.id == nil { entity.id = identifier }
             return WorkExperience(
-                id: id,
+                id: identifier,
                 title: entity.title ?? "",
                 company: entity.company ?? "",
                 location: entity.location ?? "",
@@ -487,9 +493,10 @@ class CareerDataService: ObservableObject {
     
     func convertToProjectModels() -> [Project] {
         return projects.compactMap { entity in
-            guard let id = entity.id else { return nil }
+            let identifier = entity.id ?? UUID()
+            if entity.id == nil { entity.id = identifier }
             return Project(
-                id: id,
+                id: identifier,
                 title: entity.title ?? "",
                 role: entity.role ?? "",
                 company: entity.company ?? "",
@@ -505,9 +512,10 @@ class CareerDataService: ObservableObject {
     
     func convertToInternshipModels() -> [Internship] {
         return internships.compactMap { entity in
-            guard let id = entity.id else { return nil }
+            let identifier = entity.id ?? UUID()
+            if entity.id == nil { entity.id = identifier }
             return Internship(
-                id: id,
+                id: identifier,
                 title: entity.title ?? "",
                 role: entity.role ?? "",
                 company: entity.company ?? "",
@@ -523,9 +531,10 @@ class CareerDataService: ObservableObject {
     
     func convertToCertificationModels() -> [Certification] {
         return certifications.compactMap { entity in
-            guard let id = entity.id else { return nil }
+            let identifier = entity.id ?? UUID()
+            if entity.id == nil { entity.id = identifier }
             return Certification(
-                id: id,
+                id: identifier,
                 title: entity.name ?? "",
                 organization: entity.issuingOrganization ?? "",
                 location: entity.location ?? "",

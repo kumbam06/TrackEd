@@ -28,6 +28,7 @@ struct GradMateApp: App {
     @StateObject private var languageManager = LanguageManager()
     @State private var didSeeOnboarding = UserDefaults.standard.bool(forKey: "didSeeOnboarding")
     @State private var showProfileCompletion = false
+    @Environment(\.scenePhase) private var scenePhase
     
     init() {
         logToFile("[DEBUG] GradMateApp.init() - Configuring Firebase")
@@ -112,6 +113,19 @@ struct GradMateApp: App {
             }
             .onReceive(NotificationCenter.default.publisher(for: .userPortfolioNeedsCloudSync)) { _ in
                 UserPortfolioSync.schedulePush(
+                    profileManager: profileManager,
+                    skillManager: skillManager,
+                    career: careerDataService,
+                    languages: languageManager
+                )
+            }
+            .onChange(of: scenePhase) { phase in
+                guard phase == .active, let user = authViewModel.user else { return }
+                careerDataService.reload()
+                skillManager.loadSkills()
+                languageManager.load()
+                UserPortfolioSync.pullAndMerge(
+                    uid: user.uid,
                     profileManager: profileManager,
                     skillManager: skillManager,
                     career: careerDataService,

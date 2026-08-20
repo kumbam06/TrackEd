@@ -199,61 +199,69 @@ final class FirestoreUserDataService {
     }
     
     private func decodeWork(_ data: [String: Any]) -> WorkExperience? {
-        guard let title = data["title"] as? String else { return nil }
+        let title = data["title"] as? String ?? ""
+        let company = data["company"] as? String ?? ""
+        guard !title.isEmpty || !company.isEmpty else { return nil }
         return WorkExperience(
             id: UUID(uuidString: data["id"] as? String ?? "") ?? UUID(),
             title: title,
-            company: data["company"] as? String ?? "",
+            company: company,
             location: data["location"] as? String ?? "",
-            startDate: (data["startDate"] as? Timestamp)?.dateValue() ?? Date(),
-            endDate: (data["endDate"] as? Timestamp)?.dateValue(),
+            startDate: dateValue(data["startDate"]) ?? Date(),
+            endDate: dateValue(data["endDate"]),
             isCurrent: data["isCurrent"] as? Bool ?? false,
             description: data["description"] as? String ?? "",
-            technologies: data["technologies"] as? [String]
+            technologies: stringArray(data["technologies"])
         )
     }
     
     private func decodeProject(_ data: [String: Any]) -> Project? {
-        guard let title = data["title"] as? String else { return nil }
+        let title = data["title"] as? String ?? ""
+        guard !title.isEmpty else { return nil }
         return Project(
             id: UUID(uuidString: data["id"] as? String ?? "") ?? UUID(),
             title: title,
             role: data["role"] as? String ?? "",
             company: data["company"] as? String ?? "",
             location: data["location"] as? String ?? "",
-            startDate: (data["startDate"] as? Timestamp)?.dateValue() ?? Date(),
-            endDate: (data["endDate"] as? Timestamp)?.dateValue(),
+            startDate: dateValue(data["startDate"]) ?? Date(),
+            endDate: dateValue(data["endDate"]),
             isCurrent: data["isCurrent"] as? Bool ?? false,
             description: data["description"] as? String ?? "",
-            technologies: data["technologies"] as? [String]
+            technologies: stringArray(data["technologies"])
         )
     }
     
     private func decodeInternship(_ data: [String: Any]) -> Internship? {
-        guard let title = data["title"] as? String else { return nil }
+        let title = data["title"] as? String ?? ""
+        let company = data["company"] as? String ?? ""
+        guard !title.isEmpty || !company.isEmpty else { return nil }
         return Internship(
             id: UUID(uuidString: data["id"] as? String ?? "") ?? UUID(),
             title: title,
             role: data["role"] as? String ?? "",
-            company: data["company"] as? String ?? "",
+            company: company,
             location: data["location"] as? String ?? "",
-            startDate: (data["startDate"] as? Timestamp)?.dateValue() ?? Date(),
-            endDate: (data["endDate"] as? Timestamp)?.dateValue(),
+            startDate: dateValue(data["startDate"]) ?? Date(),
+            endDate: dateValue(data["endDate"]),
             isCurrent: data["isCurrent"] as? Bool ?? false,
             description: data["description"] as? String ?? "",
-            technologies: data["technologies"] as? [String]
+            technologies: stringArray(data["technologies"])
         )
     }
     
     private func decodeCert(_ data: [String: Any]) -> Certification? {
-        guard let title = data["title"] as? String else { return nil }
+        let title = (data["title"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            ?? (data["name"] as? String)
+            ?? ""
+        guard !title.isEmpty else { return nil }
         return Certification(
             id: UUID(uuidString: data["id"] as? String ?? "") ?? UUID(),
             title: title,
-            organization: data["organization"] as? String ?? "",
+            organization: data["organization"] as? String ?? data["issuingOrganization"] as? String ?? "",
             location: data["location"] as? String ?? "",
-            dateReceived: (data["dateReceived"] as? Timestamp)?.dateValue() ?? Date(),
-            dateExpiry: (data["dateExpiry"] as? Timestamp)?.dateValue(),
+            dateReceived: dateValue(data["dateReceived"]) ?? dateValue(data["issueDate"]) ?? Date(),
+            dateExpiry: dateValue(data["dateExpiry"]) ?? dateValue(data["expiryDate"]),
             description: data["description"] as? String ?? "",
             credentialID: data["credentialID"] as? String
         )
@@ -267,5 +275,17 @@ final class FirestoreUserDataService {
             name: name,
             proficiency: level
         )
+    }
+    
+    private func dateValue(_ value: Any?) -> Date? {
+        if let timestamp = value as? Timestamp { return timestamp.dateValue() }
+        if let date = value as? Date { return date }
+        return nil
+    }
+    
+    private func stringArray(_ value: Any?) -> [String]? {
+        if let strings = value as? [String] { return strings }
+        if let array = value as? NSArray { return array.compactMap { $0 as? String } }
+        return nil
     }
 }

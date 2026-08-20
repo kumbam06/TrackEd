@@ -119,10 +119,18 @@ enum ResumePDFBuilder {
                 draw(snapshot.role, font: .systemFont(ofSize: 14, weight: .medium), color: accent)
             }
             
-            let contacts = [snapshot.email, snapshot.phone, snapshot.linkedin, snapshot.website, snapshot.address]
-                .filter { !$0.isEmpty }
+            let contacts: [(String, String)] = [
+                ("Email", snapshot.email),
+                ("Phone", snapshot.phone),
+                ("LinkedIn", snapshot.linkedin),
+                ("Website", snapshot.website),
+                ("Address", snapshot.address)
+            ].filter { !$0.1.isEmpty }
             if !contacts.isEmpty {
-                drawWrapped(contacts.joined(separator: "  •  "), font: .systemFont(ofSize: 10), color: primary.withAlphaComponent(0.7))
+                for contact in contacts {
+                    draw("\(contact.0): \(contact.1)", font: .systemFont(ofSize: 10), color: primary.withAlphaComponent(0.7))
+                }
+                y += 4
             }
             if !snapshot.bio.isEmpty {
                 drawWrapped(snapshot.bio, font: .systemFont(ofSize: 11), color: primary.withAlphaComponent(0.85))
