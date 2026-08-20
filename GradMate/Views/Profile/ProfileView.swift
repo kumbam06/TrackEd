@@ -33,7 +33,6 @@ struct ProfileView: View {
     @State private var showingWorkExperience = false
     @State private var showingCoverLetter = false
     @State private var showingLanguages = false
-    @State private var showingResumeUpload = false
     
     var body: some View {
         ZStack {
@@ -104,13 +103,6 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showingLanguages) {
                 LanguageListView()
-                    .environmentObject(languageManager)
-            }
-            .sheet(isPresented: $showingResumeUpload) {
-                ResumeUploadView()
-                    .environmentObject(profileManager)
-                    .environmentObject(skillManager)
-                    .environmentObject(careerDataService)
                     .environmentObject(languageManager)
             }
             .alert("Delete Account", isPresented: $showingDeleteAlert, actions: {
@@ -545,7 +537,7 @@ struct ProfileView: View {
                 && careerDataService.projects.isEmpty
                 && careerDataService.internships.isEmpty
                 && careerDataService.certifications.isEmpty {
-                Text("Upload a resume or add sections below. Everything you save is stored in your account and appears here and on Build Resume.")
+                Text("Add skills and career sections below. Everything you save is stored in your account and appears here and on Build Resume.")
                     .font(.footnote)
                     .foregroundColor(Color("appTextSecondary"))
                     .padding(16)
@@ -607,13 +599,6 @@ struct ProfileView: View {
                     subtitle: "\(careerDataService.workExperiences.count) experiences",
                     color: Color("appSuccess")
                 ) { showingWorkExperience = true }
-                
-                ProfileActionRow(
-                    icon: "arrow.up.doc.fill",
-                    title: "UPLOAD RESUME",
-                    subtitle: "Auto-fill every section from a PDF",
-                    color: Color("appPrimaryAccent")
-                ) { showingResumeUpload = true }
                 
                 ProfileActionRow(
                     icon: "globe",

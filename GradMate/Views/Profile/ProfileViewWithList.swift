@@ -33,7 +33,6 @@ struct ProfileViewWithList: View {
     @State private var showingProject = false
     @State private var showingCertification = false
     @State private var showingLanguage = false
-    @State private var showingResumeUpload = false
     @State private var showingCoverLetter = false
     @State private var showingHomeScreenCustomization = false
     @State private var selectedTab = 0
@@ -85,9 +84,6 @@ struct ProfileViewWithList: View {
             }
             .sheet(isPresented: $showingLanguage) {
                 LanguageListView()
-            }
-            .sheet(isPresented: $showingResumeUpload) {
-                ResumeUploadView()
             }
             .sheet(isPresented: $showingCoverLetter) {
                 CoverLetterComposerView()
@@ -148,13 +144,6 @@ struct ProfileViewWithList: View {
             ) { showingWorkExperience = true }
             
             ListRow(
-                icon: "arrow.up.doc.fill",
-                title: "Upload Resume",
-                subtitle: "Import and auto-fill profile",
-                color: Color("appPrimaryAccent")
-            ) { showingResumeUpload = true }
-            
-            ListRow(
                 icon: "globe",
                 title: "Languages",
                 subtitle: "Add spoken languages",
@@ -179,13 +168,6 @@ struct ProfileViewWithList: View {
                 subtitle: "Manage your work experience",
                 color: Color("appSuccess")
             ) { showingWorkExperience = true }
-            
-            ListRow(
-                icon: "arrow.up.doc.fill",
-                title: "Upload Resume",
-                subtitle: "Import and auto-fill profile",
-                color: Color("appPrimaryAccent")
-            ) { showingResumeUpload = true }
             
             ListRow(
                 icon: "globe",
