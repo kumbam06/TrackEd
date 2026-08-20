@@ -69,6 +69,7 @@ class CareerDataService: ObservableObject {
         
         save()
         loadProjects()
+        notifyCloudSync()
     }
     
     func updateProject(_ project: Project) {
@@ -91,6 +92,7 @@ class CareerDataService: ObservableObject {
                 
                 save()
                 loadProjects()
+                notifyCloudSync()
             }
         } catch {
             print("Error updating project: \(error)")
@@ -107,6 +109,7 @@ class CareerDataService: ObservableObject {
                 context.delete(entity)
                 save()
                 loadProjects()
+                notifyCloudSync()
             }
         } catch {
             print("Error deleting project: \(error)")
@@ -142,6 +145,7 @@ class CareerDataService: ObservableObject {
         
         save()
         loadInternships()
+        notifyCloudSync()
     }
     
     func updateInternship(_ internship: Internship) {
@@ -164,6 +168,7 @@ class CareerDataService: ObservableObject {
                 
                 save()
                 loadInternships()
+                notifyCloudSync()
             }
         } catch {
             print("Error updating internship: \(error)")
@@ -180,6 +185,7 @@ class CareerDataService: ObservableObject {
                 context.delete(entity)
                 save()
                 loadInternships()
+                notifyCloudSync()
             }
         } catch {
             print("Error deleting internship: \(error)")
@@ -213,6 +219,7 @@ class CareerDataService: ObservableObject {
         
         save()
         loadCertifications()
+        notifyCloudSync()
     }
     
     func updateCertification(_ certification: Certification) {
@@ -233,6 +240,7 @@ class CareerDataService: ObservableObject {
                 
                 save()
                 loadCertifications()
+                notifyCloudSync()
             }
         } catch {
             print("Error updating certification: \(error)")
@@ -249,6 +257,7 @@ class CareerDataService: ObservableObject {
                 context.delete(entity)
                 save()
                 loadCertifications()
+                notifyCloudSync()
             }
         } catch {
             print("Error deleting certification: \(error)")
@@ -283,6 +292,7 @@ class CareerDataService: ObservableObject {
         
         save()
         loadWorkExperiences()
+        notifyCloudSync()
     }
     
     func updateWorkExperience(_ workExperience: WorkExperience) {
@@ -304,6 +314,7 @@ class CareerDataService: ObservableObject {
                 
                 save()
                 loadWorkExperiences()
+                notifyCloudSync()
             }
         } catch {
             print("Error updating work experience: \(error)")
@@ -320,6 +331,7 @@ class CareerDataService: ObservableObject {
                 context.delete(entity)
                 save()
                 loadWorkExperiences()
+                notifyCloudSync()
             }
         } catch {
             print("Error deleting work experience: \(error)")
@@ -355,6 +367,92 @@ class CareerDataService: ObservableObject {
                 createCertification(certification)
             }
         }
+        notifyCloudSync()
+    }
+    
+    func replaceAll(
+        workExperiences: [WorkExperience],
+        projects: [Project],
+        internships: [Internship],
+        certifications: [Certification]
+    ) {
+        deleteAll(ProjectEntity.fetchRequest())
+        deleteAll(InternshipEntity.fetchRequest())
+        deleteAll(CertificationEntity.fetchRequest())
+        deleteAll(WorkExperienceEntity.fetchRequest())
+        save()
+        for item in projects { insertProject(item) }
+        for item in internships { insertInternship(item) }
+        for item in certifications { insertCertification(item) }
+        for item in workExperiences { insertWorkExperience(item) }
+        save()
+        loadAllData()
+        objectWillChange.send()
+    }
+    
+    private func deleteAll<T: NSManagedObject>(_ request: NSFetchRequest<T>) {
+        (try? context.fetch(request))?.forEach { context.delete($0) }
+    }
+    
+    private func insertProject(_ project: Project) {
+        let entity = ProjectEntity(context: context)
+        entity.id = project.id
+        entity.title = project.title
+        entity.role = project.role
+        entity.company = project.company
+        entity.location = project.location
+        entity.projectDescription = project.description
+        entity.technologies = project.technologies as? NSArray
+        entity.startDate = project.startDate
+        entity.endDate = project.endDate
+        entity.isCurrent = project.isCurrent
+        entity.createdAt = Date()
+        entity.updatedAt = Date()
+    }
+    
+    private func insertInternship(_ internship: Internship) {
+        let entity = InternshipEntity(context: context)
+        entity.id = internship.id
+        entity.title = internship.title
+        entity.role = internship.role
+        entity.company = internship.company
+        entity.location = internship.location
+        entity.internshipDescription = internship.description
+        entity.startDate = internship.startDate
+        entity.endDate = internship.endDate
+        entity.isCurrent = internship.isCurrent
+        entity.technologies = internship.technologies as? NSArray
+        entity.createdAt = Date()
+        entity.updatedAt = Date()
+    }
+    
+    private func insertCertification(_ certification: Certification) {
+        let entity = CertificationEntity(context: context)
+        entity.id = certification.id
+        entity.name = certification.title
+        entity.issuingOrganization = certification.organization
+        entity.location = certification.location
+        entity.certDescription = certification.description
+        entity.issueDate = certification.dateReceived
+        entity.expiryDate = certification.dateExpiry
+        entity.credentialId = certification.credentialID
+        entity.createdAt = Date()
+        entity.updatedAt = Date()
+    }
+    
+    private func insertWorkExperience(_ workExperience: WorkExperience) {
+        let entity = WorkExperienceEntity(context: context)
+        entity.id = workExperience.id
+        entity.title = workExperience.title
+        entity.company = workExperience.company
+        entity.location = workExperience.location
+        entity.workDescription = workExperience.description
+        entity.startDate = workExperience.startDate
+        entity.endDate = workExperience.endDate
+        entity.isCurrent = workExperience.isCurrent
+        entity.technologies = workExperience.technologies as? NSArray
+        entity.createdAt = Date()
+        entity.updatedAt = Date()
     }
     
     private func save() {
@@ -363,6 +461,10 @@ class CareerDataService: ObservableObject {
         } catch {
             print("Error saving context: \(error)")
         }
+    }
+    
+    private func notifyCloudSync() {
+        NotificationCenter.default.post(name: .userPortfolioNeedsCloudSync, object: nil)
     }
     
     // MARK: - Conversion Methods

@@ -75,9 +75,20 @@ class ProfileManager: ObservableObject {
         address: String
     ) {
         let existing = currentProfile
+        let authName = Auth.auth().currentUser?.displayName ?? ""
+        var resolvedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        var resolvedRole = role.trimmingCharacters(in: .whitespacesAndNewlines)
+        if ResumeParser.looksLikeJobTitle(resolvedName) && !ResumeParser.looksLikePersonName(resolvedName) {
+            if resolvedRole.isEmpty { resolvedRole = resolvedName }
+            resolvedName = ""
+        }
+        if resolvedName.isEmpty {
+            let existingName = existing?.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            resolvedName = existingName.isEmpty ? authName : existingName
+        }
         updateProfile(
-            name: name.isEmpty ? (existing?.name ?? "") : name,
-            role: role.isEmpty ? (existing?.role ?? "") : role,
+            name: resolvedName,
+            role: resolvedRole.isEmpty ? (existing?.role ?? "") : resolvedRole,
             email: email.isEmpty ? (existing?.email ?? "") : email,
             phone: phone.isEmpty ? (existing?.phone ?? "") : phone,
             bio: bio.isEmpty ? (existing?.bio ?? "") : bio,
@@ -88,6 +99,40 @@ class ProfileManager: ObservableObject {
             address: address.isEmpty ? (existing?.address ?? "") : address,
             currentCompany: existing?.currentCompany ?? ""
         )
+    }
+    
+    func applyCloudProfile(_ portfolio: UserPortfolio) {
+        let profile = ensureProfile()
+        if !portfolio.name.isEmpty {
+            if ResumeParser.looksLikeJobTitle(portfolio.name) && !ResumeParser.looksLikePersonName(portfolio.name) {
+                if (profile.role ?? "").isEmpty && portfolio.role.isEmpty {
+                    profile.role = portfolio.name
+                }
+            } else {
+                profile.name = portfolio.name
+            }
+        }
+        if !portfolio.role.isEmpty { profile.role = portfolio.role }
+        if !portfolio.email.isEmpty { profile.email = portfolio.email }
+        if !portfolio.phone.isEmpty { profile.phone = portfolio.phone }
+        if !portfolio.bio.isEmpty { profile.bio = portfolio.bio }
+        if !portfolio.linkedin.isEmpty { profile.linkedin = portfolio.linkedin }
+        if !portfolio.website.isEmpty { profile.website = portfolio.website }
+        if !portfolio.username.isEmpty { profile.username = portfolio.username }
+        if !portfolio.address.isEmpty { profile.address = portfolio.address }
+        if !portfolio.currentCompany.isEmpty { profile.currentCompany = portfolio.currentCompany }
+        save()
+        publish(profile)
+        if let photoURL = portfolio.photoURL, let url = URL(string: photoURL) {
+            URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+                guard let self, let data else { return }
+                DispatchQueue.main.async {
+                    profile.photoData = data
+                    self.save()
+                    self.publish(profile)
+                }
+            }.resume()
+        }
     }
     
     func updateProfile(name: String, role: String, email: String, phone: String, bio: String, linkedin: String, website: String, username: String, dob: Date?, address: String, currentCompany: String) {
@@ -104,36 +149,81 @@ class ProfileManager: ObservableObject {
         profile.address = address
         profile.currentCompany = currentCompany
         save()
-        // Firestore sync
-        if let userId = Auth.auth().currentUser?.uid {
-            let db = Firestore.firestore()
-            // Check username uniqueness before updating
-            db.collection("users").whereField("username", isEqualTo: username).getDocuments { snapshot, error in
-                if let docs = snapshot?.documents, !docs.isEmpty {
-                    // If the username is already taken by another user, do not update
-                    if !(docs.count == 1 && docs.first?.documentID == userId) {
-                        // Optionally show an error to the user
-                        print("Username already taken.")
-                        return
-                    }
-                }
-                var userData: [String: Any] = [
-                    "name": name,
-                    "role": role,
-                    "email": email,
-                    "phone": phone,
-                    "bio": bio,
-                    "linkedin": linkedin,
-                    "website": website,
-                    "username": username,
-                    "address": address,
-                    "currentCompany": currentCompany
-                ]
-                if let dob = dob {
-                    userData["dob"] = Timestamp(date: dob)
-                }
-                db.collection("users").document(userId).setData(userData, merge: true)
+        publish(profile)
+        persistProfileToFirestore(
+            name: name,
+            role: role,
+            email: email,
+            phone: phone,
+            bio: bio,
+            linkedin: linkedin,
+            website: website,
+            username: username,
+            dob: dob,
+            address: address,
+            currentCompany: currentCompany
+        )
+    }
+    
+    private func publish(_ profile: Profile) {
+        let apply = {
+            self.objectWillChange.send()
+            self.currentProfile = profile
+        }
+        if Thread.isMainThread {
+            apply()
+        } else {
+            DispatchQueue.main.async(execute: apply)
+        }
+    }
+    
+    private func persistProfileToFirestore(
+        name: String,
+        role: String,
+        email: String,
+        phone: String,
+        bio: String,
+        linkedin: String,
+        website: String,
+        username: String,
+        dob: Date?,
+        address: String,
+        currentCompany: String
+    ) {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+        let write: () -> Void = {
+            var userData: [String: Any] = [
+                "name": name,
+                "role": role,
+                "email": email,
+                "phone": phone,
+                "bio": bio,
+                "linkedin": linkedin,
+                "website": website,
+                "username": username,
+                "address": address,
+                "currentCompany": currentCompany
+            ]
+            if let dob {
+                userData["dob"] = Timestamp(date: dob)
             }
+            db.collection("users").document(userId).setData(userData, merge: true)
+        }
+        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUsername.isEmpty else {
+            write()
+            return
+        }
+        db.collection("users").whereField("username", isEqualTo: trimmedUsername).getDocuments { snapshot, _ in
+            if let docs = snapshot?.documents, !docs.isEmpty {
+                if !(docs.count == 1 && docs.first?.documentID == userId) {
+                    print("Username already taken.")
+                    write()
+                    return
+                }
+            }
+            write()
         }
     }
     
@@ -185,76 +275,17 @@ class ProfileManager: ObservableObject {
     }
     
     func loadProfileFromFirestore(uid: String, completion: ((Profile?) -> Void)? = nil) {
-        let db = Firestore.firestore()
-        db.collection("users").document(uid).getDocument { [weak self] doc, error in
-            guard let self = self else {
+        FirestoreUserDataService.shared.fetchPortfolio(uid: uid) { [weak self] portfolio in
+            guard let self else {
                 completion?(nil)
                 return
             }
-            
-            if let error = error {
-                print("Error loading profile from Firestore: \(error)")
+            guard let portfolio else {
                 completion?(nil)
                 return
             }
-            
-            guard let data = doc?.data() else {
-                // No profile found in Firestore
-                completion?(nil)
-                return
-            }
-            
-            // Update or create local Core Data profile
-            let request: NSFetchRequest<Profile> = Profile.fetchRequest()
-            request.fetchLimit = 1
-            let profile: Profile
-            if let existing = try? self.context.fetch(request).first {
-                profile = existing
-            } else {
-                profile = Profile(context: self.context)
-                profile.id = UUID()
-            }
-            
-            profile.name = data["name"] as? String ?? ""
-            profile.role = data["role"] as? String ?? ""
-            profile.email = data["email"] as? String ?? ""
-            profile.phone = data["phone"] as? String ?? ""
-            profile.bio = data["bio"] as? String ?? ""
-            profile.linkedin = data["linkedin"] as? String ?? ""
-            profile.website = data["website"] as? String ?? ""
-            profile.username = data["username"] as? String ?? ""
-            profile.address = data["address"] as? String ?? ""
-            profile.currentCompany = data["currentCompany"] as? String ?? ""
-            
-            if let dobTimestamp = data["dob"] as? Timestamp {
-                profile.dob = dobTimestamp.dateValue()
-            } else {
-                profile.dob = nil
-            }
-            
-            if let photoURL = data["photoURL"] as? String, let url = URL(string: photoURL) {
-                // Download the image data
-                URLSession.shared.dataTask(with: url) { data, response, error in
-                    if let data = data {
-                        DispatchQueue.main.async {
-                            profile.photoData = data
-                            self.currentProfile = profile
-                            self.save()
-                            completion?(profile)
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            self.currentProfile = profile
-                            self.save()
-                            completion?(profile)
-                        }
-                    }
-                }.resume()
-            } else {
-                self.currentProfile = profile
-                self.save()
-                completion?(profile)
-            }
+            self.applyCloudProfile(portfolio)
+            completion?(self.currentProfile)
         }
     }
 

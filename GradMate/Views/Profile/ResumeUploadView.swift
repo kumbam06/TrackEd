@@ -1,6 +1,7 @@
 import SwiftUI
 import PDFKit
 import UniformTypeIdentifiers
+import FirebaseAuth
 
 struct ResumeUploadView: View {
     @EnvironmentObject var profileManager: ProfileManager
@@ -58,7 +59,7 @@ struct ResumeUploadView: View {
                             }
                             
                             Button("Review imported fields") {
-                                parsed = ResumeParser.parse(text: extractedResumeText)
+                                parsed = parseExtractedText()
                                 showReview = true
                             }
                             .font(.headline)
@@ -130,17 +131,29 @@ struct ResumeUploadView: View {
                 alertMessage = "No selectable text was found. Image-only scans cannot be imported."
                 showAlert = true
             } else {
-                parsed = ResumeParser.parse(text: fullText)
+                parsed = parseExtractedText()
                 showReview = true
             }
         } else if let text = try? String(contentsOf: url, encoding: .utf8) {
             extractedResumeText = text
-            parsed = ResumeParser.parse(text: text)
+            parsed = parseExtractedText()
             showReview = true
         } else {
             alertMessage = "Could not read that file."
             showAlert = true
         }
+    }
+    
+    private func parseExtractedText() -> ParsedResume {
+        ResumeParser.parse(
+            text: extractedResumeText,
+            fallbackName: Auth.auth().currentUser?.displayName
+                ?? profileManager.currentProfile?.name
+                ?? "",
+            fallbackEmail: Auth.auth().currentUser?.email
+                ?? profileManager.currentProfile?.email
+                ?? ""
+        )
     }
     
     private func applyParsedResume() {
@@ -162,6 +175,16 @@ struct ResumeUploadView: View {
             languageManager.upsert(language)
         }
         careerDataService.importResume(parsed)
+        UserPortfolioSync.push(
+            profileManager: profileManager,
+            skillManager: skillManager,
+            career: careerDataService,
+            languages: languageManager
+        )
+        profileManager.objectWillChange.send()
+        skillManager.objectWillChange.send()
+        careerDataService.objectWillChange.send()
+        languageManager.objectWillChange.send()
         isImporting = false
         didImport = true
         showReview = false

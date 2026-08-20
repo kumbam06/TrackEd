@@ -24,6 +24,15 @@ final class LanguageManager: ObservableObject {
         if let encoded = try? JSONEncoder().encode(items) {
             UserDefaults.standard.set(encoded, forKey: storageKey)
         }
+        NotificationCenter.default.post(name: .userPortfolioNeedsCloudSync, object: nil)
+    }
+    
+    func replaceAll(_ items: [Language]) {
+        languages = items
+        if let encoded = try? JSONEncoder().encode(items) {
+            UserDefaults.standard.set(encoded, forKey: storageKey)
+        }
+        objectWillChange.send()
     }
     
     func upsert(_ language: Language) {

@@ -73,6 +73,42 @@ final class ResumeParserTests: XCTestCase {
         XCTAssertFalse(parsed.certifications.isEmpty)
         XCTAssertEqual(parsed.languages.count, 2)
     }
+    
+    func testDoesNotTreatJobTitleAsNameWhenFallbackProvided() {
+        let sample = """
+        Head Of Information Security
+        Senior iOS Developer
+        E-mail:appu.lokeshkumar@gmail.com
+        Mobile: +44 7721944933
+        http://www.linkedin.com/in/kumbam06
+        www.anvilabs.com
+        7 Bredon close, Washington, UK
+
+        Professional Summary
+        Organized, collaborative, and highly skilled iOS developer with 7 years of experience.
+
+        Skills
+        Programming
+        Swift
+        Tools
+        Xcode
+        """
+        
+        let parsed = ResumeParser.parse(text: sample, fallbackName: "Pradeep Reddy Kumbam")
+        XCTAssertEqual(parsed.name, "Pradeep Reddy Kumbam")
+        XCTAssertFalse(parsed.name.localizedCaseInsensitiveContains("information security"))
+        XCTAssertTrue(ResumeParser.looksLikeJobTitle(parsed.role) || parsed.role.lowercased().contains("ios"))
+        XCTAssertTrue(parsed.email.contains("appu.lokeshkumar@gmail.com"))
+        XCTAssertTrue(parsed.skills.contains("Swift"))
+        XCTAssertTrue(parsed.skills.contains("Xcode"))
+        XCTAssertFalse(parsed.skills.contains(where: { $0.caseInsensitiveCompare("Programming") == .orderedSame }))
+    }
+    
+    func testLooksLikeJobTitleAndPersonName() {
+        XCTAssertTrue(ResumeParser.looksLikeJobTitle("Head Of Information Security"))
+        XCTAssertTrue(ResumeParser.looksLikePersonName("Pradeep Reddy Kumbam"))
+        XCTAssertFalse(ResumeParser.looksLikePersonName("Head Of Information Security"))
+    }
 }
 
 final class CareerModelTests: XCTestCase {

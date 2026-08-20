@@ -9,6 +9,7 @@ import SwiftUI
 import CoreData
 import Firebase
 import FirebaseAuth
+import FirebaseFirestore
 
 @main
 struct GradMateApp: App {
@@ -99,11 +100,35 @@ struct GradMateApp: App {
                 settings.host = "firestore.googleapis.com"
                 Firestore.firestore().settings = settings
                 logToFile("[DEBUG] GradMateApp - Firestore configured successfully with offline support and timeout settings")
+                if let user = authViewModel.user {
+                    UserPortfolioSync.pullAndMerge(
+                        uid: user.uid,
+                        profileManager: profileManager,
+                        skillManager: skillManager,
+                        career: careerDataService,
+                        languages: languageManager
+                    )
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .userPortfolioNeedsCloudSync)) { _ in
+                UserPortfolioSync.schedulePush(
+                    profileManager: profileManager,
+                    skillManager: skillManager,
+                    career: careerDataService,
+                    languages: languageManager
+                )
             }
             .onChange(of: authViewModel.user) { user in
                 if let user = user {
-                    profileManager.loadProfileFromFirestore(uid: user.uid) { profile in
-                        if profile == nil || (profile?.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    UserPortfolioSync.pullAndMerge(
+                        uid: user.uid,
+                        profileManager: profileManager,
+                        skillManager: skillManager,
+                        career: careerDataService,
+                        languages: languageManager
+                    ) { portfolio in
+                        let name = portfolio?.name ?? profileManager.currentProfile?.name ?? ""
+                        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             showProfileCompletion = true
                         }
                     }

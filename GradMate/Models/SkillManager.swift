@@ -49,6 +49,7 @@ class SkillManager: ObservableObject {
         
         save()
         loadSkills()
+        notifyCloudSync()
     }
     
     func updateSkill(_ skill: SkillEntity, name: String, category: String, description: String, proficiency: Int16) {
@@ -59,10 +60,39 @@ class SkillManager: ObservableObject {
         
         save()
         loadSkills()
+        notifyCloudSync()
     }
     
     func deleteSkill(_ skill: SkillEntity) {
         context.delete(skill)
+        save()
+        loadSkills()
+        notifyCloudSync()
+    }
+    
+    var skillRecords: [SkillRecord] {
+        skills.compactMap { entity in
+            guard let name = entity.name, !name.isEmpty else { return nil }
+            return SkillRecord(
+                id: entity.id ?? UUID(),
+                name: name,
+                category: entity.category ?? "General",
+                skillDescription: entity.skillDescription ?? "",
+                proficiency: Int(entity.proficiency)
+            )
+        }
+    }
+    
+    func replaceAll(_ records: [SkillRecord]) {
+        skills.forEach { context.delete($0) }
+        for record in records where !record.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let skill = SkillEntity(context: context)
+            skill.id = record.id
+            skill.name = record.name
+            skill.category = record.category
+            skill.skillDescription = record.skillDescription
+            skill.proficiency = Int16(record.proficiency)
+        }
         save()
         loadSkills()
     }
@@ -81,5 +111,9 @@ class SkillManager: ObservableObject {
         } catch {
             print("Error saving skill: \(error)")
         }
+    }
+    
+    private func notifyCloudSync() {
+        NotificationCenter.default.post(name: .userPortfolioNeedsCloudSync, object: nil)
     }
 } 

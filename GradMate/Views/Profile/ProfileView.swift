@@ -41,6 +41,7 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 40) {
                     profileHeaderSection
+                    profilePortfolioSection
                     careerAndSkillsSection
                     productivityAndCustomizationSection
                     accountSection
@@ -397,8 +398,10 @@ struct ProfileView: View {
                                     .clipShape(Circle())
                                     .shadow(radius: 1)
                                 Button(action: {
-                                    let url = URL(string: linkedin.hasPrefix("http") ? linkedin : "https://\(linkedin)")!
-                                    openURL(url)
+                                    let raw = linkedin.hasPrefix("http") ? linkedin : "https://\(linkedin)"
+                                    if let url = URL(string: raw) {
+                                        openURL(url)
+                                    }
                                 }) {
                                     Text(linkedin)
                                         .font(.body)
@@ -415,8 +418,10 @@ struct ProfileView: View {
                                     .font(.system(size: 22))
                                     .foregroundColor(Color.accentColor)
                                 Button(action: {
-                                    let url = URL(string: website.hasPrefix("http") ? website : "https://\(website)")!
-                                    openURL(url)
+                                    let raw = website.hasPrefix("http") ? website : "https://\(website)"
+                                    if let url = URL(string: raw) {
+                                        openURL(url)
+                                    }
                                 }) {
                                     Text(website)
                                         .font(.body)
@@ -455,6 +460,98 @@ struct ProfileView: View {
                     .foregroundColor(dark ? .black : .white)
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(alignLeft ? .leading : .center)
+            }
+        }
+    }
+    
+    private var profilePortfolioSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("YOUR RESUME DATA")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(Color("appTextPrimary"))
+                    .kerning(1.5)
+                Spacer()
+                Rectangle()
+                    .fill(Color("appTextPrimary"))
+                    .frame(height: 2)
+                    .frame(width: 90)
+            }
+            .padding(.leading, 4)
+            
+            if let profile = profileManager.currentProfile {
+                PortfolioInfoCard(profile: profile)
+            }
+            
+            if !skillManager.skills.isEmpty {
+                PortfolioSectionCard(title: "Skills", icon: "sparkles") {
+                    FlexibleChipWrap(titles: skillManager.skills.compactMap(\.name))
+                }
+            }
+            
+            if !careerDataService.workExperienceModels.isEmpty {
+                PortfolioSectionCard(title: "Work experience", icon: "briefcase.fill") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(careerDataService.workExperienceModels) { item in
+                            PortfolioLine(title: item.title, subtitle: item.company)
+                        }
+                    }
+                }
+            }
+            
+            if !careerDataService.internshipModels.isEmpty {
+                PortfolioSectionCard(title: "Internships", icon: "building.2.fill") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(careerDataService.internshipModels) { item in
+                            PortfolioLine(title: item.title, subtitle: item.company)
+                        }
+                    }
+                }
+            }
+            
+            if !careerDataService.projectModels.isEmpty {
+                PortfolioSectionCard(title: "Projects", icon: "folder.fill") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(careerDataService.projectModels) { item in
+                            PortfolioLine(title: item.title, subtitle: item.role)
+                        }
+                    }
+                }
+            }
+            
+            if !careerDataService.certificationModels.isEmpty {
+                PortfolioSectionCard(title: "Certifications", icon: "checkmark.seal.fill") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(careerDataService.certificationModels) { item in
+                            PortfolioLine(title: item.title, subtitle: item.organization)
+                        }
+                    }
+                }
+            }
+            
+            if !languageManager.languages.isEmpty {
+                PortfolioSectionCard(title: "Languages", icon: "globe") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(languageManager.languages) { item in
+                            PortfolioLine(title: item.name, subtitle: item.proficiency.rawValue)
+                        }
+                    }
+                }
+            }
+            
+            if skillManager.skills.isEmpty
+                && careerDataService.workExperiences.isEmpty
+                && careerDataService.projects.isEmpty
+                && careerDataService.internships.isEmpty
+                && careerDataService.certifications.isEmpty {
+                Text("Upload a resume or add sections below. Everything you save is stored in your account and appears here and on Build Resume.")
+                    .font(.footnote)
+                    .foregroundColor(Color("appTextSecondary"))
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color("appCardBG"))
+                    .cornerRadius(16)
             }
         }
     }
@@ -521,7 +618,7 @@ struct ProfileView: View {
                 ProfileActionRow(
                     icon: "globe",
                     title: "LANGUAGES",
-                    subtitle: "Add spoken languages",
+                    subtitle: languageManager.languages.isEmpty ? "Add spoken languages" : "\(languageManager.languages.count) languages on your resume",
                     color: Color("appPrimaryAccent")
                 ) { showingLanguages = true }
                 
@@ -660,6 +757,102 @@ struct ProfileActionRow: View {
             .cornerRadius(16)
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityHint("Opens \(title.lowercased())")
+    }
+}
+
+struct PortfolioInfoCard: View {
+    let profile: Profile
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let name = profile.name, !name.isEmpty {
+                Text(name)
+                    .font(.headline)
+                    .foregroundColor(Color("appTextPrimary"))
+            }
+            if let role = profile.role, !role.isEmpty {
+                Text(role)
+                    .font(.subheadline)
+                    .foregroundColor(Color("appTextSecondary"))
+            }
+            contactRow("envelope", profile.email)
+            contactRow("phone", profile.phone)
+            contactRow("link", profile.linkedin)
+            contactRow("globe", profile.website)
+            contactRow("mappin.and.ellipse", profile.address)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color("appCardBG"))
+        .cornerRadius(16)
+    }
+    
+    @ViewBuilder
+    private func contactRow(_ icon: String, _ value: String?) -> some View {
+        if let value, !value.isEmpty {
+            Label(value, systemImage: icon)
+                .font(.footnote)
+                .foregroundColor(Color("appTextPrimary"))
+        }
+    }
+}
+
+struct PortfolioSectionCard<Content: View>: View {
+    let title: String
+    let icon: String
+    @ViewBuilder var content: Content
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(Color("appTextPrimary"))
+            content
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color("appCardBG"))
+        .cornerRadius(16)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+struct PortfolioLine: View {
+    let title: String
+    let subtitle: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(Color("appTextPrimary"))
+            if !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(Color("appTextSecondary"))
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct FlexibleChipWrap: View {
+    let titles: [String]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(titles.enumerated()), id: \.offset) { _, title in
+                Text(title)
+                    .font(.caption.weight(.medium))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color("appPrimaryAccent").opacity(0.12))
+                    .foregroundColor(Color("appPrimaryAccent"))
+                    .clipShape(Capsule())
+            }
+        }
+        .accessibilityLabel("Skills: \(titles.joined(separator: ", "))")
     }
 }
 

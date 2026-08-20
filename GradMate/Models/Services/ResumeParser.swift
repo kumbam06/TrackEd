@@ -26,24 +26,27 @@ enum ResumeParser {
         case header, summary, work, internship, project, certification, skills, languages, education, other
     }
     
-    static func parse(text raw: String) -> ParsedResume {
+    static func parse(text raw: String, fallbackName: String = "", fallbackEmail: String = "") -> ParsedResume {
         let text = normalize(raw)
         var resume = ParsedResume()
         
-        resume.email = firstMatch(in: text, pattern: #"[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}"#, options: [.caseInsensitive]) ?? ""
-        resume.phone = firstMatch(in: text, pattern: #"(\+?\d[\d(). \-]{7,}\d)"#) ?? ""
+        resume.email = firstMatch(in: text, pattern: #"[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}"#, options: [.caseInsensitive]) ?? fallbackEmail
+        if resume.email.isEmpty {
+            resume.email = firstMatch(in: text, pattern: #"(?:e-?mail)\s*:?\s*([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})"#, options: [.caseInsensitive]) ?? fallbackEmail
+        }
+        resume.phone = sanitizePhone(firstMatch(in: text, pattern: #"(\+?\d[\d(). \-]{7,}\d)"#) ?? "")
         resume.linkedin = firstMatch(in: text, pattern: #"(?:https?://)?(?:www\.)?linkedin\.com/in/[A-Za-z0-9\-_/]+"#, options: [.caseInsensitive]) ?? ""
-        resume.website = firstMatch(in: text, pattern: #"(?:https?://)?(?:www\.)?(?:github\.com|gitlab\.com|portfolio\.[^\s]+|[A-Za-z0-9\-]+\.(?:dev|io|com|me))[^\s]*"#, options: [.caseInsensitive]) ?? ""
+        if let site = firstMatch(in: text, pattern: #"(?:https?://)?(?:www\.)?(?:github\.com|gitlab\.com|[A-Za-z0-9\-]+\.(?:dev|io|com|me|uk|co\.uk))[^\s]*"#, options: [.caseInsensitive]),
+           !site.lowercased().contains("linkedin") {
+            resume.website = site
+        }
+        resume.address = firstAddress(in: text)
         
         let sections = splitSections(text)
         let headerLines = sections[.header] ?? []
-        let contactLike: (String) -> Bool = { line in
-            line.contains("@") ||
-            line.lowercased().contains("linkedin") ||
-            line.range(of: #"\d{3}"#, options: .regularExpression) != nil
-        }
-        resume.name = headerLines.first(where: { !contactLike($0) && $0.split(separator: " ").count <= 6 }) ?? ""
-        resume.role = headerLines.dropFirst().first(where: { !contactLike($0) && $0.count < 80 }) ?? ""
+        let identity = resolveIdentity(headerLines: headerLines, fallbackName: fallbackName)
+        resume.name = identity.name
+        resume.role = identity.role
         
         let summary = (sections[.summary] ?? []).joined(separator: " ")
         resume.bio = summary
@@ -55,10 +58,40 @@ enum ResumeParser {
         resume.projects = parseProjects(sections[.project] ?? [])
         resume.certifications = parseCertifications(sections[.certification] ?? [])
         
+        if resume.workExperiences.isEmpty {
+            let datedLines = text.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            resume.workExperiences = parseWork(datedLines.filter { parseDateRange($0) != nil })
+        }
         if resume.skills.isEmpty {
             resume.skills = parseSkillList(fallbackSkills(from: text))
         }
         return resume
+    }
+    
+    static func looksLikeJobTitle(_ line: String) -> Bool {
+        let tokens = line.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init)
+        let jobTokens: Set<String> = [
+            "head", "chief", "director", "manager", "engineer", "developer", "intern",
+            "consultant", "lead", "principal", "officer", "analyst", "architect",
+            "security", "specialist", "designer", "administrator", "executive",
+            "president", "founder", "senior", "junior", "staff", "ios", "android",
+            "information", "ciso", "cto", "ceo", "cfo", "product", "mobile"
+        ]
+        let hits = tokens.filter { jobTokens.contains($0) }.count
+        return hits >= 2
+    }
+    
+    static func looksLikePersonName(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tokens = trimmed.split(separator: " ")
+        guard (2...4).contains(tokens.count), trimmed.count <= 40 else { return false }
+        guard !looksLikeJobTitle(trimmed) else { return false }
+        return tokens.allSatisfy { token in
+            let value = String(token).replacingOccurrences(of: "-", with: "")
+            return value.first?.isUppercase == true && value.unicodeScalars.allSatisfy { CharacterSet.letters.contains($0) }
+        }
     }
     
     private static func normalize(_ text: String) -> String {
@@ -87,26 +120,85 @@ enum ResumeParser {
     private static func detectSection(_ line: String) -> Section? {
         let cleaned = line.lowercased().trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         let compact = cleaned.replacingOccurrences(of: " ", with: "")
-        if compact.count > 40 { return nil }
-        if matches(compact, ["workexperience", "professionalexperience", "employmenthistory", "experience"]) { return .work }
-        if matches(compact, ["internship", "internships"]) { return .internship }
-        if matches(compact, ["project", "projects", "personalprojects"]) { return .project }
-        if matches(compact, ["certification", "certifications", "certificates", "licenses"]) { return .certification }
-        if matches(compact, ["skill", "skills", "technicalskills"]) { return .skills }
-        if matches(compact, ["language", "languages"]) { return .languages }
-        if matches(compact, ["education", "academic"]) { return .education }
-        if matches(compact, ["summary", "profile", "objective", "aboutme", "about"]) { return .summary }
-        return nil
+        guard compact.count <= 32 else { return nil }
+        let headers: [String: Section] = [
+            "workexperience": .work,
+            "professionalexperience": .work,
+            "employmenthistory": .work,
+            "employment": .work,
+            "experience": .work,
+            "internship": .internship,
+            "internships": .internship,
+            "project": .project,
+            "projects": .project,
+            "personalprojects": .project,
+            "certification": .certification,
+            "certifications": .certification,
+            "certificates": .certification,
+            "licenses": .certification,
+            "skill": .skills,
+            "skills": .skills,
+            "technicalskills": .skills,
+            "skillset": .skills,
+            "language": .languages,
+            "languages": .languages,
+            "education": .education,
+            "academic": .education,
+            "summary": .summary,
+            "profile": .summary,
+            "objective": .summary,
+            "aboutme": .summary,
+            "about": .summary,
+            "professionalsummary": .summary,
+            "contact": .header,
+            "contactinformation": .header,
+            "contactdetails": .header
+        ]
+        return headers[compact]
     }
     
-    private static func matches(_ value: String, _ keys: [String]) -> Bool {
-        keys.contains { value == $0 || value.hasPrefix($0) }
+    private static func resolveIdentity(headerLines: [String], fallbackName: String) -> (name: String, role: String) {
+        let contactLike: (String) -> Bool = { line in
+            line.contains("@") ||
+            line.lowercased().contains("linkedin") ||
+            line.lowercased().contains("http") ||
+            line.range(of: #"\d{3}"#, options: .regularExpression) != nil
+        }
+        let candidates = headerLines.filter { !contactLike($0) && $0.count < 80 }
+        let personName = candidates.first(where: looksLikePersonName)
+            ?? (looksLikePersonName(fallbackName) ? fallbackName : "")
+        let role = candidates.first(where: { looksLikeJobTitle($0) && $0.caseInsensitiveCompare(personName) != .orderedSame })
+            ?? candidates.first(where: { $0 != personName })
+            ?? ""
+        let name = personName.isEmpty ? (looksLikeJobTitle(fallbackName) ? "" : fallbackName) : personName
+        return (name, role)
+    }
+    
+    private static func sanitizePhone(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private static func firstAddress(in text: String) -> String {
+        let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }
+        return lines.first(where: {
+            let lower = $0.lowercased()
+            return lower.contains("street") || lower.contains("road") || lower.contains("close") ||
+                lower.contains("avenue") || lower.contains("uk") || lower.contains("usa") ||
+                (lower.contains(",") && $0.split(separator: " ").count >= 3 && $0.count < 80 && !$0.contains("@"))
+        }) ?? ""
     }
     
     private static func parseSkillList(_ lines: [String]) -> [String] {
         let joined = lines.joined(separator: ",")
         let parts = joined.components(separatedBy: CharacterSet(charactersIn: ",|/•·;"))
-        return Array(Set(parts.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { $0.count > 1 && $0.count < 40 })).sorted()
+        let noise: Set<String> = [
+            "programming", "tools", "frameworks", "technologies", "technical",
+            "soft", "skills", "skillset", "languages", "language", "category",
+            "item"
+        ]
+        return Array(Set(parts.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter {
+            $0.count > 1 && $0.count < 40 && !noise.contains($0.lowercased())
+        })).sorted()
     }
     
     private static func fallbackSkills(from text: String) -> [String] {
@@ -134,7 +226,9 @@ enum ResumeParser {
     }
     
     private static func parseWork(_ lines: [String]) -> [WorkExperience] {
-        parseDatedEntries(lines).map { entry in
+        let entries = parseDatedEntries(lines)
+        let source = entries.isEmpty ? parseUndatedJobLines(lines) : entries
+        return source.map { entry in
             WorkExperience(
                 title: entry.title,
                 company: entry.company,
@@ -255,6 +349,26 @@ enum ResumeParser {
         }
         flush()
         return entries.filter { !$0.title.isEmpty }
+    }
+    
+    private static func parseUndatedJobLines(_ lines: [String]) -> [DatedEntry] {
+        lines.compactMap { line in
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard (8..<120).contains(trimmed.count) else { return nil }
+            guard looksLikeJobTitle(trimmed) || trimmed.contains("|") || trimmed.localizedCaseInsensitiveContains(" at ") else { return nil }
+            let pieces = splitHeader(stripDates(trimmed))
+            return DatedEntry(
+                title: pieces.title,
+                role: pieces.title,
+                company: pieces.company,
+                location: pieces.location,
+                start: Date(),
+                end: nil,
+                isCurrent: false,
+                detail: "",
+                technologies: nil
+            )
+        }
     }
     
     private static func looksLikeHeader(_ line: String) -> Bool {
