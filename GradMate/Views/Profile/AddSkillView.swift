@@ -120,6 +120,40 @@ struct AddSkillView: View {
                         .cornerRadius(16)
                         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color("appStrokeGray"), lineWidth: 1))
                         
+                        if !skillManager.skills.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Your Skills (\(skillManager.skills.count))")
+                                    .font(.headline)
+                                    .foregroundColor(Color("appTextPrimary"))
+                                ForEach(skillManager.skills, id: \.objectID) { skill in
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(skill.name ?? "")
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(Color("appTextPrimary"))
+                                            Text(skill.category ?? "General")
+                                                .font(.caption)
+                                                .foregroundColor(Color("appTextSecondary"))
+                                        }
+                                        Spacer()
+                                        Button(role: .destructive) {
+                                            skillManager.deleteSkill(skill)
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .foregroundColor(Color("appError"))
+                                        }
+                                    }
+                                    .padding(12)
+                                    .background(Color("appStrokeGray"))
+                                    .cornerRadius(10)
+                                }
+                            }
+                            .padding(20)
+                            .background(Color("appCardBG"))
+                            .cornerRadius(16)
+                        }
+                        
                         // Quick Add Section
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Quick Add")

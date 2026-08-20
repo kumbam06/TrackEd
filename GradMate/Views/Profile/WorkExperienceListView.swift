@@ -49,6 +49,11 @@ struct WorkExperienceListView: View {
                                 WorkExperienceCard(workExperience: workExperience) {
                                     selectedWorkExperience = workExperience
                                 }
+                                .contextMenu {
+                                    Button("Delete", role: .destructive) {
+                                        careerDataService.deleteWorkExperience(workExperience)
+                                    }
+                                }
                             }
                         }
                         .padding()

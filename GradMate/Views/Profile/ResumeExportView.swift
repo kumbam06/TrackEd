@@ -1,62 +1,38 @@
-//
-//  ResumeExportView.swift
-//  GradMate
-//
-//  Created by Pradeep Reddy Kumbam on 23/06/2025.
-//
-
 import SwiftUI
-import PDFKit
-
-// MARK: - Resume Theme System
-struct ResumeTheme: Identifiable, Equatable {
-    let id: String
-    let name: String
-    let primaryColor: Color
-    let accentColor: Color
-    let headerFont: Font
-    let bodyFont: Font
-    let sectionSpacing: CGFloat
-    let dividerColor: Color
-    let backgroundColor: Color
-    let subtitleFont: Font
-    let sectionTitleFont: Font
-    let sectionTitleColor: Color
-    let sectionHeaderCaps: Bool
-}
+import MessageUI
 
 extension ResumeTheme {
-    static let modernMinimalist = ResumeTheme(
-        id: "modern-minimalist",
-        name: "Modern Minimalist",
-        primaryColor: .black,
-        accentColor: .blue,
+    static let creativeTeal = ResumeTheme(
+        id: "creative-teal",
+        name: "Creative Teal",
+        primaryColor: Color(red: 0.08, green: 0.16, blue: 0.18),
+        accentColor: Color(red: 0.09, green: 0.64, blue: 0.62),
         headerFont: .system(size: 28, weight: .bold),
         bodyFont: .system(size: 13, weight: .regular),
-        sectionSpacing: 18,
-        dividerColor: Color.gray.opacity(0.18),
+        sectionSpacing: 16,
+        dividerColor: Color.teal.opacity(0.25),
         backgroundColor: Color.white,
-        subtitleFont: .system(size: 16, weight: .medium),
-        sectionTitleFont: .system(size: 15, weight: .semibold),
-        sectionTitleColor: .blue,
+        subtitleFont: .system(size: 15, weight: .medium),
+        sectionTitleFont: .system(size: 14, weight: .bold),
+        sectionTitleColor: Color(red: 0.09, green: 0.64, blue: 0.62),
         sectionHeaderCaps: true
     )
-    static let professionalClassic = ResumeTheme(
-        id: "professional-classic",
-        name: "Professional Classic",
-        primaryColor: .black,
-        accentColor: .gray,
-        headerFont: .system(size: 26, weight: .bold, design: .serif),
-        bodyFont: .system(size: 12, weight: .regular, design: .serif),
-        sectionSpacing: 16,
-        dividerColor: Color.gray.opacity(0.3),
+    
+    static let boldExecutive = ResumeTheme(
+        id: "bold-executive",
+        name: "Bold Executive",
+        primaryColor: Color(red: 0.12, green: 0.12, blue: 0.14),
+        accentColor: Color(red: 0.72, green: 0.18, blue: 0.18),
+        headerFont: .system(size: 27, weight: .heavy),
+        bodyFont: .system(size: 12.5, weight: .regular),
+        sectionSpacing: 15,
+        dividerColor: Color.red.opacity(0.2),
         backgroundColor: Color.white,
-        subtitleFont: .system(size: 15, weight: .medium, design: .serif),
-        sectionTitleFont: .system(size: 14, weight: .bold, design: .serif),
-        sectionTitleColor: .black,
-        sectionHeaderCaps: false
+        subtitleFont: .system(size: 15, weight: .semibold),
+        sectionTitleFont: .system(size: 13, weight: .heavy),
+        sectionTitleColor: Color(red: 0.72, green: 0.18, blue: 0.18),
+        sectionHeaderCaps: true
     )
-    static let allThemes: [ResumeTheme] = [modernMinimalist, professionalClassic]
 }
 
 struct ResumeExportView: View {
@@ -66,734 +42,294 @@ struct ResumeExportView: View {
     @EnvironmentObject private var careerDataService: CareerDataService
     @EnvironmentObject private var languageManager: LanguageManager
     
-    @State private var isGenerating = false
-    @State private var pdfData: Data?
     @State private var selectedTheme: ResumeTheme = .modernMinimalist
+    @State private var showingShare = false
+    @State private var showingMail = false
+    @State private var shareURL: URL?
+    @State private var isGenerating = false
+    
+    private var snapshot: ResumeSnapshot {
+        ResumeSnapshot.current(
+            profile: profileManager.currentProfile,
+            skills: skillManager.skills,
+            career: careerDataService,
+            languages: languageManager.languages
+        )
+    }
+    
+    private var themes: [ResumeTheme] {
+        [.modernMinimalist, .professionalClassic, .creativeTeal, .boldExecutive]
+    }
     
     var body: some View {
         NavigationView {
             ZStack {
-                Color(.systemBackground).ignoresSafeArea()
-                
-                VStack(spacing: 24) {
-                    resumeHeader5D
+                Color("appScreenBG").ignoresSafeArea()
+                VStack(spacing: 0) {
+                    completenessBanner
                     themePicker
-                    resumePreview5D
-                    Spacer()
-                    exportButton5D
+                    ScrollView {
+                        ResumePaperView(snapshot: snapshot, theme: selectedTheme)
+                            .padding(16)
+                    }
+                    actionBar
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
             }
-            .navigationTitle("RESUME EXPORT")
+            .navigationTitle("Build Resume")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("CANCEL") {
-                        dismiss()
-                    }
-                    .font(.headline)
-                    .foregroundColor(.white.opacity(0.7))
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showingShare) {
+                if let shareURL {
+                    ShareSheet(items: [shareURL])
+                }
+            }
+            .sheet(isPresented: $showingMail) {
+                if let shareURL {
+                    MailComposer(
+                        subject: "\(snapshot.name.isEmpty ? "Candidate" : snapshot.name) – Resume",
+                        body: "Please find my resume attached.",
+                        attachmentURL: shareURL
+                    )
                 }
             }
         }
     }
     
-    private var resumeHeader5D: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.accentColor.opacity(0.1))
-                    .frame(width: 80, height: 80)
-                
-                Image(systemName: "doc.text.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.accentColor)
-                    .shadow(color: .accentColor, radius: 8, x: 0, y: 0)
-            }
-            
-            VStack(spacing: 8) {
-                Text("EXPORT RESUME")
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .kerning(1)
-                
-                Text("Generate a professional PDF resume")
-                    .font(.body)
-                    .foregroundColor(.white.opacity(0.7))
-                    .multilineTextAlignment(.center)
+    private var completenessBanner: some View {
+        let missing = missingPieces
+        return Group {
+            if missing.isEmpty {
+                Label("Ready to share — all core sections have data", systemImage: "checkmark.seal.fill")
+                    .font(.caption)
+                    .foregroundColor(Color("appSuccess"))
+                    .padding(12)
+            } else {
+                Text("Add \(missing.joined(separator: ", ")) to strengthen this resume.")
+                    .font(.caption)
+                    .foregroundColor(Color("appWarning"))
+                    .padding(12)
             }
         }
-        .padding(.top, 20)
+        .frame(maxWidth: .infinity)
+        .background(Color("appCardBG"))
     }
     
-    private var resumePreview5D: some View {
-        VStack(alignment: .leading, spacing: selectedTheme.sectionSpacing) {
-            Text("RESUME PREVIEW")
-                .font(selectedTheme.sectionTitleFont)
-                .foregroundColor(selectedTheme.sectionTitleColor)
-                .kerning(1)
-            ScrollView {
-                VStack(alignment: .leading, spacing: selectedTheme.sectionSpacing) {
-                    // Profile Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(profileManager.currentProfile?.name ?? "John Doe")
-                            .font(selectedTheme.headerFont)
-                            .foregroundColor(selectedTheme.primaryColor)
-                        Text(profileManager.currentProfile?.role ?? "iOS Developer")
-                            .font(selectedTheme.subtitleFont)
-                            .foregroundColor(selectedTheme.accentColor)
-                        if let bio = profileManager.currentProfile?.bio, !bio.isEmpty {
-                            Text(bio)
-                                .font(selectedTheme.bodyFont)
-                                .foregroundColor(selectedTheme.primaryColor.opacity(0.8))
-                        }
-                        HStack(spacing: 12) {
-                            if let email = profileManager.currentProfile?.email, !email.isEmpty {
-                                Label(email, systemImage: "envelope.fill")
-                                    .font(.caption)
-                                    .foregroundColor(selectedTheme.primaryColor.opacity(0.7))
-                            }
-                            if let phone = profileManager.currentProfile?.phone, !phone.isEmpty {
-                                Label(phone, systemImage: "phone.fill")
-                                    .font(.caption)
-                                    .foregroundColor(selectedTheme.primaryColor.opacity(0.7))
-                            }
-                        }
-                        HStack(spacing: 12) {
-                            if let linkedin = profileManager.currentProfile?.linkedin, !linkedin.isEmpty {
-                                Label(linkedin, systemImage: "link")
-                                    .font(.caption)
-                                    .foregroundColor(selectedTheme.accentColor)
-                            }
-                            if let website = profileManager.currentProfile?.website, !website.isEmpty {
-                                Label(website, systemImage: "globe")
-                                    .font(.caption)
-                                    .foregroundColor(selectedTheme.accentColor)
-                            }
-                        }
-                        if let address = profileManager.currentProfile?.address, !address.isEmpty {
-                            Label(address, systemImage: "location.fill")
-                                .font(.caption)
-                                .foregroundColor(selectedTheme.primaryColor.opacity(0.7))
-                        }
-                    }
-                    Divider().background(selectedTheme.dividerColor)
-                    // Work Experience Section
-                    if !careerDataService.workExperiences.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            let workExpTitle = selectedTheme.sectionHeaderCaps ? "WORK EXPERIENCE" : "Work Experience"
-                            Text(workExpTitle)
-                                .font(selectedTheme.sectionTitleFont)
-                                .foregroundColor(selectedTheme.sectionTitleColor)
-                            ForEach(careerDataService.workExperiences, id: \.id) { experience in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(experience.title ?? "")
-                                            .font(selectedTheme.bodyFont.weight(.semibold))
-                                            .foregroundColor(selectedTheme.primaryColor)
-                                        Spacer()
-                                        Text(formatDateRange(start: experience.startDate, end: experience.endDate, isCurrent: experience.isCurrent))
-                                            .font(.caption)
-                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.6))
-                                    }
-                                    Text(experience.company ?? "")
-                                        .font(.caption)
-                                        .foregroundColor(selectedTheme.accentColor)
-                                    if let description = experience.workDescription, !description.isEmpty {
-                                        Text(description)
-                                            .font(selectedTheme.bodyFont)
-                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.8))
-                                    }
-                                }
-                            }
-                        }
-                        Divider().background(selectedTheme.dividerColor)
-                    }
-                    // Projects Section
-                    if !careerDataService.projects.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            let projectsTitle = selectedTheme.sectionHeaderCaps ? "PROJECTS" : "Projects"
-                            Text(projectsTitle)
-                                .font(selectedTheme.sectionTitleFont)
-                                .foregroundColor(selectedTheme.sectionTitleColor)
-                            ForEach(careerDataService.projects, id: \.id) { project in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(project.title ?? "")
-                                            .font(selectedTheme.bodyFont.weight(.semibold))
-                                            .foregroundColor(selectedTheme.primaryColor)
-                                        Spacer()
-                                        Text(formatDateRange(start: project.startDate, end: project.endDate, isCurrent: project.isCurrent))
-                                            .font(.caption)
-                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.6))
-                                    }
-                                    if let technologies = project.technologies as? [String], !technologies.isEmpty {
-                                        Text(technologies.joined(separator: ", "))
-                                            .font(.caption)
-                                            .foregroundColor(selectedTheme.accentColor)
-                                    }
-                                    if let description = project.projectDescription, !description.isEmpty {
-                                        Text(description)
-                                            .font(selectedTheme.bodyFont)
-                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.8))
-                                    }
-                                }
-                            }
-                        }
-                        Divider().background(selectedTheme.dividerColor)
-                    }
-                    // Internships Section
-                    if !careerDataService.internships.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            let internshipsTitle = selectedTheme.sectionHeaderCaps ? "INTERNSHIPS" : "Internships"
-                            Text(internshipsTitle)
-                                .font(selectedTheme.sectionTitleFont)
-                                .foregroundColor(selectedTheme.sectionTitleColor)
-                            ForEach(careerDataService.internships, id: \.id) { internship in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(internship.title ?? "")
-                                            .font(selectedTheme.bodyFont.weight(.semibold))
-                                            .foregroundColor(selectedTheme.primaryColor)
-                                        Spacer()
-                                        Text(formatDateRange(start: internship.startDate, end: internship.endDate, isCurrent: internship.isCurrent))
-                                            .font(.caption)
-                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.6))
-                                    }
-                                    Text(internship.company ?? "")
-                                        .font(.caption)
-                                        .foregroundColor(selectedTheme.accentColor)
-                                    if let description = internship.internshipDescription, !description.isEmpty {
-                                        Text(description)
-                                            .font(selectedTheme.bodyFont)
-                                            .foregroundColor(selectedTheme.primaryColor.opacity(0.8))
-                                    }
-                                }
-                            }
-                        }
-                        Divider().background(selectedTheme.dividerColor)
-                    }
-                    // Certifications Section
-                    if !careerDataService.certifications.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            let certificationsTitle = selectedTheme.sectionHeaderCaps ? "CERTIFICATIONS" : "Certifications"
-                            Text(certificationsTitle)
-                                .font(selectedTheme.sectionTitleFont)
-                                .foregroundColor(selectedTheme.sectionTitleColor)
-                            ForEach(careerDataService.certifications, id: \.id) { certification in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(certification.name ?? "")
-                                        .font(selectedTheme.bodyFont.weight(.semibold))
-                                        .foregroundColor(selectedTheme.primaryColor)
-                                    Text(certification.issuingOrganization ?? "")
-                                        .font(.caption)
-                                        .foregroundColor(selectedTheme.accentColor)
-                                }
-                            }
-                        }
-                        Divider().background(selectedTheme.dividerColor)
-                    }
-                    // Skills Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        let skillsTitle = selectedTheme.sectionHeaderCaps ? "SKILLS" : "Skills"
-                        Text(skillsTitle)
-                            .font(selectedTheme.sectionTitleFont)
-                            .foregroundColor(selectedTheme.sectionTitleColor)
-                        let categories = skillManager.getCategories()
-                        ForEach(categories, id: \.self) { category in
-                            VStack(alignment: .leading, spacing: 4) {
-                                let categoryTitle = selectedTheme.sectionHeaderCaps ? category.uppercased() : category
-                                Text(categoryTitle)
-                                    .font(selectedTheme.bodyFont.weight(.medium))
-                                    .foregroundColor(selectedTheme.accentColor)
-                                    .kerning(0.5)
-                                let skillsInCategory = skillManager.getSkillsByCategory(category)
-                                Text(skillsInCategory.map { $0.name ?? "" }.joined(separator: ", "))
-                                    .font(.caption)
-                                    .foregroundColor(selectedTheme.primaryColor.opacity(0.7))
-                            }
-                        }
-                    }
-                    // Languages Section
-                    let languages = loadLanguages()
-                    if !languages.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            let languagesTitle = selectedTheme.sectionHeaderCaps ? "LANGUAGES" : "Languages"
-                            Text(languagesTitle)
-                                .font(selectedTheme.sectionTitleFont)
-                                .foregroundColor(selectedTheme.sectionTitleColor)
-                            ForEach(languages) { lang in
-                                HStack {
-                                    Text(lang.name)
-                                        .font(selectedTheme.bodyFont.weight(.medium))
-                                        .foregroundColor(selectedTheme.primaryColor)
-                                    Spacer()
-                                    Text(lang.proficiency.rawValue)
-                                        .font(.caption)
-                                        .foregroundColor(selectedTheme.accentColor)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .frame(maxHeight: 400)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(selectedTheme.backgroundColor.opacity(0.3))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(selectedTheme.accentColor.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .shadow(color: selectedTheme.accentColor.opacity(0.1), radius: 8, x: 0, y: 4)
+    private var missingPieces: [String] {
+        var items: [String] = []
+        if snapshot.name.isEmpty { items.append("name") }
+        if snapshot.email.isEmpty { items.append("email") }
+        if snapshot.workExperiences.isEmpty && snapshot.internships.isEmpty { items.append("experience") }
+        if snapshot.skillsByCategory.isEmpty { items.append("skills") }
+        return items
     }
     
     private var themePicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("RESUME THEME")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.accentColor)
-            HStack(spacing: 12) {
-                ForEach(ResumeTheme.allThemes) { theme in
-                    Button(action: { selectedTheme = theme }) {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(themes) { theme in
+                    Button {
+                        selectedTheme = theme
+                    } label: {
                         Text(theme.name)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(selectedTheme == theme ? .white : .accentColor)
-                            .padding(.horizontal, 14)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(selectedTheme == theme ? .accentColor : Color(.systemGray5))
+                            .background(selectedTheme.id == theme.id ? Color("appPrimaryAccent") : Color("appStrokeGray"))
+                            .foregroundColor(selectedTheme.id == theme.id ? .white : Color("appTextPrimary"))
                             .clipShape(Capsule())
-                            .shadow(radius: selectedTheme == theme ? 3 : 0)
                     }
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
-        .padding(.bottom, 8)
     }
     
-    private var exportButton5D: some View {
-        Button(action: generateResume) {
-            HStack(spacing: 12) {
-                if isGenerating {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(0.8)
-                } else {
-                    Image(systemName: "doc.text.fill")
-                        .font(.headline)
-                }
-                
-                Text(isGenerating ? "GENERATING..." : "GENERATE RESUME")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .kerning(1)
+    private var actionBar: some View {
+        HStack(spacing: 12) {
+            Button(action: shareResume) {
+                label("square.and.arrow.up", isGenerating ? "Preparing…" : "Share")
             }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(
-                        isGenerating ?
-                        LinearGradient(colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                        LinearGradient(colors: [.accentColor, .primary], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                    .shadow(color: isGenerating ? Color.clear : Color.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
-            )
-        }
-        .disabled(isGenerating)
-        .buttonStyle(PlainButtonStyle())
-        .padding(.bottom, 20)
-    }
-    
-    private func formatDateRange(start: Date?, end: Date?, isCurrent: Bool) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM yyyy"
-        
-        guard let startDate = start else { return "Present" }
-        let startString = formatter.string(from: startDate)
-        
-        if isCurrent {
-            return "\(startString) - Present"
-        } else if let endDate = end {
-            let endString = formatter.string(from: endDate)
-            return "\(startString) - \(endString)"
-        } else {
-            return startString
-        }
-    }
-    
-    private func generateResume() {
-        isGenerating = true
-        
-        DispatchQueue.global(qos: .userInitiated).async {
-            let pdfData = createResumePDF()
+            .disabled(isGenerating)
             
-            DispatchQueue.main.async {
-                self.pdfData = pdfData
-                self.isGenerating = false
-                self.shareResume()
+            Button(action: emailResume) {
+                label("envelope.fill", "Email recruiter")
             }
+            .disabled(isGenerating || !MFMailComposeViewController.canSendMail())
         }
+        .padding(16)
+        .background(Color("appCardBG"))
+    }
+    
+    private func label(_ icon: String, _ title: String) -> some View {
+        HStack {
+            Image(systemName: icon)
+            Text(title).fontWeight(.semibold)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color("appPrimaryAccent"))
+        .foregroundColor(.white)
+        .cornerRadius(12)
+    }
+    
+    private func preparePDF() -> URL {
+        let data = ResumePDFBuilder.makePDF(snapshot: snapshot, theme: selectedTheme)
+        let slug = snapshot.name.isEmpty ? "GradMate_Resume" : snapshot.name.replacingOccurrences(of: " ", with: "_")
+        return ResumePDFBuilder.writeTemporaryPDF(data, named: "\(slug)_Resume.pdf")
     }
     
     private func shareResume() {
-        guard let pdfData = pdfData else { return }
-        
-        let activityVC = UIActivityViewController(activityItems: [pdfData], applicationActivities: nil)
-        
-        // Get the window scene
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first {
-            // Present the activity view controller
-            if let rootVC = window.rootViewController {
-                // Find the topmost view controller
-                var topVC = rootVC
-                while let presentedVC = topVC.presentedViewController {
-                    topVC = presentedVC
+        isGenerating = true
+        shareURL = preparePDF()
+        isGenerating = false
+        showingShare = true
+    }
+    
+    private func emailResume() {
+        isGenerating = true
+        shareURL = preparePDF()
+        isGenerating = false
+        if MFMailComposeViewController.canSendMail() {
+            showingMail = true
+        } else {
+            showingShare = true
+        }
+    }
+}
+
+struct ResumePaperView: View {
+    let snapshot: ResumeSnapshot
+    let theme: ResumeTheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.sectionSpacing) {
+            Text(snapshot.name.isEmpty ? "Your Name" : snapshot.name)
+                .font(theme.headerFont)
+                .foregroundColor(theme.primaryColor)
+            if !snapshot.role.isEmpty {
+                Text(snapshot.role)
+                    .font(theme.subtitleFont)
+                    .foregroundColor(theme.accentColor)
+            }
+            contactRow
+            if !snapshot.bio.isEmpty {
+                Text(snapshot.bio)
+                    .font(theme.bodyFont)
+                    .foregroundColor(theme.primaryColor.opacity(0.8))
+            }
+            experienceSection("Work Experience", items: snapshot.workExperiences.map {
+                ($0.title, $0.company, ResumePDFBuilder.dateRange($0.startDate, $0.endDate, $0.isCurrent), $0.description)
+            })
+            experienceSection("Internships", items: snapshot.internships.map {
+                ($0.title, $0.company, ResumePDFBuilder.dateRange($0.startDate, $0.endDate, $0.isCurrent), $0.description)
+            })
+            experienceSection("Projects", items: snapshot.projects.map {
+                ($0.title, $0.company, ResumePDFBuilder.dateRange($0.startDate, $0.endDate, $0.isCurrent), $0.description)
+            })
+            if !snapshot.certifications.isEmpty {
+                sectionTitle("Certifications")
+                ForEach(snapshot.certifications) { item in
+                    Text(item.title).font(theme.bodyFont.weight(.semibold)).foregroundColor(theme.primaryColor)
+                    Text(item.organization).font(.caption).foregroundColor(theme.accentColor)
                 }
-                topVC.present(activityVC, animated: true)
+            }
+            if snapshot.skillsByCategory.contains(where: { !$0.skills.isEmpty }) {
+                sectionTitle("Skills")
+                ForEach(snapshot.skillsByCategory, id: \.category) { group in
+                    if !group.skills.isEmpty {
+                        Text("\(group.category): \(group.skills.joined(separator: ", "))")
+                            .font(theme.bodyFont)
+                            .foregroundColor(theme.primaryColor.opacity(0.8))
+                    }
+                }
+            }
+            if !snapshot.languages.isEmpty {
+                sectionTitle("Languages")
+                Text(snapshot.languages.map { "\($0.name) (\($0.proficiency.rawValue))" }.joined(separator: "  •  "))
+                    .font(theme.bodyFont)
+                    .foregroundColor(theme.primaryColor.opacity(0.8))
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.backgroundColor)
+        .cornerRadius(8)
+        .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 4)
+    }
+    
+    private var contactRow: some View {
+        let parts = [snapshot.email, snapshot.phone, snapshot.linkedin, snapshot.website, snapshot.address].filter { !$0.isEmpty }
+        return Text(parts.joined(separator: "  •  "))
+            .font(.caption)
+            .foregroundColor(theme.primaryColor.opacity(0.7))
+    }
+    
+    private func sectionTitle(_ title: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(theme.sectionHeaderCaps ? title.uppercased() : title)
+                .font(theme.sectionTitleFont)
+                .foregroundColor(theme.sectionTitleColor)
+            Rectangle().fill(theme.dividerColor).frame(height: 1)
+        }
+        .padding(.top, 6)
+    }
+    
+    private func experienceSection(_ title: String, items: [(String, String, String, String)]) -> some View {
+        Group {
+            if !items.isEmpty {
+                sectionTitle(title)
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text(item.0).font(theme.bodyFont.weight(.semibold)).foregroundColor(theme.primaryColor)
+                            Spacer()
+                            Text(item.2).font(.caption).foregroundColor(theme.primaryColor.opacity(0.6))
+                        }
+                        Text(item.1).font(.caption).foregroundColor(theme.accentColor)
+                        if !item.3.isEmpty {
+                            Text(item.3).font(theme.bodyFont).foregroundColor(theme.primaryColor.opacity(0.8))
+                        }
+                    }
+                    .padding(.bottom, 6)
+                }
             }
         }
     }
+}
+
+struct MailComposer: UIViewControllerRepresentable {
+    let subject: String
+    let body: String
+    let attachmentURL: URL
+    @Environment(\.dismiss) private var dismiss
     
-    private func createResumePDF() -> Data {
-        let pdfMetaData = [
-            kCGPDFContextCreator: "GradMate",
-            kCGPDFContextAuthor: profileManager.currentProfile?.name ?? "Student"
-        ]
-        let format = UIGraphicsPDFRendererFormat()
-        format.documentInfo = pdfMetaData as [String: Any]
-        let pageRect = CGRect(x: 0, y: 0, width: 595.2, height: 841.8) // A4 size
-        let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
-        let data = renderer.pdfData { context in
-            context.beginPage()
-            let leftMargin: CGFloat = 50
-            let rightMargin: CGFloat = 545.2
-            var yPosition: CGFloat = 50
-
-            // Theme-driven fonts/colors
-            let theme = selectedTheme
-            let nameFont = UIFont.systemFont(ofSize: 28, weight: .bold)
-            let roleFont = UIFont.systemFont(ofSize: 16, weight: .medium)
-            let sectionFont = UIFont.systemFont(ofSize: 15, weight: .semibold)
-            let bodyFont = UIFont.systemFont(ofSize: 13, weight: .regular)
-            let captionFont = UIFont.systemFont(ofSize: 11, weight: .regular)
-            let accentColor = UIColor(theme.accentColor)
-            let primaryColor = UIColor(theme.primaryColor)
-            let sectionTitleColor = UIColor(theme.sectionTitleColor)
-
-            // Name
-            let name = profileManager.currentProfile?.name ?? "John Doe"
-            name.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                .font: nameFont,
-                .foregroundColor: primaryColor
-            ])
-            yPosition += 35
-
-            // Role
-            let role = profileManager.currentProfile?.role ?? "iOS Developer"
-            role.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                .font: roleFont,
-                .foregroundColor: accentColor
-            ])
-            yPosition += 25
-
-            // Bio
-            if let bio = profileManager.currentProfile?.bio, !bio.isEmpty {
-                let lines = wrapText(bio, maxWidth: rightMargin - leftMargin, attributes: [
-                    .font: bodyFont,
-                    .foregroundColor: primaryColor.withAlphaComponent(0.8)
-                ])
-                for line in lines {
-                    line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                        .font: bodyFont,
-                        .foregroundColor: primaryColor.withAlphaComponent(0.8)
-                    ])
-                    yPosition += 14
-                }
-                yPosition += 6
-            }
-
-            // Contact Info
-            var contactY = yPosition
-            if let email = profileManager.currentProfile?.email, !email.isEmpty {
-                ("Email: " + email).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
-                    .font: captionFont,
-                    .foregroundColor: primaryColor.withAlphaComponent(0.7)
-                ])
-                contactY += 13
-            }
-            if let phone = profileManager.currentProfile?.phone, !phone.isEmpty {
-                ("Phone: " + phone).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
-                    .font: captionFont,
-                    .foregroundColor: primaryColor.withAlphaComponent(0.7)
-                ])
-                contactY += 13
-            }
-            if let linkedin = profileManager.currentProfile?.linkedin, !linkedin.isEmpty {
-                ("LinkedIn: " + linkedin).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
-                    .font: captionFont,
-                    .foregroundColor: accentColor
-                ])
-                contactY += 13
-            }
-            if let website = profileManager.currentProfile?.website, !website.isEmpty {
-                ("Website: " + website).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
-                    .font: captionFont,
-                    .foregroundColor: accentColor
-                ])
-                contactY += 13
-            }
-            if let address = profileManager.currentProfile?.address, !address.isEmpty {
-                ("Address: " + address).draw(at: CGPoint(x: leftMargin, y: contactY), withAttributes: [
-                    .font: captionFont,
-                    .foregroundColor: primaryColor.withAlphaComponent(0.7)
-                ])
-                contactY += 13
-            }
-            yPosition = max(yPosition, contactY) + 18
-
-            // Work Experience Section
-            if !careerDataService.workExperiences.isEmpty {
-                let workExpTitle = theme.sectionHeaderCaps ? "WORK EXPERIENCE" : "Work Experience"
-                workExpTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                    .font: sectionFont,
-                    .foregroundColor: sectionTitleColor
-                ])
-                yPosition += 20
-                for experience in careerDataService.workExperiences {
-                    let title = experience.title ?? ""
-                    let dateRange = formatDateRange(start: experience.startDate, end: experience.endDate, isCurrent: experience.isCurrent)
-                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                        .font: bodyFont,
-                        .foregroundColor: primaryColor
-                    ])
-                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: [
-                        .font: captionFont,
-                        .foregroundColor: primaryColor.withAlphaComponent(0.6)
-                    ])
-                    yPosition += 15
-                    if let company = experience.company {
-                        company.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                            .font: captionFont,
-                            .foregroundColor: accentColor
-                        ])
-                        yPosition += 13
-                    }
-                    if let description = experience.workDescription, !description.isEmpty {
-                        let lines = wrapText(description, maxWidth: rightMargin - leftMargin, attributes: [
-                            .font: bodyFont,
-                            .foregroundColor: primaryColor.withAlphaComponent(0.8)
-                        ])
-                        for line in lines {
-                            line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                                .font: bodyFont,
-                                .foregroundColor: primaryColor.withAlphaComponent(0.8)
-                            ])
-                            yPosition += 12
-                        }
-                    }
-                    yPosition += 8
-                }
-                yPosition += 10
-            }
-
-            // Projects Section
-            if !careerDataService.projects.isEmpty {
-                let projectsTitle = theme.sectionHeaderCaps ? "PROJECTS" : "Projects"
-                projectsTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                    .font: sectionFont,
-                    .foregroundColor: sectionTitleColor
-                ])
-                yPosition += 20
-                for project in careerDataService.projects {
-                    let title = project.title ?? ""
-                    let dateRange = formatDateRange(start: project.startDate, end: project.endDate, isCurrent: project.isCurrent)
-                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                        .font: bodyFont,
-                        .foregroundColor: primaryColor
-                    ])
-                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: [
-                        .font: captionFont,
-                        .foregroundColor: primaryColor.withAlphaComponent(0.6)
-                    ])
-                    yPosition += 15
-                    if let technologies = project.technologies as? [String], !technologies.isEmpty {
-                        let techText = technologies.joined(separator: ", ")
-                        techText.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                            .font: captionFont,
-                            .foregroundColor: accentColor
-                        ])
-                        yPosition += 13
-                    }
-                    if let description = project.projectDescription, !description.isEmpty {
-                        let lines = wrapText(description, maxWidth: rightMargin - leftMargin, attributes: [
-                            .font: bodyFont,
-                            .foregroundColor: primaryColor.withAlphaComponent(0.8)
-                        ])
-                        for line in lines {
-                            line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                                .font: bodyFont,
-                                .foregroundColor: primaryColor.withAlphaComponent(0.8)
-                            ])
-                            yPosition += 12
-                        }
-                    }
-                    yPosition += 8
-                }
-                yPosition += 10
-            }
-
-            // Internships Section
-            if !careerDataService.internships.isEmpty {
-                let internshipsTitle = theme.sectionHeaderCaps ? "INTERNSHIPS" : "Internships"
-                internshipsTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                    .font: sectionFont,
-                    .foregroundColor: sectionTitleColor
-                ])
-                yPosition += 20
-                for internship in careerDataService.internships {
-                    let title = internship.title ?? ""
-                    let dateRange = formatDateRange(start: internship.startDate, end: internship.endDate, isCurrent: internship.isCurrent)
-                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                        .font: bodyFont,
-                        .foregroundColor: primaryColor
-                    ])
-                    dateRange.draw(at: CGPoint(x: rightMargin - 100, y: yPosition), withAttributes: [
-                        .font: captionFont,
-                        .foregroundColor: primaryColor.withAlphaComponent(0.6)
-                    ])
-                    yPosition += 15
-                    if let company = internship.company {
-                        company.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                            .font: captionFont,
-                            .foregroundColor: accentColor
-                        ])
-                        yPosition += 13
-                    }
-                    if let description = internship.internshipDescription, !description.isEmpty {
-                        let lines = wrapText(description, maxWidth: rightMargin - leftMargin, attributes: [
-                            .font: bodyFont,
-                            .foregroundColor: primaryColor.withAlphaComponent(0.8)
-                        ])
-                        for line in lines {
-                            line.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                                .font: bodyFont,
-                                .foregroundColor: primaryColor.withAlphaComponent(0.8)
-                            ])
-                            yPosition += 12
-                        }
-                    }
-                    yPosition += 8
-                }
-                yPosition += 10
-            }
-
-            // Certifications Section
-            if !careerDataService.certifications.isEmpty {
-                let certificationsTitle = theme.sectionHeaderCaps ? "CERTIFICATIONS" : "Certifications"
-                certificationsTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                    .font: sectionFont,
-                    .foregroundColor: sectionTitleColor
-                ])
-                yPosition += 20
-                for certification in careerDataService.certifications {
-                    let title = certification.name ?? ""
-                    title.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                        .font: bodyFont,
-                        .foregroundColor: primaryColor
-                    ])
-                    yPosition += 15
-                    if let organization = certification.issuingOrganization {
-                        organization.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                            .font: captionFont,
-                            .foregroundColor: accentColor
-                        ])
-                        yPosition += 13
-                    }
-                    yPosition += 8
-                }
-                yPosition += 10
-            }
-
-            // Skills Section
-            let skillsTitle = theme.sectionHeaderCaps ? "SKILLS" : "Skills"
-            skillsTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                .font: sectionFont,
-                .foregroundColor: sectionTitleColor
-            ])
-            yPosition += 20
-            let categories = skillManager.getCategories()
-            for category in categories {
-                let catTitle = theme.sectionHeaderCaps ? category.uppercased() : category
-                catTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                    .font: bodyFont,
-                    .foregroundColor: accentColor
-                ])
-                yPosition += 15
-                let skillsInCategory = skillManager.getSkillsByCategory(category)
-                let skillsText = skillsInCategory.map { $0.name ?? "" }.joined(separator: ", ")
-                skillsText.draw(at: CGPoint(x: leftMargin + 10, y: yPosition), withAttributes: [
-                    .font: captionFont,
-                    .foregroundColor: primaryColor.withAlphaComponent(0.7)
-                ])
-                yPosition += 15
-            }
-            // Languages Section
-            let languages = loadLanguages()
-            if !languages.isEmpty {
-                let languagesTitle = theme.sectionHeaderCaps ? "LANGUAGES" : "Languages"
-                languagesTitle.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                    .font: sectionFont,
-                    .foregroundColor: sectionTitleColor
-                ])
-                yPosition += 20
-                for lang in languages {
-                    lang.name.draw(at: CGPoint(x: leftMargin, y: yPosition), withAttributes: [
-                        .font: bodyFont,
-                        .foregroundColor: primaryColor
-                    ])
-                    lang.proficiency.rawValue.draw(at: CGPoint(x: rightMargin - 120, y: yPosition), withAttributes: [
-                        .font: captionFont,
-                        .foregroundColor: accentColor
-                    ])
-                    yPosition += 15
-                }
-            }
+    func makeUIViewController(context: Context) -> MFMailComposeViewController {
+        let composer = MFMailComposeViewController()
+        composer.setSubject(subject)
+        composer.setMessageBody(body, isHTML: false)
+        if let data = try? Data(contentsOf: attachmentURL) {
+            composer.addAttachmentData(data, mimeType: "application/pdf", fileName: attachmentURL.lastPathComponent)
         }
-        return data
+        composer.mailComposeDelegate = context.coordinator
+        return composer
     }
     
-    private func loadLanguages() -> [Language] {
-        if let data = UserDefaults.standard.data(forKey: "userLanguages"),
-           let decoded = try? JSONDecoder().decode([Language].self, from: data) {
-            return decoded
-        }
-        return []
-    }
+    func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}
     
-    private func wrapText(_ text: String, maxWidth: CGFloat, attributes: [NSAttributedString.Key: Any]) -> [String] {
-        let attributedString = NSAttributedString(string: text, attributes: attributes)
-        let framesetter = CTFramesetterCreateWithAttributedString(attributedString)
-        let path = CGPath(rect: CGRect(x: 0, y: 0, width: maxWidth, height: CGFloat.greatestFiniteMagnitude), transform: nil)
-        let frame = CTFramesetterCreateFrame(framesetter, CFRangeMake(0, 0), path, nil)
-        
-        let lines = CTFrameGetLines(frame) as! [CTLine]
-        var wrappedLines: [String] = []
-        
-        for line in lines {
-            let lineRange = CTLineGetStringRange(line)
-            let lineString = (text as NSString).substring(with: NSRange(location: lineRange.location, length: lineRange.length))
-            wrappedLines.append(lineString)
+    func makeCoordinator() -> Coordinator { Coordinator(dismiss: dismiss) }
+    
+    final class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
+        let dismiss: DismissAction
+        init(dismiss: DismissAction) { self.dismiss = dismiss }
+        func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+            dismiss()
         }
-        
-        return wrappedLines
     }
 }
 
@@ -803,4 +339,4 @@ struct ResumeExportView: View {
         .environmentObject(SkillManager())
         .environmentObject(CareerDataService())
         .environmentObject(LanguageManager())
-} 
+}

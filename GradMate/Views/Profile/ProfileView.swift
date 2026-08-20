@@ -97,16 +97,20 @@ struct ProfileView: View {
             .sheet(isPresented: $showingCoverLetter) {
                 CoverLetterListView()
                     .environmentObject(coverLetterDataService)
+                    .environmentObject(profileManager)
+                    .environmentObject(skillManager)
+                    .environmentObject(careerDataService)
             }
             .sheet(isPresented: $showingLanguages) {
                 LanguageListView()
-                    .environmentObject(profileManager)
                     .environmentObject(languageManager)
             }
             .sheet(isPresented: $showingResumeUpload) {
                 ResumeUploadView()
                     .environmentObject(profileManager)
                     .environmentObject(skillManager)
+                    .environmentObject(careerDataService)
+                    .environmentObject(languageManager)
             }
             .alert("Delete Account", isPresented: $showingDeleteAlert, actions: {
                 TextField("Type DELETE to confirm", text: $deleteConfirmationText)
@@ -475,7 +479,7 @@ struct ProfileView: View {
                 ProfileActionRow(
                     icon: "plus.circle.fill",
                     title: "ADD SKILL",
-                    subtitle: "Add new skills and expertise",
+                    subtitle: skillManager.skills.isEmpty ? "Add skills used on your resume" : "\(skillManager.skills.count) skills on your resume",
                     color: Color("appPrimaryAccent")
                 ) { showingAddSkill = true }
                 
@@ -510,7 +514,7 @@ struct ProfileView: View {
                 ProfileActionRow(
                     icon: "arrow.up.doc.fill",
                     title: "UPLOAD RESUME",
-                    subtitle: "Import and auto-fill profile",
+                    subtitle: "Auto-fill every section from a PDF",
                     color: Color("appPrimaryAccent")
                 ) { showingResumeUpload = true }
                 
@@ -557,8 +561,8 @@ struct ProfileView: View {
                 
                 ProfileActionRow(
                     icon: "doc.text.fill",
-                    title: "EXPORT RESUME",
-                    subtitle: "Generate PDF resume",
+                    title: "BUILD & SHARE RESUME",
+                    subtitle: "Preview designs and email recruiters",
                     color: Color("appSuccess")
                 ) { showingResumeExport = true }
                 

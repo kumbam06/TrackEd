@@ -59,13 +59,13 @@ struct CertificationListView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
-                    .navigationTitle("Certifications")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button(action: { editingCertification = nil; showingEdit = true }) {
-                                Image(systemName: "plus")
-                            }
-                        }
+                }
+            }
+            .navigationTitle("Certifications")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { editingCertification = nil; showingEdit = true }) {
+                        Image(systemName: "plus")
                     }
                 }
             }

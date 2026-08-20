@@ -54,8 +54,44 @@ class ProfileManager: ObservableObject {
         currentProfile = nil
     }
     
+    @discardableResult
+    func ensureProfile() -> Profile {
+        if let currentProfile { return currentProfile }
+        let profile = Profile(context: context)
+        profile.id = UUID()
+        currentProfile = profile
+        save()
+        return profile
+    }
+    
+    func applyImportedProfile(
+        name: String,
+        role: String,
+        email: String,
+        phone: String,
+        bio: String,
+        linkedin: String,
+        website: String,
+        address: String
+    ) {
+        let existing = currentProfile
+        updateProfile(
+            name: name.isEmpty ? (existing?.name ?? "") : name,
+            role: role.isEmpty ? (existing?.role ?? "") : role,
+            email: email.isEmpty ? (existing?.email ?? "") : email,
+            phone: phone.isEmpty ? (existing?.phone ?? "") : phone,
+            bio: bio.isEmpty ? (existing?.bio ?? "") : bio,
+            linkedin: linkedin.isEmpty ? (existing?.linkedin ?? "") : linkedin,
+            website: website.isEmpty ? (existing?.website ?? "") : website,
+            username: existing?.username ?? "",
+            dob: existing?.dob,
+            address: address.isEmpty ? (existing?.address ?? "") : address,
+            currentCompany: existing?.currentCompany ?? ""
+        )
+    }
+    
     func updateProfile(name: String, role: String, email: String, phone: String, bio: String, linkedin: String, website: String, username: String, dob: Date?, address: String, currentCompany: String) {
-        guard let profile = currentProfile else { return }
+        let profile = ensureProfile()
         profile.name = name
         profile.role = role
         profile.email = email

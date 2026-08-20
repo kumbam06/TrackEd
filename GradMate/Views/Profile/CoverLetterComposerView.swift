@@ -9,6 +9,9 @@ struct CoverLetterExportData: Hashable {
 struct CoverLetterComposerView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var coverLetterDataService: CoverLetterDataService
+    @EnvironmentObject var profileManager: ProfileManager
+    @EnvironmentObject var skillManager: SkillManager
+    @EnvironmentObject var careerDataService: CareerDataService
     
     @State private var companyName = ""
     @State private var positionTitle = ""
@@ -58,6 +61,12 @@ struct CoverLetterComposerView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(Color("appTextPrimary"))
                                 .kerning(1.5)
+                            
+                            Button("Insert resume-based draft") {
+                                insertDraft()
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(Color("appPrimaryAccent"))
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Write your cover letter content")
@@ -168,12 +177,34 @@ struct CoverLetterComposerView: View {
         }
     }
     
+    private func insertDraft() {
+        let profile = profileManager.currentProfile
+        let name = profile?.name ?? "Applicant"
+        let role = profile?.role ?? positionTitle
+        let skills = skillManager.skills.compactMap(\.name).prefix(6).joined(separator: ", ")
+        let latestJob = careerDataService.workExperienceModels.first
+        let experienceLine = latestJob.map { "most recently as \($0.title) at \($0.company)" } ?? "through my academic and project work"
+        coverLetterContent = """
+        Dear Hiring Manager,
+
+        I am writing to express my interest in the \(positionTitle.isEmpty ? "[Position Title]" : positionTitle) role at \(companyName.isEmpty ? "[Company Name]" : companyName). I am \(name), a \(role.isEmpty ? "motivated candidate" : role), \(experienceLine).
+
+        \(skills.isEmpty ? "I would welcome the chance to bring my skills to your team." : "My strengths include \(skills).")
+
+        Thank you for your time and consideration. I look forward to discussing how I can contribute.
+
+        Sincerely,
+        \(name)
+        """
+    }
+    
     private func saveCoverLetter() {
         let coverLetter = CoverLetter(
             name: "Cover Letter for \(positionTitle)",
             companyName: companyName,
             positionTitle: positionTitle,
-            openingParagraph: coverLetterContent
+            openingParagraph: coverLetterContent,
+            bodyParagraphs: [coverLetterContent]
         )
         
         coverLetterDataService.createCoverLetter(coverLetter)
@@ -186,4 +217,7 @@ struct CoverLetterComposerView: View {
 #Preview {
     CoverLetterComposerView()
         .environmentObject(CoverLetterDataService())
+        .environmentObject(ProfileManager())
+        .environmentObject(SkillManager())
+        .environmentObject(CareerDataService())
 } 

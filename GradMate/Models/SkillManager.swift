@@ -35,9 +35,14 @@ class SkillManager: ObservableObject {
     }
     
     func addSkill(name: String, category: String, description: String = "", proficiency: Int16 = 1) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if skills.contains(where: { ($0.name ?? "").caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            return
+        }
         let skill = SkillEntity(context: context)
         skill.id = UUID()
-        skill.name = name
+        skill.name = trimmed
         skill.category = category
         skill.skillDescription = description
         skill.proficiency = proficiency

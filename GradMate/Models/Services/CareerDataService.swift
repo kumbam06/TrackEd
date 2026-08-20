@@ -334,6 +334,29 @@ class CareerDataService: ObservableObject {
         loadWorkExperiences()
     }
     
+    func importResume(_ parsed: ParsedResume) {
+        for experience in parsed.workExperiences {
+            if !workExperienceModels.contains(where: { $0.title.caseInsensitiveCompare(experience.title) == .orderedSame && $0.company.caseInsensitiveCompare(experience.company) == .orderedSame }) {
+                createWorkExperience(experience)
+            }
+        }
+        for project in parsed.projects {
+            if !projectModels.contains(where: { $0.title.caseInsensitiveCompare(project.title) == .orderedSame }) {
+                createProject(project)
+            }
+        }
+        for internship in parsed.internships {
+            if !internshipModels.contains(where: { $0.title.caseInsensitiveCompare(internship.title) == .orderedSame && $0.company.caseInsensitiveCompare(internship.company) == .orderedSame }) {
+                createInternship(internship)
+            }
+        }
+        for certification in parsed.certifications {
+            if !certificationModels.contains(where: { $0.title.caseInsensitiveCompare(certification.title) == .orderedSame }) {
+                createCertification(certification)
+            }
+        }
+    }
+    
     private func save() {
         do {
             try context.save()
