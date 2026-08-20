@@ -1,7 +1,6 @@
 import SwiftUI
 
 /// Actions shown on the Profile tab under Career & Skills.
-/// Upload Resume is intentionally not included.
 enum ProfileCareerAction: String, CaseIterable, Identifiable {
     case addSkill = "ADD SKILL"
     case projects = "PROJECTS"

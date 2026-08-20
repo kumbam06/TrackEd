@@ -112,7 +112,7 @@ final class ResumeParserTests: XCTestCase {
 }
 
 final class ProfileCareerActionTests: XCTestCase {
-    func testProfileTabDoesNotOfferUploadResume() {
+    func testCareerMenuHasOnlyManualEntryActions() {
         let titles = ProfileCareerAction.allCases.map(\.rawValue)
         XCTAssertFalse(titles.contains(where: { $0.localizedCaseInsensitiveContains("upload") }))
         XCTAssertEqual(titles, [
