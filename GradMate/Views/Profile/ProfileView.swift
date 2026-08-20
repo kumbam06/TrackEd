@@ -50,6 +50,7 @@ struct ProfileView: View {
                 .padding(.bottom, 44)
                 .padding(.bottom, 100) // Padding for tab bar
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("My Profile")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
