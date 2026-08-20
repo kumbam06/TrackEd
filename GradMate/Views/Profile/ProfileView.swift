@@ -459,7 +459,7 @@ struct ProfileView: View {
     private var profilePortfolioSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("YOUR RESUME DATA")
+                Text("YOUR PROFILE")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(Color("appTextPrimary"))
@@ -565,55 +565,48 @@ struct ProfileView: View {
             }
             .padding(.leading, 4)
             VStack(spacing: 8) {
-                ProfileActionRow(
-                    icon: "plus.circle.fill",
-                    title: "ADD SKILL",
-                    subtitle: skillManager.skills.isEmpty ? "Add skills used on your resume" : "\(skillManager.skills.count) skills on your resume",
-                    color: Color("appPrimaryAccent")
-                ) { showingAddSkill = true }
-                
-                ProfileActionRow(
-                    icon: "folder.fill",
-                    title: "PROJECTS",
-                    subtitle: "\(careerDataService.projects.count) projects",
-                    color: Color("appPrimaryAccent")
-                ) { showingProjects = true }
-                
-                ProfileActionRow(
-                    icon: "briefcase.fill",
-                    title: "INTERNSHIPS",
-                    subtitle: "\(careerDataService.internships.count) internships",
-                    color: Color("appWarning")
-                ) { showingInternships = true }
-                
-                ProfileActionRow(
-                    icon: "trophy.fill",
-                    title: "CERTIFICATIONS",
-                    subtitle: "\(careerDataService.certificationModels.count) certifications",
-                    color: Color("appWarning")
-                ) { showingCertifications = true }
-                
-                ProfileActionRow(
-                    icon: "briefcase.fill",
-                    title: "WORK EXPERIENCE",
-                    subtitle: "\(careerDataService.workExperiences.count) experiences",
-                    color: Color("appSuccess")
-                ) { showingWorkExperience = true }
-                
-                ProfileActionRow(
-                    icon: "globe",
-                    title: "LANGUAGES",
-                    subtitle: languageManager.languages.isEmpty ? "Add spoken languages" : "\(languageManager.languages.count) languages on your resume",
-                    color: Color("appPrimaryAccent")
-                ) { showingLanguages = true }
-                
-                ProfileActionRow(
-                    icon: "doc.text.fill",
-                    title: "COVER LETTERS",
-                    subtitle: "\(coverLetterDataService.coverLetters.count) letters",
-                    color: Color("appPrimaryAccent")
-                ) { showingCoverLetter = true }
+                ForEach(ProfileCareerAction.allCases) { action in
+                    ProfileActionRow(
+                        icon: action.icon,
+                        title: action.rawValue,
+                        subtitle: subtitle(for: action),
+                        color: action.color
+                    ) {
+                        open(action)
+                    }
+                }
             }
+        }
+    }
+    
+    private func subtitle(for action: ProfileCareerAction) -> String {
+        switch action {
+        case .addSkill:
+            return skillManager.skills.isEmpty ? "Add skills used on your resume" : "\(skillManager.skills.count) skills on your resume"
+        case .projects:
+            return "\(careerDataService.projects.count) projects"
+        case .internships:
+            return "\(careerDataService.internships.count) internships"
+        case .certifications:
+            return "\(careerDataService.certificationModels.count) certifications"
+        case .workExperience:
+            return "\(careerDataService.workExperiences.count) experiences"
+        case .languages:
+            return languageManager.languages.isEmpty ? "Add spoken languages" : "\(languageManager.languages.count) languages on your resume"
+        case .coverLetters:
+            return "\(coverLetterDataService.coverLetters.count) letters"
+        }
+    }
+    
+    private func open(_ action: ProfileCareerAction) {
+        switch action {
+        case .addSkill: showingAddSkill = true
+        case .projects: showingProjects = true
+        case .internships: showingInternships = true
+        case .certifications: showingCertifications = true
+        case .workExperience: showingWorkExperience = true
+        case .languages: showingLanguages = true
+        case .coverLetters: showingCoverLetter = true
         }
     }
 

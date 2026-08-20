@@ -111,6 +111,22 @@ final class ResumeParserTests: XCTestCase {
     }
 }
 
+final class ProfileCareerActionTests: XCTestCase {
+    func testProfileTabDoesNotOfferUploadResume() {
+        let titles = ProfileCareerAction.allCases.map(\.rawValue)
+        XCTAssertFalse(titles.contains(where: { $0.localizedCaseInsensitiveContains("upload") }))
+        XCTAssertEqual(titles, [
+            "ADD SKILL",
+            "PROJECTS",
+            "INTERNSHIPS",
+            "CERTIFICATIONS",
+            "WORK EXPERIENCE",
+            "LANGUAGES",
+            "COVER LETTERS"
+        ])
+    }
+}
+
 final class CareerModelTests: XCTestCase {
     func testWorkExperienceDefaultIdentity() {
         let first = WorkExperience(title: "Intern", company: "Acme")
