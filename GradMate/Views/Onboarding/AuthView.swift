@@ -3,14 +3,6 @@ import AuthenticationServices
 import FirebaseAuth
 import UIKit
 
-#if canImport(UIKit)
-extension View {
-    func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
-}
-#endif
-
 struct AuthView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.colorScheme) private var colorScheme
@@ -392,8 +384,8 @@ struct LoginFormView: View {
                 .accessibilityLabel(Text("Forgot password?"))
             }
             Button(action: {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
+                hideKeyboard()
+                DeviceFeedback.impact(.medium)
                 error = nil
                 authViewModel.login(email: debouncedEmail, password: debouncedPassword) { success in
                     if !success {

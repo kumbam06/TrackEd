@@ -57,6 +57,7 @@ struct EditProfileView: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("EDIT PROFILE")
             .navigationBarTitleDisplayMode(.inline)

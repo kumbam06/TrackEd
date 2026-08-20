@@ -105,23 +105,25 @@ struct ProfileView: View {
                 LanguageListView()
                     .environmentObject(languageManager)
             }
-            .alert("Delete Account", isPresented: $showingDeleteAlert, actions: {
-                TextField("Type DELETE to confirm", text: $deleteConfirmationText)
-                Button("Cancel", role: .cancel) {
-                    deleteConfirmationText = ""
-                }
-                Button("Delete", role: .destructive) {
-                    Task {
-                        let success = await authViewModel.deleteAccount()
-                        if !success {
-                            deleteConfirmationText = ""
+            .sheet(isPresented: $showingDeleteAlert) {
+                DeleteAccountConfirmationSheet(
+                    confirmationText: $deleteConfirmationText,
+                    onCancel: {
+                        deleteConfirmationText = ""
+                        showingDeleteAlert = false
+                    },
+                    onDelete: {
+                        showingDeleteAlert = false
+                        Task {
+                            let success = await authViewModel.deleteAccount()
+                            if !success {
+                                deleteConfirmationText = ""
+                            }
                         }
+                        deleteConfirmationText = ""
                     }
-                    deleteConfirmationText = ""
-                }.disabled(deleteConfirmationText != "DELETE")
-            }, message: {
-                Text("This action is permanent and cannot be undone. To confirm, type DELETE below.")
-            })
+                )
+            }
         }
     }
     
@@ -736,6 +738,44 @@ struct ProfileActionRow: View {
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityHint("Opens \(title.lowercased())")
+    }
+}
+
+struct DeleteAccountConfirmationSheet: View {
+    @Binding var confirmationText: String
+    var onCancel: () -> Void
+    var onDelete: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("This action is permanent and cannot be undone. Type DELETE to confirm.")
+                    .font(.subheadline)
+                    .foregroundColor(Color("appTextSecondary"))
+                TextField("DELETE", text: $confirmationText)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .onSubmit { hideKeyboard() }
+                    .padding(12)
+                    .background(Color("appStrokeGray"))
+                    .cornerRadius(12)
+                Spacer()
+            }
+            .padding(20)
+            .navigationTitle("Delete Account")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button("Delete", action: onDelete)
+                        .disabled(confirmationText != "DELETE")
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

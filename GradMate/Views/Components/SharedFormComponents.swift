@@ -22,6 +22,10 @@ struct CustomTextField: View {
             
             TextField(placeholder, text: $text)
                 .textFieldStyle(CustomTextFieldStyle())
+                .textInputAutocapitalization(.sentences)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .onSubmit { hideKeyboard() }
         }
     }
 }

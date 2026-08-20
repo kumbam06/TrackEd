@@ -68,7 +68,7 @@ struct AdvancedFloatingTabBar: View {
                             selectedTab = index
                             animationOffset = CGFloat(index)
                         }
-                        hapticFeedback()
+                        DeviceFeedback.impact(.light)
                     }
                 )
             }
@@ -86,11 +86,6 @@ struct AdvancedFloatingTabBar: View {
                 .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
         )
         .ignoresSafeArea(edges: .bottom)
-    }
-    
-    private func hapticFeedback() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.impactOccurred()
     }
 }
 
