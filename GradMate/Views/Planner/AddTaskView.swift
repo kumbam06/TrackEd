@@ -208,36 +208,4 @@ struct PriorityButton: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-}
-
-struct QuickActionButton: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(color)
-                
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(Color("appTextPrimary"))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color("appCardBG"))
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color("appStrokeGray"), lineWidth: 1)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
 } 

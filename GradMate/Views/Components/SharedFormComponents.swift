@@ -41,4 +41,36 @@ struct CustomTextFieldStyle: TextFieldStyle {
                     .stroke(Color("appStrokeGray"), lineWidth: 1)
             )
     }
+}
+
+struct QuickActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(color)
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("appTextPrimary"))
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color("appCardBG"))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color("appStrokeGray"), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel(title)
+    }
 } 
